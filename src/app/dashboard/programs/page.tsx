@@ -190,7 +190,7 @@ export default function ProgramsListPage() {
             </div>
 
             {/* Faculty filter */}
-            <Select value={facultyFilter} onValueChange={setFacultyFilter}>
+            <Select value={facultyFilter} onValueChange={(v) => setFacultyFilter(v ?? "")}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="פקולטה" />
               </SelectTrigger>
@@ -205,7 +205,7 @@ export default function ProgramsListPage() {
             </Select>
 
             {/* Degree Type filter */}
-            <Select value={degreeFilter} onValueChange={setDegreeFilter}>
+            <Select value={degreeFilter} onValueChange={(v) => setDegreeFilter(v ?? "")}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="סוג תואר" />
               </SelectTrigger>
@@ -220,7 +220,7 @@ export default function ProgramsListPage() {
             </Select>
 
             {/* Level filter */}
-            <Select value={levelFilter} onValueChange={setLevelFilter}>
+            <Select value={levelFilter} onValueChange={(v) => setLevelFilter(v ?? "")}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="רמה" />
               </SelectTrigger>

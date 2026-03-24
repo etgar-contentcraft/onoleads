@@ -468,7 +468,7 @@ async function seedSpecializations(
   for (const prog of programs) {
     // Find the program ID by matching slug
     let programId: string | undefined;
-    for (const [slug, id] of programSlugToId) {
+    for (const [slug, id] of Array.from(programSlugToId.entries())) {
       if (slug === prog.slug || slug.startsWith(prog.slug)) {
         programId = id;
         break;

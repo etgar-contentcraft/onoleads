@@ -137,7 +137,7 @@ export default function PagesManagementPage() {
         language: page.language,
         status: "draft" as const,
         page_type: page.page_type,
-        program_id: (page as Record<string, unknown>).program_id ?? null,
+        program_id: (page as unknown as Record<string, unknown>).program_id ?? null,
       })
       .select()
       .single();
@@ -317,19 +317,19 @@ export default function PagesManagementPage() {
                     </p>
                   </div>
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                    <DropdownMenuTrigger >
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
+                      <DropdownMenuItem >
                         <Link href={`/dashboard/builder?page=${page.id}`} className="gap-2">
                           <Pencil className="w-4 h-4" />
                           עריכה
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
+                      <DropdownMenuItem >
                         <Link href={`/p/${page.slug}`} target="_blank" className="gap-2">
                           <Eye className="w-4 h-4" />
                           תצוגה מקדימה
@@ -420,19 +420,19 @@ export default function PagesManagementPage() {
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
+                          <DropdownMenuTrigger >
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
+                            <DropdownMenuItem >
                               <Link href={`/dashboard/builder?page=${page.id}`} className="gap-2">
                                 <Pencil className="w-4 h-4" />
                                 עריכה
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
+                            <DropdownMenuItem >
                               <Link href={`/p/${page.slug}`} target="_blank" className="gap-2">
                                 <Eye className="w-4 h-4" />
                                 תצוגה מקדימה

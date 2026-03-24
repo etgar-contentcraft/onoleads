@@ -121,9 +121,7 @@ const programSchema = z.object({
   slug: z.string().min(1, "slug הוא שדה חובה"),
   faculty_id: z.string().min(1, "יש לבחור פקולטה"),
   degree_type: z.string().min(1, "יש לבחור סוג תואר"),
-  level: z.enum(["bachelor", "master", "certificate", "continuing_ed"], {
-    required_error: "יש לבחור רמה",
-  }),
+  level: z.enum(["bachelor", "master", "certificate", "continuing_ed"], "יש לבחור רמה"),
   original_url: z.string().url("כתובת לא תקינה").optional().or(z.literal("")),
   description_he: z.string().optional(),
   description_en: z.string().optional(),

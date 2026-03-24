@@ -101,7 +101,7 @@ export default function NewPageWizard() {
       ]);
 
       if (templatesRes.data) setTemplates(templatesRes.data);
-      if (programsRes.data) setPrograms(programsRes.data as Program[]);
+      if (programsRes.data) setPrograms(programsRes.data as unknown as Program[]);
       setLoading(false);
     }
     fetchData();
@@ -162,7 +162,7 @@ export default function NewPageWizard() {
 
     // Create default sections from template
     if (newPage && selectedTemplate.section_schema && Array.isArray(selectedTemplate.section_schema)) {
-      const sections = selectedTemplate.section_schema.map((section: Record<string, unknown>, index: number) => ({
+      const sections = (selectedTemplate.section_schema as Record<string, unknown>[]).map((section, index) => ({
         page_id: newPage.id,
         section_type: (section as { type?: string }).type || "unknown",
         sort_order: index,
