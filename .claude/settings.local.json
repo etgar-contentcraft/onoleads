@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack --use-npm)",
+      "Read(//c/code/**)",
+      "Bash(npx --yes create-next-app@latest onoleads-temp --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack --use-npm --no-react-compiler)",
+      "Bash(npx --yes create-next-app@14 onoleads-temp --ts --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(cp -r onoleads-temp/* onoleads/)",
+      "Bash(cp onoleads-temp/.eslintrc.json onoleads/)",
+      "Bash(cp onoleads-temp/.gitignore onoleads/)",
+      "Bash(cp -r onoleads-temp/.next onoleads/)",
+      "Bash(ls onoleads-temp/.[!.]*)",
+      "Bash(cp \"C:/code/onoleads-temp/package.json\" \"C:/code/onoleads/\")",
+      "Bash(cp \"C:/code/onoleads-temp/package-lock.json\" \"C:/code/onoleads/\")",
+      "Bash(cp \"C:/code/onoleads-temp/postcss.config.mjs\" \"C:/code/onoleads/\")",
+      "Bash(cp \"C:/code/onoleads-temp/tailwind.config.ts\" \"C:/code/onoleads/\")",
+      "Bash(cp \"C:/code/onoleads-temp/tsconfig.json\" \"C:/code/onoleads/\")",
+      "Bash(npx --yes shadcn@latest init -d)",
+      "Bash(npm install:*)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(where python:*)",
+      "Bash(where python3:*)",
+      "Bash(/c/Users/etgar/AppData/Local/Programs/Python/Python*/python.exe)",
+      "Bash(--version)",
+      "Bash(/c/Python*/python.exe)",
+      "Bash(cmd.exe /c \"python --version\")",
+      "Bash(node -e \":*)",
+      "Bash(node --experimental-vm-modules -e \":*)"
+    ]
+  }
+}
