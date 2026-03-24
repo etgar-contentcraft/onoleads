@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Language } from "@/lib/types/database";
 
 interface FormField {
@@ -22,8 +22,9 @@ interface FormSectionProps {
 
 export function FormSection({ content, language, pageId, programId }: FormSectionProps) {
   const isRtl = language === "he" || language === "ar";
-  const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || "";
-  const submitText = (content[`submit_text_${language}`] as string) || (content.submit_text_he as string) || "שלחו לי פרטים";
+  const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "השאירו פרטים ונחזור אליכם" : "Leave your details");
+  const subheading = (content[`subheading_${language}`] as string) || (content.subheading_he as string) || (isRtl ? "יועץ לימודים אישי יחזור אליכם תוך 24 שעות" : "");
+  const submitText = (content[`submit_text_${language}`] as string) || (content.submit_text_he as string) || "שלחו לי מידע מלא";
   const thankYouMessage = (content[`thank_you_message_${language}`] as string) || (content.thank_you_message_he as string) || "";
 
   const fields: FormField[] = (content.fields as FormField[]) || [
@@ -36,13 +37,27 @@ export function FormSection({ content, language, pageId, programId }: FormSectio
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [inView, setInView] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
 
-  // Generate first-party cookie on mount
+  // Cookie setup
   useEffect(() => {
     if (!document.cookie.includes("onoleads_id=")) {
       const cookieId = crypto.randomUUID();
       document.cookie = `onoleads_id=${cookieId}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
     }
+  }, []);
+
+  // Scroll reveal
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } },
+      { threshold: 0.1 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
   const getLabel = (field: FormField) => {
@@ -119,20 +134,25 @@ export function FormSection({ content, language, pageId, programId }: FormSectio
     setSubmitting(false);
   };
 
+  // Thank you state
   if (submitted) {
     return (
-      <section id="form" className="py-16 md:py-20 bg-white" dir={isRtl ? "rtl" : "ltr"}>
-        <div className="max-w-lg mx-auto px-5 text-center">
-          <div className="animate-fade-in-up">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#B8D900]/20 flex items-center justify-center">
-              <svg className="w-10 h-10 text-[#B8D900]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      <section id="form" className="py-20 md:py-28 relative overflow-hidden" dir={isRtl ? "rtl" : "ltr"}>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#2a2628] via-[#3a3638] to-[#2a2628]" />
+        <div className="relative z-10 max-w-lg mx-auto px-5 text-center">
+          <div className="animate-scale-in">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[#B8D900]/20 flex items-center justify-center">
+              <svg className="w-12 h-12 text-[#B8D900]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" className="animate-check-draw" />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-[#4A4648] mb-3">
-              {thankYouMessage || (isRtl ? "תודה! נציג יחזור אליך בהקדם" : "Thank you! We'll be in touch soon")}
+            <h3 className="font-heading text-3xl font-extrabold text-white mb-3">
+              {thankYouMessage || (isRtl ? "תודה רבה!" : "Thank you!")}
             </h3>
-            <p className="text-[#716C70]">
+            <p className="text-white/70 text-lg">
+              {isRtl ? "נציג יחזור אליכם בהקדם" : "We'll be in touch soon"}
+            </p>
+            <p className="text-white/40 text-sm mt-4">
               {isRtl ? "הקריה האקדמית אונו - המכללה המומלצת בישראל" : "Ono Academic College"}
             </p>
           </div>
@@ -142,77 +162,133 @@ export function FormSection({ content, language, pageId, programId }: FormSectio
   }
 
   return (
-    <section id="form" className="py-16 md:py-20 bg-white" dir={isRtl ? "rtl" : "ltr"}>
-      <div className="max-w-lg mx-auto px-5">
-        {heading && (
-          <h2 className="text-2xl md:text-3xl font-bold text-[#4A4648] text-center mb-8">
-            {heading}
-          </h2>
-        )}
+    <section
+      id="form"
+      ref={sectionRef}
+      className="py-20 md:py-28 relative overflow-hidden"
+      dir={isRtl ? "rtl" : "ltr"}
+    >
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#2a2628] via-[#3a3638] to-[#2a2628]" />
+      <div className="absolute inset-0 opacity-[0.03]">
+        <div
+          style={{
+            backgroundImage: `radial-gradient(circle, #B8D900 1px, transparent 1px)`,
+            backgroundSize: "40px 40px",
+            width: "100%",
+            height: "100%",
+          }}
+        />
+      </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-2xl shadow-[0_4px_40px_rgba(0,0,0,0.08)] border border-gray-100 p-6 md:p-8 space-y-5"
+      <div className="relative z-10 max-w-xl mx-auto px-5">
+        {/* Header */}
+        <div
+          className="text-center mb-10 opacity-0"
+          style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
         >
-          {fields.map((field) => (
-            <div key={field.name}>
-              <label className="block text-sm font-semibold text-[#4A4648] mb-2">
-                {getLabel(field)}
-                {field.required && <span className="text-red-500 mr-1">*</span>}
-              </label>
+          {heading && (
+            <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-white mb-3">
+              {heading}
+            </h2>
+          )}
+          {subheading && (
+            <p className="text-white/60 text-lg">{subheading}</p>
+          )}
+        </div>
 
-              {field.type === "select" ? (
-                <select
-                  value={formData[field.name] || ""}
-                  onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                  className="w-full h-12 rounded-xl border-2 border-gray-200 bg-gray-50/50 px-4 text-[#4A4648] text-base transition-all duration-200 focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20"
-                >
-                  <option value="">{isRtl ? "בחרו..." : "Select..."}</option>
-                  {field.options?.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type={field.type}
-                  value={formData[field.name] || ""}
-                  onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                  dir={field.type === "tel" || field.type === "email" ? "ltr" : undefined}
-                  className="w-full h-12 rounded-xl border-2 border-gray-200 bg-gray-50/50 px-4 text-[#4A4648] text-base transition-all duration-200 focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 placeholder:text-gray-400"
-                  placeholder={getLabel(field)}
-                />
-              )}
-
-              {errors[field.name] && (
-                <p className="text-red-500 text-xs mt-1.5 font-medium">{errors[field.name]}</p>
-              )}
-            </div>
-          ))}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full h-14 rounded-xl bg-[#B8D900] text-[#2a2628] font-bold text-lg transition-all duration-200 hover:bg-[#c8e920] hover:shadow-[0_4px_20px_rgba(184,217,0,0.3)] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#B8D900]/50"
+        {/* Form Card */}
+        <div
+          className="opacity-0"
+          style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.2s forwards" : "none" }}
+        >
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white/[0.07] backdrop-blur-2xl rounded-3xl border border-white/10 p-7 md:p-10 shadow-[0_8px_60px_rgba(0,0,0,0.3)]"
           >
-            {submitting ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                {isRtl ? "שולח..." : "Sending..."}
-              </span>
-            ) : (
-              submitText
-            )}
-          </button>
+            <div className="space-y-5">
+              {fields.map((field) => (
+                <div key={field.name}>
+                  <label className="block text-white/80 text-sm font-medium mb-2">
+                    {getLabel(field)}
+                    {field.required && <span className="text-[#B8D900] mr-1">*</span>}
+                  </label>
 
-          <p className="text-center text-xs text-[#716C70] mt-3">
-            {isRtl
-              ? "הפרטים מאובטחים ולא יועברו לצד שלישי"
-              : "Your details are secure and will not be shared"}
-          </p>
-        </form>
+                  {field.type === "select" ? (
+                    <select
+                      value={formData[field.name] || ""}
+                      onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                      className="w-full h-14 rounded-xl bg-white/10 border border-white/20 px-5 text-white text-base focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none"
+                    >
+                      <option value="" className="bg-[#2a2628]">{isRtl ? "בחרו..." : "Select..."}</option>
+                      {field.options?.map((opt) => (
+                        <option key={opt} value={opt} className="bg-[#2a2628]">{opt}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={field.type}
+                      value={formData[field.name] || ""}
+                      onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                      dir={field.type === "tel" || field.type === "email" ? "ltr" : undefined}
+                      className="w-full h-14 rounded-xl bg-white/10 border border-white/20 px-5 text-white text-base placeholder:text-white/30 focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
+                      placeholder={getLabel(field)}
+                    />
+                  )}
+
+                  {errors[field.name] && (
+                    <p className="text-red-400 text-xs mt-2 font-medium flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {errors[field.name]}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full h-16 mt-8 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-xl transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_40px_rgba(184,217,0,0.4)] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {submitting ? (
+                <span className="flex items-center justify-center gap-3">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  {isRtl ? "שולח..." : "Sending..."}
+                </span>
+              ) : (
+                submitText
+              )}
+            </button>
+
+            {/* Trust indicators */}
+            <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
+              <div className="flex items-center gap-1.5 text-white/40 text-xs">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span>{isRtl ? "פרטיכם מאובטחים" : "Your data is secure"}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-white/40 text-xs">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>{isRtl ? "ללא התחייבות" : "No commitment"}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-white/40 text-xs">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span>{isRtl ? "100% פרטיות" : "100% privacy"}</span>
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
     </section>
   );

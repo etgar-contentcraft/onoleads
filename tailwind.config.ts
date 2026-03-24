@@ -12,6 +12,11 @@ const config: Config = {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      fontFamily: {
+        heebo: ["var(--font-heebo)", "sans-serif"],
+        heading: ["var(--font-rubik)", "var(--font-heebo)", "sans-serif"],
+        sans: ["var(--font-heebo)", "sans-serif"],
+      },
     },
   },
   plugins: [],

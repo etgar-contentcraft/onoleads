@@ -9,8 +9,9 @@
 }
 
 @theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
+  --font-heading: var(--font-rubik);
+  --font-heebo: var(--font-heebo);
+  --font-sans: var(--font-heebo);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -46,6 +47,14 @@
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) + 0.25rem);
   --radius-xl: calc(var(--radius) + 0.5rem);
+
+  /* Ono Brand */
+  --color-ono-green: #B8D900;
+  --color-ono-green-light: #d4f040;
+  --color-ono-green-dark: #9ab800;
+  --color-ono-dark: #2a2628;
+  --color-ono-gray: #716C70;
+  --color-ono-gray-medium: #4A4648;
 }
 
 @layer base {
@@ -124,16 +133,20 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    scroll-behavior: smooth;
   }
 }
 
-/* RTL Support */
+/* ============================================================================
+   RTL Support
+   ============================================================================ */
 [dir="rtl"] {
   text-align: right;
 }
 
-/* Scrollbar Styling */
+/* ============================================================================
+   Scrollbar Styling
+   ============================================================================ */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -152,11 +165,24 @@
   background: #B0B0B0;
 }
 
-/* Custom animations */
+/* ============================================================================
+   Landing Page Typography
+   ============================================================================ */
+.font-heading {
+  font-family: var(--font-rubik), var(--font-heebo), sans-serif;
+}
+
+.font-heebo {
+  font-family: var(--font-heebo), sans-serif;
+}
+
+/* ============================================================================
+   Landing Page Animations
+   ============================================================================ */
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -164,14 +190,26 @@
   }
 }
 
-.animate-fade-in-up {
-  animation: fade-in-up 0.4s ease-out;
-}
-
-@keyframes count-up {
+@keyframes fade-in-down {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
   }
   to {
     opacity: 1;
@@ -179,6 +217,247 @@
   }
 }
 
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(184, 217, 0, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(184, 217, 0, 0.6); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes count-up {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes scroll-hint {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+
+@keyframes check-draw {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-fade-in-down {
+  animation: fade-in-down 0.6s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.5s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.6s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.6s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.1) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
 .animate-count-up {
   animation: count-up 0.5s ease-out;
+}
+
+.animate-scroll-hint {
+  animation: scroll-hint 2s ease-in-out infinite;
+}
+
+.animate-check-draw {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: check-draw 0.4s ease-out 0.2s forwards;
+}
+
+/* Staggered animation delays */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+.stagger-6 { animation-delay: 0.6s; }
+
+/* ============================================================================
+   Landing Page Utility Classes
+   ============================================================================ */
+
+/* Glass morphism card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.glass-card-light {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+/* Gradient text */
+.text-gradient-green {
+  background: linear-gradient(135deg, #B8D900, #d4f040);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Section separator */
+.section-divider {
+  position: relative;
+}
+
+.section-divider::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: #B8D900;
+  border-radius: 2px;
+}
+
+/* Green accent border */
+.green-border-right {
+  border-right: 3px solid #B8D900;
+}
+
+[dir="ltr"] .green-border-right {
+  border-right: none;
+  border-left: 3px solid #B8D900;
+}
+
+/* Hover lift effect */
+.hover-lift {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* CTA button glow */
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-glow::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(184, 217, 0, 0.4), transparent, rgba(184, 217, 0, 0.4));
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.btn-glow:hover::after {
+  opacity: 1;
+}
+
+/* ============================================================================
+   Float label input styles
+   ============================================================================ */
+.float-label-group {
+  position: relative;
+}
+
+.float-label-group input,
+.float-label-group select {
+  padding-top: 1.25rem;
+  padding-bottom: 0.5rem;
+}
+
+.float-label-group label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.2s ease;
+  pointer-events: none;
+  color: #716C70;
+}
+
+.float-label-group input:focus ~ label,
+.float-label-group input:not(:placeholder-shown) ~ label,
+.float-label-group select:focus ~ label,
+.float-label-group select:not([value=""]) ~ label {
+  top: 0.5rem;
+  transform: translateY(0);
+  font-size: 0.7rem;
+  color: #B8D900;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   Responsive image cover
+   ============================================================================ */
+.img-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }

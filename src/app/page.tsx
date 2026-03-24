@@ -12,10 +12,22 @@ export const metadata: Metadata = {
     description:
       "מצא את התואר שמתאים לך - תוכניות לימוד לתואר ראשון ושני במגוון תחומים.",
     type: "website",
+    locale: "he_IL",
+    images: [
+      {
+        url: "https://www.ono.ac.il/wp-content/uploads/2023/04/Ono_009-min-1-scaled-e1649600345705-2-2.jpg",
+        width: 1200,
+        height: 630,
+        alt: "הקריה האקדמית אונו",
+      },
+    ],
+  },
+  other: {
+    "theme-color": "#B8D900",
   },
 };
 
-export const revalidate = 3600; // revalidate every hour
+export const revalidate = 3600;
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -36,7 +48,8 @@ export default async function HomePage() {
     console.error("Failed to fetch programs:", error);
   }
 
-  const safePrograms: ProgramWithFaculty[] = (programs as ProgramWithFaculty[]) || [];
+  const safePrograms: ProgramWithFaculty[] =
+    (programs as ProgramWithFaculty[]) || [];
 
   return <HomepageClient programs={safePrograms} />;
 }

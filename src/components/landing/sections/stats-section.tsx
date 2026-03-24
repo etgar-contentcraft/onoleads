@@ -16,7 +16,7 @@ interface StatsSectionProps {
   language: Language;
 }
 
-function AnimatedStat({ item, language, inView }: { item: StatItem; language: Language; inView: boolean }) {
+function AnimatedStat({ item, language, inView, index }: { item: StatItem; language: Language; inView: boolean; index: number }) {
   const label = (item[`label_${language}` as keyof StatItem] as string) || item.label_he || "";
   const [displayValue, setDisplayValue] = useState("0");
   const hasAnimated = useRef(false);
@@ -53,12 +53,18 @@ function AnimatedStat({ item, language, inView }: { item: StatItem; language: La
   }, [inView, item.value]);
 
   return (
-    <div className="flex flex-col items-center text-center p-6">
-      <span className="text-4xl md:text-5xl font-extrabold text-[#B8D900] tabular-nums">
+    <div
+      className="flex flex-col items-center text-center p-6 md:p-8 opacity-0"
+      style={{
+        animation: inView ? `scale-in 0.5s ease-out ${index * 0.12}s forwards` : "none",
+      }}
+    >
+      <span className="text-5xl md:text-6xl lg:text-7xl font-heading font-extrabold text-[#B8D900] tabular-nums leading-none">
         {displayValue}
-        {item.suffix && <span className="text-2xl md:text-3xl">{item.suffix}</span>}
+        {item.suffix && <span className="text-3xl md:text-4xl">{item.suffix}</span>}
       </span>
-      <span className="text-sm md:text-base text-[#716C70] mt-2 font-medium">{label}</span>
+      <div className="w-10 h-0.5 bg-[#B8D900]/30 rounded-full my-3" />
+      <span className="text-sm md:text-base text-white/70 font-medium">{label}</span>
     </div>
   );
 }
@@ -66,6 +72,7 @@ function AnimatedStat({ item, language, inView }: { item: StatItem; language: La
 export function StatsSection({ content, language }: StatsSectionProps) {
   const isRtl = language === "he" || language === "ar";
   const items: StatItem[] = (content.items as StatItem[]) || [];
+  const bgImage = (content.background_image_url as string) || "";
   const [inView, setInView] = useState(false);
   const ref = useRef<HTMLElement>(null);
 
@@ -83,14 +90,35 @@ export function StatsSection({ content, language }: StatsSectionProps) {
   if (items.length === 0) return null;
 
   return (
-    <section ref={ref} className="py-12 md:py-16 bg-[#4A4648]" dir={isRtl ? "rtl" : "ltr"}>
-      <div className="max-w-5xl mx-auto px-5">
+    <section ref={ref} className="relative py-16 md:py-24 overflow-hidden" dir={isRtl ? "rtl" : "ltr"}>
+      {/* Background */}
+      <div className="absolute inset-0 z-0">
+        {bgImage ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={bgImage} alt="" className="w-full h-full object-cover" loading="lazy" />
+            <div className="absolute inset-0 bg-[#2a2628]/92" />
+          </>
+        ) : (
+          <div className="w-full h-full bg-[#2a2628]">
+            <div
+              className="absolute inset-0 opacity-[0.03]"
+              style={{
+                backgroundImage: `radial-gradient(circle, #B8D900 1px, transparent 1px)`,
+                backgroundSize: "40px 40px",
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="relative z-10 max-w-6xl mx-auto px-5">
         <div
-          className="grid gap-4"
+          className="grid gap-6 md:gap-8"
           style={{ gridTemplateColumns: `repeat(${Math.min(items.length, 4)}, minmax(0, 1fr))` }}
         >
           {items.map((item, index) => (
-            <AnimatedStat key={index} item={item} language={language} inView={inView} />
+            <AnimatedStat key={index} item={item} language={language} inView={inView} index={index} />
           ))}
         </div>
       </div>

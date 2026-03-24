@@ -17,11 +17,19 @@ export function HeroSection({ content, language }: HeroSectionProps) {
   const bgImage = (content.background_image_url as string) || "";
   const statValue = (content.stat_value as string) || "";
   const statLabel = (content[`stat_label_${language}`] as string) || (content.stat_label_he as string) || "";
+  const facultyName = (content[`faculty_name_${language}`] as string) || (content.faculty_name_he as string) || "";
+  const degreeType = (content.degree_type as string) || "";
 
   const [counterValue, setCounterValue] = useState("0");
+  const [visible, setVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const hasAnimated = useRef(false);
 
+  useEffect(() => {
+    setVisible(true);
+  }, []);
+
+  // Counter animation
   useEffect(() => {
     if (!statValue || hasAnimated.current) return;
 
@@ -64,7 +72,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-[85vh] md:min-h-[90vh] flex items-center overflow-hidden"
+      className="relative min-h-screen flex items-center overflow-hidden"
       dir={isRtl ? "rtl" : "ltr"}
     >
       {/* Background */}
@@ -78,15 +86,15 @@ export function HeroSection({ content, language }: HeroSectionProps) {
               className="w-full h-full object-cover"
               loading="eager"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/45 to-black/80" />
           </>
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#4A4648] via-[#3a3638] to-[#2a2628]">
-            <div className="absolute inset-0 opacity-10"
+          <div className="w-full h-full bg-gradient-to-br from-[#2a2628] via-[#3a3638] to-[#2a2628]">
+            <div
+              className="absolute inset-0 opacity-[0.04]"
               style={{
-                backgroundImage: `radial-gradient(circle at 25% 25%, #B8D900 1px, transparent 1px),
-                                   radial-gradient(circle at 75% 75%, #B8D900 1px, transparent 1px)`,
-                backgroundSize: "60px 60px",
+                backgroundImage: `radial-gradient(circle, #B8D900 1px, transparent 1px)`,
+                backgroundSize: "50px 50px",
               }}
             />
           </div>
@@ -94,46 +102,82 @@ export function HeroSection({ content, language }: HeroSectionProps) {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-5 md:px-8 py-16 md:py-24">
-        <div className="max-w-2xl">
-          {/* College Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full bg-white/10 backdrop-blur-md border border-white/20">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-5 md:px-8 py-24 md:py-32">
+        <div className="max-w-3xl">
+          {/* College branding */}
+          <div
+            className="inline-flex items-center gap-3 px-5 py-2.5 mb-8 rounded-full bg-white/10 backdrop-blur-md border border-white/15 opacity-0"
+            style={{ animation: visible ? "fade-in-down 0.7s ease-out 0.1s forwards" : "none" }}
+          >
             <div className="w-2 h-2 rounded-full bg-[#B8D900] animate-pulse" />
             <span className="text-white/90 text-xs md:text-sm font-medium tracking-wide">
               {isRtl ? "הקריה האקדמית אונו - המכללה המומלצת בישראל" : "Ono Academic College"}
             </span>
           </div>
 
-          {/* Heading */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.15] mb-4 md:mb-6 tracking-tight">
+          {/* Faculty name */}
+          {facultyName && (
+            <div
+              className="mb-4 opacity-0"
+              style={{ animation: visible ? "fade-in-up 0.7s ease-out 0.2s forwards" : "none" }}
+            >
+              <span className="text-[#B8D900] font-heading font-bold text-base md:text-lg">
+                {facultyName}
+              </span>
+            </div>
+          )}
+
+          {/* Main Heading */}
+          <h1
+            className="font-heading text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-white leading-[1.1] mb-5 opacity-0"
+            style={{ animation: visible ? "fade-in-up 0.8s ease-out 0.3s forwards" : "none" }}
+          >
             {heading}
           </h1>
 
+          {/* Degree badge */}
+          {degreeType && (
+            <div
+              className="mb-6 opacity-0"
+              style={{ animation: visible ? "fade-in-up 0.7s ease-out 0.4s forwards" : "none" }}
+            >
+              <span className="inline-flex items-center px-4 py-2 rounded-full bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm">
+                {degreeType}
+              </span>
+            </div>
+          )}
+
           {/* Subheading */}
           {subheading && (
-            <p className="text-lg md:text-xl text-white/85 leading-relaxed mb-8 max-w-xl">
+            <p
+              className="text-lg md:text-xl lg:text-2xl text-white/80 leading-relaxed mb-10 max-w-2xl opacity-0"
+              style={{ animation: visible ? "fade-in-up 0.8s ease-out 0.45s forwards" : "none" }}
+            >
               {subheading}
             </p>
           )}
 
           {/* CTA + Stat Row */}
-          <div className="flex flex-wrap items-center gap-6">
+          <div
+            className="flex flex-wrap items-center gap-6 md:gap-8 opacity-0"
+            style={{ animation: visible ? "fade-in-up 0.8s ease-out 0.6s forwards" : "none" }}
+          >
             {ctaText && (
               <a
                 href={ctaUrl}
-                className="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-bold text-base md:text-lg transition-all duration-200 hover:bg-[#c8e920] hover:shadow-[0_0_30px_rgba(184,217,0,0.3)] hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/50 focus:ring-offset-2 focus:ring-offset-transparent"
+                className="inline-flex items-center justify-center px-10 py-5 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_40px_rgba(184,217,0,0.4)] hover:scale-[1.03] active:scale-[0.98]"
               >
                 {ctaText}
               </a>
             )}
 
             {statValue && (
-              <div className={`flex items-center gap-3 ${isRtl ? "border-r-2" : "border-l-2"} border-[#B8D900]/60 ${isRtl ? "pr-6" : "pl-6"}`}>
-                <span className="text-3xl md:text-4xl font-extrabold text-[#B8D900] animate-count-up">
+              <div className={`flex items-center gap-4 ${isRtl ? "border-r-2" : "border-l-2"} border-[#B8D900]/50 ${isRtl ? "pr-8" : "pl-8"}`}>
+                <span className="text-4xl md:text-5xl font-heading font-extrabold text-[#B8D900]">
                   {counterValue}
                 </span>
                 {statLabel && (
-                  <span className="text-sm md:text-base text-white/70 max-w-[120px] leading-tight">
+                  <span className="text-sm md:text-base text-white/70 max-w-[140px] leading-snug">
                     {statLabel}
                   </span>
                 )}
@@ -143,8 +187,15 @@ export function HeroSection({ content, language }: HeroSectionProps) {
         </div>
       </div>
 
-      {/* Bottom Gradient Fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent z-10" />
+      {/* Scroll indicator */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 animate-scroll-hint">
+        <svg className="w-6 h-6 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7" />
+        </svg>
+      </div>
+
+      {/* Bottom gradient fade */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent z-10" />
     </section>
   );
 }

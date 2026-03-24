@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Language } from "@/lib/types/database";
 
 interface WhatsappSectionProps {
@@ -12,8 +12,15 @@ export function WhatsappSection({ content, language }: WhatsappSectionProps) {
   const isRtl = language === "he" || language === "ar";
   const phone = (content.phone as string) || "";
   const message = (content[`message_${language}`] as string) || (content.message_he as string) || "";
-  const tooltip = (content[`tooltip_${language}`] as string) || (content.tooltip_he as string) || "";
+  const tooltip = (content[`tooltip_${language}`] as string) || (content.tooltip_he as string) || (isRtl ? "שלחו לנו הודעה" : "Send us a message");
   const [showTooltip, setShowTooltip] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    // Delay appearance for a smooth entrance
+    const timer = setTimeout(() => setVisible(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!phone) return null;
 
@@ -21,7 +28,9 @@ export function WhatsappSection({ content, language }: WhatsappSectionProps) {
 
   return (
     <div
-      className={`fixed bottom-6 z-50 ${isRtl ? "left-6" : "right-6"}`}
+      className={`fixed bottom-6 z-50 transition-all duration-700 ${isRtl ? "left-6" : "right-6"} ${
+        visible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+      }`}
       dir={isRtl ? "rtl" : "ltr"}
     >
       {/* Tooltip */}
@@ -29,19 +38,20 @@ export function WhatsappSection({ content, language }: WhatsappSectionProps) {
         <div
           className={`absolute bottom-full mb-3 ${
             isRtl ? "left-0" : "right-0"
-          } whitespace-nowrap px-4 py-2 rounded-lg bg-[#4A4648] text-white text-sm font-medium shadow-lg animate-fade-in-up`}
+          } whitespace-nowrap px-4 py-2.5 rounded-xl bg-[#2a2628] text-white text-sm font-medium shadow-xl animate-fade-in-up`}
         >
           {tooltip}
           <div
             className={`absolute top-full ${
-              isRtl ? "left-6" : "right-6"
-            } w-3 h-3 bg-[#4A4648] transform rotate-45 -mt-1.5`}
+              isRtl ? "left-7" : "right-7"
+            } w-3 h-3 bg-[#2a2628] transform rotate-45 -mt-1.5`}
           />
         </div>
       )}
 
-      {/* Pulse ring */}
+      {/* Pulse rings */}
       <div className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-20" />
+      <div className="absolute inset-[-4px] rounded-full bg-[#25D366] animate-pulse opacity-10" />
 
       {/* Button */}
       <a
@@ -50,7 +60,7 @@ export function WhatsappSection({ content, language }: WhatsappSectionProps) {
         rel="noopener noreferrer"
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
-        className="relative flex items-center justify-center w-16 h-16 rounded-full bg-[#25D366] text-white shadow-[0_4px_20px_rgba(37,211,102,0.4)] hover:shadow-[0_4px_30px_rgba(37,211,102,0.6)] hover:scale-110 transition-all duration-200 active:scale-95"
+        className="relative flex items-center justify-center w-16 h-16 rounded-full bg-[#25D366] text-white shadow-[0_4px_25px_rgba(37,211,102,0.5)] hover:shadow-[0_4px_35px_rgba(37,211,102,0.7)] hover:scale-110 transition-all duration-300 active:scale-95"
         aria-label="WhatsApp"
       >
         <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
