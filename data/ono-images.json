@@ -1,0 +1,81 @@
+{
+  "logo": "https://www.ono.ac.il/wp-content/uploads/2025/12/לוגו-אונו.png",
+  "logo_alt": "https://www.ono.ac.il/wp-content/uploads/2021/11/logo.png",
+  "campus": {
+    "kiryat_ono": "https://www.ono.ac.il/wp-content/uploads/2019/02/V2_OP2-e1677752521329.jpg",
+    "jerusalem": "https://www.ono.ac.il/wp-content/uploads/2019/02/-e1658759337760.jpg",
+    "jerusalem_seating": "https://www.ono.ac.il/wp-content/uploads/2019/02/0M4A7723-min-scaled-e1671527130976-300x200-s.jpg",
+    "haifa": "https://www.ono.ac.il/wp-content/uploads/2019/02/haifa-min-1-e1671529340246.jpg"
+  },
+  "banners": {
+    "main": "https://www.ono.ac.il/wp-content/uploads/2020/05/mobile_991x374_4-min-scaled.jpg",
+    "campus_wide": "https://www.ono.ac.il/wp-content/uploads/2023/04/Ono_009-min-1-scaled-e1649600345705-2-2.jpg",
+    "law": "https://www.ono.ac.il/wp-content/uploads/2019/05/desk_1920x628_25.jpg",
+    "nursing": "https://www.ono.ac.il/wp-content/uploads/2019/06/desk_1920x628_2.jpg",
+    "computer_science": "https://www.ono.ac.il/wp-content/uploads/2019/05/freestocks-I_pOqP6kCOI-unsplash-scaled.jpg"
+  },
+  "faculty_icons": {
+    "business": "https://www.ono.ac.il/wp-content/uploads/2019/07/מנהל-עסקים.png",
+    "law": "https://www.ono.ac.il/wp-content/uploads/2019/05/משפטים.png",
+    "law_alt": "https://www.ono.ac.il/wp-content/uploads/2019/05/משפטים-ללא-משפטנים-1.png",
+    "computer_science": "https://www.ono.ac.il/wp-content/uploads/2019/05/COMPUTER-2.png",
+    "education": "https://www.ono.ac.il/wp-content/uploads/2019/05/EDUCATION-SPORT-1.png",
+    "health": "https://www.ono.ac.il/wp-content/uploads/2019/05/ripoy-beisuk-01.png",
+    "health_sciences": "https://www.ono.ac.il/wp-content/uploads/2019/05/מדעי-השיקום.png",
+    "music": "https://www.ono.ac.il/wp-content/uploads/2019/04/PIRSUM-1.png",
+    "special": "https://www.ono.ac.il/wp-content/uploads/2019/05/אייקון-לתכניות-מיוחדות-01.png"
+  },
+  "program_images": {
+    "computer_science": [
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/freestocks-I_pOqP6kCOI-unsplash-scaled.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/195x195pixel_67.png",
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/195x195pixel_77-1.png",
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/195x195pixel_92.png"
+    ],
+    "law": [
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/desk_1920x628_25.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/195x195pixel_51.png",
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/195x195pixel_40-1.png",
+      "https://www.ono.ac.il/wp-content/uploads/2021/04/1.png"
+    ],
+    "nursing": [
+      "https://www.ono.ac.il/wp-content/uploads/2019/06/desk_1920x628_2.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2022/08/MG_0528-min-scaled.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/rivi-min-scaled-1-e1677409426401.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/IMG_4334-min-1-scaled-1-e1677413658361.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2022/08/MG_0456-min-scaled.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2022/08/MG_9689-min-scaled.jpg"
+    ]
+  },
+  "people": {
+    "cs_alumni": [
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/רן-בר-זיק.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/אלינור-עינב.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/רועי-צמח.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/MAOR-ASSA-min.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/GUY-REFAEL-YONA-min.jpg"
+    ],
+    "law_faculty": [
+      "https://www.ono.ac.il/wp-content/uploads/2019/05/yuval-elbashan.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2022/08/YacovCohen-יעקבכהן-min-2.jpg",
+      "https://www.ono.ac.il/wp-content/uploads/2022/08/תומר-כהן-משפטים-1.jpg"
+    ],
+    "nursing_faculty": [
+      "https://www.ono.ac.il/wp-content/uploads/2024/04/אורלי-תורן.png"
+    ]
+  },
+  "icons": {
+    "calendar": "https://www.ono.ac.il/wp-content/themes/ono/assets/images/noun_Calendar.png",
+    "location": "https://www.ono.ac.il/wp-content/themes/ono/assets/images/noun_Location.png",
+    "department": "https://www.ono.ac.il/wp-content/themes/ono/assets/images/Group%20618.png",
+    "map": "https://www.ono.ac.il/wp-content/uploads/2022/08/icon_map.svg"
+  },
+  "hero_images_by_faculty": {
+    "business": "https://www.ono.ac.il/wp-content/uploads/2023/04/Ono_009-min-1-scaled-e1649600345705-2-2.jpg",
+    "law": "https://www.ono.ac.il/wp-content/uploads/2019/05/desk_1920x628_25.jpg",
+    "humanities": "https://www.ono.ac.il/wp-content/uploads/2019/02/V2_OP2-e1677752521329.jpg",
+    "health": "https://www.ono.ac.il/wp-content/uploads/2019/06/desk_1920x628_2.jpg",
+    "technology": "https://www.ono.ac.il/wp-content/uploads/2019/05/freestocks-I_pOqP6kCOI-unsplash-scaled.jpg",
+    "international": "https://www.ono.ac.il/wp-content/uploads/2020/05/mobile_991x374_4-min-scaled.jpg"
+  }
+}
