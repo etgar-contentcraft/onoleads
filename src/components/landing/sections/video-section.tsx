@@ -131,24 +131,6 @@ function YoutubeEmbed({ youtubeId, title }: { youtubeId: string; title: string }
   );
 }
 
-/** Small "Watch on YouTube" link shown below the player when an embed is active */
-function WatchOnYoutube({ youtubeId }: { youtubeId: string }) {
-  if (!youtubeId) return null;
-  return (
-    <a
-      href={`https://www.youtube.com/watch?v=${youtubeId}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 text-xs text-[#9A969A] hover:text-[#2a2628] transition-colors font-heebo mt-2"
-    >
-      <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="#FF0000" aria-hidden="true">
-        <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.13C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.56A3.02 3.02 0 0 0 .5 6.19C0 8.03 0 12 0 12s0 3.97.5 5.81a3.02 3.02 0 0 0 2.12 2.13C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.56a3.02 3.02 0 0 0 2.12-2.13C24 15.97 24 12 24 12s0-3.97-.5-5.81zM9.75 15.5v-7l6.5 3.5-6.5 3.5z" />
-      </svg>
-      צפה ביוטיוב
-    </a>
-  );
-}
-
 /**
  * A play-button overlay shown on top of a thumbnail before the user clicks.
  * Pure CSS triangle — no SVG dependency.
@@ -226,8 +208,6 @@ function VideoCard({
           <YoutubeEmbed youtubeId={extractYoutubeId(video.youtube_id)} title={video.title_he} />
         )}
       </div>
-      {playing && <WatchOnYoutube youtubeId={extractYoutubeId(video.youtube_id)} />}
-
       {/* Card metadata */}
       <div className="mt-3 flex items-start justify-between gap-2">
         <h3 className="font-heading font-bold text-[#2a2628] text-sm md:text-base leading-snug line-clamp-2">
@@ -370,12 +350,9 @@ export function VideoSection({ content, language }: VideoSectionProps) {
 
               {/* Active video title + duration + YouTube link below player */}
               <div className="mt-4 flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-heading font-bold text-[#2a2628] text-lg md:text-xl leading-snug">
-                    {activeVideo.title_he}
-                  </h3>
-                  {playing && <WatchOnYoutube youtubeId={extractYoutubeId(activeVideo.youtube_id)} />}
-                </div>
+                <h3 className="font-heading font-bold text-[#2a2628] text-lg md:text-xl leading-snug">
+                  {activeVideo.title_he}
+                </h3>
                 {activeVideo.duration_he && (
                   <span className="shrink-0 font-heebo text-sm text-[#716C70] bg-gray-100 rounded-lg px-3 py-1 mt-0.5">
                     {activeVideo.duration_he}

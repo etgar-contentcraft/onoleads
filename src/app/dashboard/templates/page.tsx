@@ -96,7 +96,7 @@ interface SectionSchemaItem {
 /** A row from the shared_sections table */
 interface SharedSection {
   id: string;
-  name: string;
+  name_he: string;
   section_type: string;
 }
 
@@ -367,9 +367,8 @@ export default function TemplatesPage() {
     setLoadingShared(true);
     const { data } = await supabase
       .from("shared_sections")
-      .select("id, name, section_type")
-      .eq("is_active", true)
-      .order("name", { ascending: true });
+      .select("id, name_he, section_type")
+      .order("name_he", { ascending: true });
     setSharedSections((data as SharedSection[]) || []);
     setLoadingShared(false);
   }, [supabase]);
@@ -442,7 +441,7 @@ export default function TemplatesPage() {
           is_visible: true,
           content: {},
           shared_section_id: shared.id,
-          shared_section_name: shared.name,
+          shared_section_name: shared.name_he,
         },
       ]),
     }));
@@ -800,7 +799,7 @@ export default function TemplatesPage() {
                               >
                                 <Globe className="w-3.5 h-3.5 text-[#9A969A] shrink-0" />
                                 <span className="flex-1 text-xs font-medium text-[#2A2628] truncate">
-                                  {shared.name}
+                                  {shared.name_he}
                                 </span>
                                 <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium ${cfg.color}`}>
                                   {cfg.label}

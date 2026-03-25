@@ -2606,6 +2606,8 @@ export default function PageBuilderPage() {
       is_visible: s.is_visible,
       content: s.content,
       styles: s.styles ?? null,
+      // Preserve shared_section_id so global-section links are not lost on save
+      shared_section_id: s.shared_section_id ?? null,
     }));
 
     // --- Snapshot current state before overwriting ---
@@ -2662,7 +2664,9 @@ export default function PageBuilderPage() {
         }).catch(() => {/* non-blocking */});
       }
     } else {
-      showToast("שגיאה בשמירה", "error");
+      // Log full error for debugging, show brief message in UI
+      console.error("[handleSaveAll] upsert error:", JSON.stringify(error));
+      showToast(`שגיאה בשמירה: ${error.message || error.code || "unknown"}`, "error");
     }
     setSaving(false);
   };

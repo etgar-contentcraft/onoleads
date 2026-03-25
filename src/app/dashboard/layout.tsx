@@ -28,10 +28,12 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
-        setUser({
-          email: user.email,
-          name: user.user_metadata?.name,
-        });
+        // Prefer explicit display name; fall back to email prefix (before @)
+        const name =
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          (user.email ? user.email.split("@")[0] : undefined);
+        setUser({ email: user.email, name });
       }
     });
   }, []);

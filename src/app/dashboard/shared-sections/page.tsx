@@ -143,12 +143,24 @@ export default function SharedSectionsPage() {
         .from("shared_sections")
         .update({ name_he: formName, section_type: formType, category: formCategory, content: parsed })
         .eq("id", editTarget.id);
-      if (!error) { setEditOpen(false); load(); }
+      if (!error) {
+        setEditOpen(false);
+        load();
+      } else {
+        console.error("[shared-sections] update error:", error);
+        setJsonError(`שגיאה בשמירה: ${error.message || error.code}`);
+      }
     } else {
       const { error } = await supabase
         .from("shared_sections")
         .insert({ name_he: formName, section_type: formType, category: formCategory, content: parsed });
-      if (!error) { setEditOpen(false); load(); }
+      if (!error) {
+        setEditOpen(false);
+        load();
+      } else {
+        console.error("[shared-sections] insert error:", error);
+        setJsonError(`שגיאה ביצירה: ${error.message || error.code}`);
+      }
     }
     setSaving(false);
   };
