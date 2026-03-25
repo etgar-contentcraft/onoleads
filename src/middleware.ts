@@ -80,14 +80,11 @@ export async function middleware(request: NextRequest) {
             request.cookies.set(name, value)
           )
           supabaseResponse = NextResponse.next({ request })
+          // IMPORTANT: Use Supabase's own cookie options — do NOT override with httpOnly:true.
+          // Supabase auth cookies must be readable by client-side JS so the browser client
+          // can attach the JWT to API requests. httpOnly:true breaks the browser Supabase client.
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, {
-              ...options,
-              /* Enforce secure cookie settings for auth cookies */
-              httpOnly: true,
-              secure: process.env.NODE_ENV === "production",
-              sameSite: "lax",
-            })
+            supabaseResponse.cookies.set(name, value, options)
           )
         },
       },
