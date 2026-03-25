@@ -82,6 +82,19 @@ interface PageOverrideSettings {
   facebook_pixel_id?: string;
   /** "true" to enable exit-intent popup on this page (off by default) */
   exit_intent_enabled?: string;
+  /** "true" to enable social proof toast on this page (off by default) */
+  social_proof_enabled?: string;
+  /** Days window for social proof count, stored as string */
+  social_proof_days?: string;
+}
+
+/** A saved version snapshot of page sections */
+interface PageVersion {
+  id: string;
+  version_num: number;
+  sections_snapshot: Record<string, unknown>[];
+  created_at: string;
+  created_by: string | null;
 }
 
 interface PageData {
@@ -507,18 +520,27 @@ function SortableSectionRow({
 // unmount/remount and lose focus on every keystroke.
 // ---------------------------------------------------------------------------
 
+/** Tooltip hint showing supported DTR variables — shown below text fields */
+const DTR_HINT = (
+  <p className="text-[10px] text-[#B8D900]/80 mt-0.5 font-mono leading-relaxed" dir="ltr">
+    ⓘ תומך ב: {"{{utm_source}}"} {"{{utm_campaign}}"} {"{{utm_medium}}"} {"{{utm_term}}"} {"{{utm_content}}"} {"{{referrer}}"} &#8203;| fallback: {"{{utm_source|Google}}"}
+  </p>
+);
+
 /** Props shared by simple field helpers */
 interface FieldProps {
   label: string;
   fieldKey: string;
   placeholder?: string;
   dir?: "rtl" | "ltr";
+  /** When true, shows the DTR variable hint below the field */
+  dtrHint?: boolean;
   draft: Record<string, unknown>;
   set: (key: string, value: unknown) => void;
 }
 
 /** Renders a labeled text input bound to draft[fieldKey] */
-function Field({ label, fieldKey, placeholder = "", dir = "rtl", draft, set }: FieldProps) {
+function Field({ label, fieldKey, placeholder = "", dir = "rtl", dtrHint, draft, set }: FieldProps) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
@@ -529,6 +551,7 @@ function Field({ label, fieldKey, placeholder = "", dir = "rtl", draft, set }: F
         dir={dir}
         className="h-9 text-sm"
       />
+      {dtrHint && DTR_HINT}
     </div>
   );
 }
@@ -538,7 +561,7 @@ interface TextareaFieldProps extends FieldProps {
 }
 
 /** Renders a labeled textarea bound to draft[fieldKey] */
-function TextareaField({ label, fieldKey, placeholder = "", rows = 3, dir = "rtl", draft, set }: TextareaFieldProps) {
+function TextareaField({ label, fieldKey, placeholder = "", rows = 3, dir = "rtl", dtrHint, draft, set }: TextareaFieldProps) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
@@ -550,6 +573,7 @@ function TextareaField({ label, fieldKey, placeholder = "", rows = 3, dir = "rtl
         rows={rows}
         className="text-sm resize-none"
       />
+      {dtrHint && DTR_HINT}
     </div>
   );
 }
@@ -984,8 +1008,8 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "hero":
         return (
           <div className="space-y-4">
-            <Field label="כותרת ראשית" fieldKey="heading_he" placeholder="כותרת ראשית..." draft={draft} set={set} />
-            <TextareaField label="כותרת משנה" fieldKey="subheading_he" placeholder="פרטים נוספים..." draft={draft} set={set} />
+            <Field label="כותרת ראשית" fieldKey="heading_he" placeholder="כותרת ראשית..." dtrHint draft={draft} set={set} />
+            <TextareaField label="כותרת משנה" fieldKey="subheading_he" placeholder="פרטים נוספים..." dtrHint draft={draft} set={set} />
             <Field label="טקסט כפתור" fieldKey="cta_text_he" placeholder="השאירו פרטים" draft={draft} set={set} />
             <div className="grid grid-cols-2 gap-3">
               <Field label="ערך נתון (למשל 50,000+)" fieldKey="stat_value" placeholder="50,000+" dir="ltr" draft={draft} set={set} />
@@ -1519,6 +1543,7 @@ function SettingField({ label, fieldKey, placeholder, hint, dir = "ltr", setting
  */
 function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onTyChange, onSave, saving }: PageSettingsDialogProps) {
   const exitEnabled = settings.exit_intent_enabled === "true";
+  const socialEnabled = settings.social_proof_enabled === "true";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -1588,6 +1613,36 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                     aria-checked={exitEnabled}
                   >
                     <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${exitEnabled ? "translate-x-4" : "translate-x-0"}`} />
+                  </button>
+                </div>
+                {/* Social Proof Toast Toggle */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <Label className="text-xs font-semibold text-[#2A2628] block">הוכחה חברתית (Social Proof)</Label>
+                    <p className="text-[11px] text-[#9A969A] mt-0.5 leading-relaxed">toast קטן: &ldquo;X אנשים נרשמו השבוע&rdquo;. <span className="text-amber-600 font-medium">כבוי כברירת מחדל.</span></p>
+                    {socialEnabled && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <Label className="text-[11px] text-[#716C70] shrink-0">ימים אחורה:</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={90}
+                          value={settings.social_proof_days || "7"}
+                          onChange={(e) => onChange("social_proof_days", e.target.value)}
+                          className="h-7 w-16 text-xs"
+                          dir="ltr"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onChange("social_proof_enabled", socialEnabled ? "false" : "true")}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors mt-0.5 ${socialEnabled ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}
+                    role="switch"
+                    aria-checked={socialEnabled}
+                  >
+                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${socialEnabled ? "translate-x-4" : "translate-x-0"}`} />
                   </button>
                 </div>
                 <SettingField label="טקסט קריאה לפעולה (CTA)" fieldKey="default_cta_text" placeholder="השאירו פרטים ונחזור אליכם (מהגדרות הכלליות)" dir="rtl" hint="הטקסט על כפתורי הרשמה בעמוד" settings={settings} onChange={onChange} />
@@ -1820,6 +1875,10 @@ export default function PageBuilderPage() {
   const [pageSettings, setPageSettings] = useState<PageOverrideSettings>({});
   const [tySettings, setTySettings] = useState<Partial<ThankYouPageSettings>>({});
   const [pageSettingsSaving, setPageSettingsSaving] = useState(false);
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const [versions, setVersions] = useState<PageVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1890,6 +1949,66 @@ export default function PageBuilderPage() {
     },
     [persistOrder]
   );
+
+  // ---- Version History ----
+
+  const loadVersions = useCallback(async () => {
+    setVersionsLoading(true);
+    const { data } = await supabase
+      .from("page_versions")
+      .select("id, version_num, sections_snapshot, created_at, created_by")
+      .eq("page_id", pageId)
+      .order("version_num", { ascending: false })
+      .limit(20);
+    setVersions((data as PageVersion[]) || []);
+    setVersionsLoading(false);
+  }, [pageId, supabase]);
+
+  const restoreVersion = useCallback(async (version: PageVersion) => {
+    if (!confirm(`לשחזר גרסה ${version.version_num}? השינויים הנוכחיים ייאספו לגרסה חדשה תחילה.`)) return;
+    setRestoring(true);
+
+    // First snapshot current state
+    try {
+      const { data: lastVer } = await supabase
+        .from("page_versions")
+        .select("version_num")
+        .eq("page_id", pageId)
+        .order("version_num", { ascending: false })
+        .limit(1)
+        .single();
+      const nextNum = ((lastVer as { version_num: number } | null)?.version_num ?? 0) + 1;
+      const snapshot = sections.map((s, i) => ({
+        section_type: s.section_type,
+        sort_order: i,
+        is_visible: s.is_visible,
+        content: s.content,
+        styles: s.styles ?? null,
+      }));
+      await supabase.from("page_versions").insert({ page_id: pageId, version_num: nextNum, sections_snapshot: snapshot });
+    } catch {/* non-blocking */}
+
+    // Delete all existing sections, then re-insert from snapshot
+    await supabase.from("page_sections").delete().eq("page_id", pageId);
+    const newSections = version.sections_snapshot.map((snap, i) => ({
+      id: crypto.randomUUID(),
+      page_id: pageId,
+      section_type: snap.section_type as string,
+      sort_order: i,
+      is_visible: snap.is_visible as boolean ?? true,
+      content: snap.content ?? {},
+      styles: snap.styles ?? null,
+    }));
+    const { error } = await supabase.from("page_sections").insert(newSections);
+    if (!error) {
+      setSections(newSections as PageSection[]);
+      setVersionHistoryOpen(false);
+      showToast(`גרסה ${version.version_num} שוחזרה בהצלחה`);
+    } else {
+      showToast("שגיאה בשחזור גרסה", "error");
+    }
+    setRestoring(false);
+  }, [pageId, sections, supabase, showToast]);
 
   // ---- Drag and drop ----
 
@@ -2035,6 +2154,47 @@ export default function PageBuilderPage() {
       content: s.content,
       styles: s.styles ?? null,
     }));
+
+    // --- Snapshot current state before overwriting ---
+    try {
+      // Get next version_num
+      const { data: lastVer } = await supabase
+        .from("page_versions")
+        .select("version_num")
+        .eq("page_id", pageId)
+        .order("version_num", { ascending: false })
+        .limit(1)
+        .single();
+      const nextNum = ((lastVer as { version_num: number } | null)?.version_num ?? 0) + 1;
+      const snapshot = sections.map((s, i) => ({
+        section_type: s.section_type,
+        sort_order: i,
+        is_visible: s.is_visible,
+        content: s.content,
+        styles: s.styles ?? null,
+      }));
+      await supabase.from("page_versions").insert({
+        page_id: pageId,
+        version_num: nextNum,
+        sections_snapshot: snapshot,
+      });
+      // Keep only the last 20 versions
+      const { data: oldVersions } = await supabase
+        .from("page_versions")
+        .select("id, version_num")
+        .eq("page_id", pageId)
+        .order("version_num", { ascending: false })
+        .range(20, 200);
+      if (oldVersions && oldVersions.length > 0) {
+        await supabase
+          .from("page_versions")
+          .delete()
+          .in("id", oldVersions.map((v: { id: string }) => v.id));
+      }
+    } catch {
+      /* snapshot failure is non-blocking */
+    }
+
     const { error } = await supabase.from("page_sections").upsert(upserts);
     if (!error) {
       setSaved(true);
@@ -2195,6 +2355,19 @@ export default function PageBuilderPage() {
               נשמר
             </span>
           )}
+
+          {/* Version History button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setVersionHistoryOpen(true); loadVersions(); }}
+            className="h-9 w-9 p-0 border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900] hover:text-[#4A4648]"
+            title="היסטוריית גרסאות"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </Button>
 
           <Button
             variant="outline"
@@ -2435,6 +2608,81 @@ export default function PageBuilderPage() {
         onSave={savePageSettings}
         saving={pageSettingsSaving}
       />
+
+      {/* ── Version History Drawer ── */}
+      {versionHistoryOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+            onClick={() => setVersionHistoryOpen(false)}
+          />
+          <aside
+            className="fixed top-0 left-0 h-full w-80 bg-white shadow-2xl z-50 flex flex-col"
+            dir="rtl"
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F0] shrink-0">
+              <div>
+                <h2 className="text-sm font-bold text-[#2A2628]">היסטוריית גרסאות</h2>
+                <p className="text-xs text-[#9A969A] mt-0.5">שחזור לגרסה קודמת</p>
+              </div>
+              <button
+                onClick={() => setVersionHistoryOpen(false)}
+                className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400"
+                aria-label="סגור"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2">
+              {versionsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-5 h-5 animate-spin text-[#9A969A]" />
+                </div>
+              ) : versions.length === 0 ? (
+                <div className="text-center py-12 text-[#9A969A] text-sm">
+                  <svg className="w-10 h-10 mx-auto mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p>אין גרסאות שמורות עדיין</p>
+                  <p className="text-xs mt-1 text-[#C0BCC0]">גרסה תישמר בכל לחיצה על שמור</p>
+                </div>
+              ) : (
+                versions.map((v) => {
+                  const date = new Date(v.created_at);
+                  const relTime = new Intl.RelativeTimeFormat("he", { numeric: "auto" });
+                  const diffMs = date.getTime() - Date.now();
+                  const diffMins = Math.round(diffMs / 60000);
+                  const diffHours = Math.round(diffMs / 3600000);
+                  const diffDays = Math.round(diffMs / 86400000);
+                  const rel = Math.abs(diffMins) < 60
+                    ? relTime.format(diffMins, "minute")
+                    : Math.abs(diffHours) < 24
+                    ? relTime.format(diffHours, "hour")
+                    : relTime.format(diffDays, "day");
+
+                  return (
+                    <div key={v.id} className="rounded-xl border border-[#E5E5E5] p-3 bg-[#FAFAFA] hover:border-[#B8D900]/50 transition-all">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-[#2A2628]">גרסה {v.version_num}</span>
+                        <span className="text-[10px] text-[#9A969A]">{v.sections_snapshot.length} סקציות</span>
+                      </div>
+                      <p className="text-[11px] text-[#716C70] mb-2">{rel}</p>
+                      <button
+                        onClick={() => restoreVersion(v)}
+                        disabled={restoring}
+                        className="w-full py-1.5 rounded-lg bg-[#2a2628] text-white text-xs font-semibold hover:bg-[#3a3638] transition-colors disabled:opacity-50"
+                      >
+                        {restoring ? "משחזר..." : "שחזר גרסה זו"}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </aside>
+        </>
+      )}
     </div>
   );
 }

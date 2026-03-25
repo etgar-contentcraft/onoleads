@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { Language, PageSection, Program } from "@/lib/types/database";
+import { useUrlParams } from "@/hooks/use-url-params";
+import { replaceDynamicContent } from "@/lib/dynamic-text";
 import { CtaModalProvider, CtaModal, FloatingCtaButton, useCtaModal } from "./cta-modal";
 import { CookieConsent } from "../compliance/cookie-consent";
 import { AccessibilityWidget } from "../compliance/accessibility-widget";
@@ -22,6 +24,7 @@ import { AdmissionSection } from "./sections/admission-section";
 import { GallerySection } from "./sections/gallery-section";
 import { MapSection } from "./sections/map-section";
 import { CountdownSection } from "./sections/countdown-section";
+import { SocialProofToast } from "./social-proof-toast";
 
 // ============================================================================
 // Constants
@@ -44,6 +47,10 @@ export interface PageSettings {
   facebook_pixel_id?: string;
   /** When true, shows the exit-intent popup (off by default — must be enabled per page) */
   exit_intent_enabled?: boolean;
+  /** When true, shows the social proof toast */
+  social_proof_enabled?: boolean;
+  /** Days window for social proof count (default: 7) */
+  social_proof_days?: number;
 }
 
 interface LandingPageLayoutProps {
@@ -261,8 +268,10 @@ function renderSection(
   language: Language,
   pageId?: string,
   programId?: string,
+  urlParams?: URLSearchParams,
 ) {
-  const content = (section.content || {}) as Record<string, unknown>;
+  const rawContent = (section.content || {}) as Record<string, unknown>;
+  const content = urlParams ? replaceDynamicContent(rawContent, urlParams) : rawContent;
 
   switch (section.section_type) {
     case "hero":
@@ -404,6 +413,7 @@ function InnerLayout({
   settings,
 }: LandingPageLayoutProps) {
   const isRtl = language === "he" || language === "ar";
+  const urlParams = useUrlParams();
 
   const visibleSections = sections.filter((s) => s.is_visible);
   const whatsappSection = visibleSections.find((s) => s.section_type === "whatsapp");
@@ -450,7 +460,7 @@ function InnerLayout({
         {/* Render explicit sections with auto-sections injected after hero */}
         {mainSections.map((section, index) => (
           <div key={section.id}>
-            {renderSection(section, language, pageId, programId)}
+            {renderSection(section, language, pageId, programId, urlParams)}
             {/* After hero, inject auto-generated sections */}
             {index === heroIndex && filteredAutoSections.length > 0 && (
               <>{filteredAutoSections}</>
@@ -554,6 +564,15 @@ function InnerLayout({
       {/* Exit Intent Popup — only when explicitly enabled per-page */}
       {settings?.exit_intent_enabled && (
         <ExitIntentPopup programName={pageTitle || program?.name_he} language={language} />
+      )}
+
+      {/* Social Proof Toast — only when explicitly enabled per-page */}
+      {settings?.social_proof_enabled && pageId && (
+        <SocialProofToast
+          pageId={pageId}
+          days={settings.social_proof_days}
+          language={language as "he" | "en" | "ar"}
+        />
       )}
 
       {/* Compliance widgets */}

@@ -15,6 +15,8 @@ import {
   Settings,
   ChevronLeft,
   ShieldCheck,
+  Globe,
+  HelpCircle,
 } from "lucide-react";
 
 const navItems = [
@@ -59,9 +61,19 @@ const navItems = [
     icon: Settings,
   },
   {
+    label: "סקציות גלובליות",
+    href: "/dashboard/shared-sections",
+    icon: Globe,
+  },
+  {
     label: "יומן ביקורת",
     href: "/dashboard/audit",
     icon: ShieldCheck,
+  },
+  {
+    label: "מרכז עזרה",
+    href: "/dashboard/help",
+    icon: HelpCircle,
   },
 ];
 

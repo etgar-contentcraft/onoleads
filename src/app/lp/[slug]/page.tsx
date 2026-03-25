@@ -20,7 +20,11 @@ async function getPageData(slug: string) {
   const page = pageRes.data;
 
   const [sectionsRes, programRes] = await Promise.all([
-    supabase.from("page_sections").select("*").eq("page_id", page.id).order("sort_order", { ascending: true }),
+    supabase
+      .from("page_sections")
+      .select("*, shared_sections:shared_section_id(content, styles)")
+      .eq("page_id", page.id)
+      .order("sort_order", { ascending: true }),
     page.program_id
       ? supabase.from("programs").select("*").eq("id", page.program_id).single()
       : Promise.resolve({ data: null }),
@@ -46,11 +50,22 @@ async function getPageData(slug: string) {
     google_analytics_id: pageOverrides.google_analytics_id || globalMap.google_analytics_id,
     facebook_pixel_id: pageOverrides.facebook_pixel_id || globalMap.facebook_pixel_id,
     exit_intent_enabled: pageOverrides.exit_intent_enabled === "true",
+    social_proof_enabled: pageOverrides.social_proof_enabled === "true",
+    social_proof_days: pageOverrides.social_proof_days ? parseInt(pageOverrides.social_proof_days, 10) : 7,
   };
+
+  // For global sections: use shared content when shared_section_id is set
+  const sections = (sectionsRes.data || []).map((s) => {
+    const shared = s.shared_sections as { content: Record<string, unknown>; styles: Record<string, unknown> } | null;
+    if (shared) {
+      return { ...s, content: shared.content, styles: shared.styles ?? s.styles };
+    }
+    return s;
+  }) as PageSection[];
 
   return {
     page: page as Page,
-    sections: (sectionsRes.data || []) as PageSection[],
+    sections,
     program: (programRes.data as Program | null),
     settings,
   };
