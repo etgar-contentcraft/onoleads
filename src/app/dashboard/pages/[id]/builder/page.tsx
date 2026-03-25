@@ -224,6 +224,13 @@ const SECTION_LIBRARY: SectionLibraryItem[] = [
     color: "bg-purple-100 text-purple-600",
     iconPath: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z",
   },
+  {
+    type: "countdown",
+    nameHe: "טיימר ספירה לאחור",
+    descriptionHe: "יוצר דחיפות — קבוע לתאריך מסוים או evergreen לכל מבקר",
+    color: "bg-rose-100 text-rose-600",
+    iconPath: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+  },
 ];
 
 /** Default content per section type */
@@ -264,6 +271,16 @@ function getDefaultContent(type: string): Record<string, unknown> {
       return { heading_he: "תנאי קבלה", requirements: [] };
     case "map":
       return { heading_he: "מיקום", address: "", map_url: "" };
+    case "countdown":
+      return {
+        heading_he: "הרשמה מוקדמת מסתיימת בקרוב",
+        subheading_he: "אל תפספסו את ההזדמנות",
+        badge_he: "⏰ הצעה מוגבלת בזמן",
+        mode: "evergreen",
+        interval_days: "7",
+        target_date: "",
+        expired_text_he: "ההרשמה הסתיימה. צרו קשר לבדיקת מקומות",
+      };
     case "cta":
       return { heading_he: "מוכנים להתחיל?", description_he: "", button_text_he: "להרשמה", phone: "" };
     case "whatsapp":
@@ -688,6 +705,99 @@ function StringListField({ label, fieldKey, placeholder = "", draft, set }: Stri
   );
 }
 
+/**
+ * Extracts an 11-char YouTube video ID from a raw ID, watch URL, youtu.be, or embed URL.
+ * Used client-side in the builder for thumbnail previews.
+ */
+function extractYoutubeIdLocal(input: string): string {
+  if (!input) return "";
+  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
+  try {
+    const url = new URL(input);
+    if (url.hostname === "youtu.be") return url.pathname.slice(1).split("?")[0];
+    const pathMatch = url.pathname.match(/\/(?:embed|v)\/([A-Za-z0-9_-]{11})/);
+    if (pathMatch) return pathMatch[1];
+    const v = url.searchParams.get("v");
+    if (v) return v;
+  } catch { /* not a URL */ }
+  return input;
+}
+
+/**
+ * Video list editor — each row has a YouTube URL/ID, title, and optional duration.
+ * Shows a thumbnail preview as soon as a valid YouTube ID is detected.
+ */
+function VideoListField({ draft, set }: { draft: Record<string, unknown>; set: (k: string, v: unknown) => void }) {
+  const videos = (draft.videos as Array<Record<string, string>>) || [];
+  const addVideo = () => set("videos", [...videos, { youtube_id: "", title_he: "", duration_he: "" }]);
+  const updateVideo = (i: number, key: string, value: string) => {
+    const copy = videos.map((v, idx) => idx === i ? { ...v, [key]: value } : v);
+    set("videos", copy);
+  };
+  const removeVideo = (i: number) => set("videos", videos.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-medium text-[#716C70]">סרטונים</Label>
+        <Button type="button" variant="ghost" size="sm" onClick={addVideo} className="h-7 gap-1 text-xs text-[#B8D900] hover:text-[#9AB800]">
+          <Plus className="w-3 h-3" /> הוסף סרטון
+        </Button>
+      </div>
+      {videos.length === 0 && (
+        <p className="text-[11px] text-[#9A969A] bg-[#F9F9F9] rounded-lg p-3 border border-dashed border-[#E0E0E0]">
+          לא נוספו סרטונים. לחצו &quot;הוסף סרטון&quot; ולהדביק קישור YouTube.
+        </p>
+      )}
+      <div className="space-y-3">
+        {videos.map((video, i) => {
+          const ytId = extractYoutubeIdLocal(video.youtube_id || "");
+          const thumbUrl = ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : "";
+          return (
+            <div key={i} className="border border-[#E5E5E5] rounded-xl p-3 space-y-2 bg-[#FAFAFA]">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#9A969A]">סרטון {i + 1}</span>
+                <Button type="button" variant="ghost" size="sm" onClick={() => removeVideo(i)} className="h-6 w-6 p-0 text-red-400 hover:text-red-600">
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+              {/* YouTube thumbnail preview */}
+              {thumbUrl && (
+                <div className="rounded-lg overflow-hidden border border-[#E5E5E5] aspect-video bg-black">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+                </div>
+              )}
+              {/* URL / ID input */}
+              <div className="space-y-1">
+                <Label className="text-[11px] text-[#9A969A]">קישור YouTube או ID</Label>
+                <Input
+                  value={video.youtube_id || ""}
+                  onChange={(e) => updateVideo(i, "youtube_id", e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=... או מזהה (11 תווים)"
+                  dir="ltr"
+                  className="h-8 text-xs font-mono"
+                />
+                {video.youtube_id && !ytId && (
+                  <p className="text-[10px] text-red-500">לא זוהה מזהה YouTube תקין</p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] text-[#9A969A]">כותרת סרטון</Label>
+                <Input value={video.title_he || ""} onChange={(e) => updateVideo(i, "title_he", e.target.value)} placeholder="שם הסרטון..." dir="rtl" className="h-8 text-xs" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] text-[#9A969A]">משך (אופציונלי, למשל 3:45)</Label>
+                <Input value={video.duration_he || ""} onChange={(e) => updateVideo(i, "duration_he", e.target.value)} placeholder="3:45" dir="ltr" className="h-7 text-xs w-24" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** Inline image field for use inside ObjectListField rows — supports URL + file upload */
 function ObjectImageField({
   label,
@@ -1020,16 +1130,23 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
         return (
           <div className="space-y-4">
             <Field label="כותרת" fieldKey="heading_he" placeholder="צפו בסרטון" draft={draft} set={set} />
-            <ObjectListField
-              label="סרטונים"
-              fieldKey="videos"
-              fields={[
-                { key: "youtube_id", label: "מזהה YouTube (ID)" },
-                { key: "title_he", label: "כותרת סרטון" },
-              ]}
-              draft={draft}
-              set={set}
-            />
+            <TextareaField label="תיאור (אופציונלי)" fieldKey="description_he" rows={2} placeholder="תיאור קצר..." draft={draft} set={set} />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">פריסה</Label>
+              <div className="flex gap-2">
+                {(["featured", "grid"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => set("layout", v)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${(draft.layout || "featured") === v ? "bg-[#B8D900]/10 border-[#B8D900] text-[#2A2628]" : "border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900]/50"}`}
+                  >
+                    {v === "featured" ? "נגן ראשי + רשימה" : "גריד שווה"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <VideoListField draft={draft} set={set} />
           </div>
         );
 
@@ -1144,6 +1261,42 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
               /* Single-track: flat requirements list */
               <StringListField label="דרישות קבלה" fieldKey="requirements" placeholder="תעודת בגרות..." draft={draft} set={set} />
             )}
+          </div>
+        );
+      }
+
+      case "countdown": {
+        const cdMode = (draft.mode as string) || "evergreen";
+        return (
+          <div className="space-y-4">
+            <Field label="כותרת" fieldKey="heading_he" placeholder="הרשמה מוקדמת מסתיימת בקרוב" draft={draft} set={set} />
+            <Field label="כותרת משנה" fieldKey="subheading_he" placeholder="אל תפספסו את ההזדמנות" draft={draft} set={set} />
+            <Field label="תגית (badge)" fieldKey="badge_he" placeholder="⏰ הצעה מוגבלת בזמן" draft={draft} set={set} />
+            {/* Mode toggle */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">סוג טיימר</Label>
+              <div className="flex gap-2">
+                {(["evergreen", "fixed"] as const).map((v) => (
+                  <button key={v} type="button" onClick={() => set("mode", v)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${cdMode === v ? "bg-[#B8D900]/10 border-[#B8D900] text-[#2A2628]" : "border-[#E5E5E5] text-[#9A969A]"}`}
+                  >
+                    {v === "evergreen" ? "Evergreen (מתאפס לכל מבקר)" : "תאריך קבוע"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {cdMode === "evergreen" ? (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">מספר ימים לפני איפוס</Label>
+                <Input value={(draft.interval_days as string) || "7"} onChange={(e) => set("interval_days", e.target.value)} dir="ltr" className="h-9 text-sm w-24" type="number" min="1" max="365" />
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">תאריך ושעת סיום</Label>
+                <Input value={(draft.target_date as string) || ""} onChange={(e) => set("target_date", e.target.value)} dir="ltr" className="h-9 text-sm" type="datetime-local" />
+              </div>
+            )}
+            <Field label="הודעה בעת פקיעה" fieldKey="expired_text_he" placeholder="ההרשמה הסתיימה..." draft={draft} set={set} />
           </div>
         );
       }

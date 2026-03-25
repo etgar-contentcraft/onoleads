@@ -21,6 +21,7 @@ import { WhatsappSection } from "./sections/whatsapp-section";
 import { AdmissionSection } from "./sections/admission-section";
 import { GallerySection } from "./sections/gallery-section";
 import { MapSection } from "./sections/map-section";
+import { CountdownSection } from "./sections/countdown-section";
 
 // ============================================================================
 // Constants
@@ -125,6 +126,131 @@ function StickyHeader({
 }
 
 // ============================================================================
+// Exit Intent Popup
+// Fires once per session when the visitor's cursor leaves the viewport (top).
+// On mobile, fires after the visitor scrolls down 50%+ and then scrolls up fast.
+// ============================================================================
+
+function ExitIntentPopup({
+  programName,
+  language,
+}: {
+  programName?: string;
+  language: Language;
+}) {
+  const { open, isOpen } = useCtaModal();
+  const [shown, setShown] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const isRtl = language === "he" || language === "ar";
+
+  // Don't show if modal is already open or was already shown this session
+  useEffect(() => {
+    if (typeof sessionStorage === "undefined") return;
+    if (sessionStorage.getItem("exit_intent_shown")) setShown(true);
+  }, []);
+
+  // Desktop: mouseleave toward top of viewport
+  useEffect(() => {
+    if (shown || isOpen) return;
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 0 && !shown && !isOpen) {
+        setShown(true);
+        setVisible(true);
+        sessionStorage.setItem("exit_intent_shown", "1");
+      }
+    };
+    document.addEventListener("mouseleave", handleMouseLeave);
+    return () => document.removeEventListener("mouseleave", handleMouseLeave);
+  }, [shown, isOpen]);
+
+  // Mobile: fast scroll-up after 50%+ scroll depth
+  useEffect(() => {
+    if (shown || isOpen) return;
+    let lastY = 0;
+    let triggered = false;
+    const handleScroll = () => {
+      const current = window.scrollY;
+      const maxScroll = document.body.scrollHeight - window.innerHeight;
+      const depth = maxScroll > 0 ? current / maxScroll : 0;
+      if (!triggered && depth > 0.5 && current < lastY - 80) {
+        triggered = true;
+        setShown(true);
+        setVisible(true);
+        sessionStorage.setItem("exit_intent_shown", "1");
+      }
+      lastY = current;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [shown, isOpen]);
+
+  const handleCta = () => {
+    setVisible(false);
+    open();
+  };
+
+  if (!visible) return null;
+
+  const programLabel = programName
+    ? isRtl ? `ל${programName}` : `for ${programName}`
+    : "";
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center p-4"
+      dir={isRtl ? "rtl" : "ltr"}
+      role="dialog"
+      aria-modal="true"
+      aria-label={isRtl ? "רגע לפני שתלכו..." : "Before you go..."}
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={() => setVisible(false)}
+      />
+      {/* Card */}
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-7 text-center animate-[fade-in-up_0.3s_ease-out]">
+        {/* Close button */}
+        <button
+          onClick={() => setVisible(false)}
+          className="absolute top-3 left-3 w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
+          aria-label="סגור"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* Accent line */}
+        <div className="w-12 h-1 bg-[#B8D900] rounded-full mx-auto mb-4" />
+
+        <h2 className="font-heading text-xl font-extrabold text-[#2a2628] mb-2" dir={isRtl ? "rtl" : "ltr"}>
+          {isRtl ? "רגע לפני שתלכו..." : "Wait — before you go!"}
+        </h2>
+        <p className="font-heebo text-[#716C70] text-sm mb-5 leading-relaxed" dir={isRtl ? "rtl" : "ltr"}>
+          {isRtl
+            ? `השאירו פרטים ${programLabel} ויועץ לימודים יחזור אליכם בהקדם — ללא התחייבות.`
+            : `Leave your details ${programLabel} and an advisor will contact you soon — no commitment.`}
+        </p>
+
+        <button
+          onClick={handleCta}
+          className="w-full py-3 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base hover:bg-[#c8e920] hover:shadow-[0_0_25px_rgba(184,217,0,0.35)] transition-all duration-300 active:scale-[0.98] mb-3"
+        >
+          {isRtl ? "השאירו פרטים עכשיו →" : "Get Info Now →"}
+        </button>
+        <button
+          onClick={() => setVisible(false)}
+          className="w-full py-2 text-xs text-[#9A969A] hover:text-[#716C70] transition-colors"
+        >
+          {isRtl ? "לא, תודה" : "No thanks"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
 // Section Renderer
 // ============================================================================
 
@@ -167,6 +293,8 @@ function renderSection(
       return <GallerySection content={content} language={language} />;
     case "map":
       return <MapSection content={content} language={language} />;
+    case "countdown":
+      return <CountdownSection content={content} language={language} />;
     default:
       return null;
   }
@@ -420,6 +548,9 @@ function InnerLayout({
         programName={pageTitle || program?.name_he}
         ctaText={settings?.default_cta_text}
       />
+
+      {/* Exit Intent Popup — fires once per session when visitor tries to leave */}
+      <ExitIntentPopup programName={pageTitle || program?.name_he} language={language} />
 
       {/* Compliance widgets */}
       <CookieConsent />

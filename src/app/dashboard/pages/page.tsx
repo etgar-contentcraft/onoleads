@@ -495,7 +495,7 @@ export default function PagesManagementPage() {
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem>
-                        <Link href={`/p/${page.slug}`} target="_blank" className="gap-2 flex items-center w-full">
+                        <Link href={`/lp/${page.slug}`} target="_blank" className="gap-2 flex items-center w-full">
                           <Eye className="w-4 h-4" />
                           תצוגה מקדימה
                         </Link>
@@ -604,7 +604,7 @@ export default function PagesManagementPage() {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                              <Link href={`/p/${page.slug}`} target="_blank" className="gap-2 flex items-center w-full">
+                              <Link href={`/lp/${page.slug}`} target="_blank" className="gap-2 flex items-center w-full">
                                 <Eye className="w-4 h-4" />
                                 תצוגה מקדימה
                               </Link>

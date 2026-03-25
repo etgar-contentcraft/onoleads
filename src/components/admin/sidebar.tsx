@@ -14,6 +14,7 @@ import {
   Search,
   Settings,
   ChevronLeft,
+  ShieldCheck,
 } from "lucide-react";
 
 const navItems = [
@@ -56,6 +57,11 @@ const navItems = [
     label: "הגדרות",
     href: "/dashboard/settings",
     icon: Settings,
+  },
+  {
+    label: "יומן ביקורת",
+    href: "/dashboard/audit",
+    icon: ShieldCheck,
   },
 ];
 

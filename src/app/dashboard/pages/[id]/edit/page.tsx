@@ -292,7 +292,7 @@ export default function PageEditorPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={`/p/${page.slug}`} target="_blank">
+          <Link href={`/lp/${page.slug}`} target="_blank">
             <Button variant="outline" className="gap-2 text-sm">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />

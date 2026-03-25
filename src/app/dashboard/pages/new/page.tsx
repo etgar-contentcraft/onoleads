@@ -462,7 +462,7 @@ export default function NewPageWizard() {
               <div className="space-y-2">
                 <Label className="text-sm text-[#4A4648]">Slug (כתובת URL)</Label>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-[#9A969A] shrink-0">/p/</span>
+                  <span className="text-sm text-[#9A969A] shrink-0">/lp/</span>
                   <Input
                     value={slug}
                     onChange={(e) =>
