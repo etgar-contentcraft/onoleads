@@ -17,6 +17,9 @@ import {
   ShieldCheck,
   Globe,
   HelpCircle,
+  GraduationCap,
+  LayoutTemplate,
+  Users2,
 } from "lucide-react";
 
 const navItems = [
@@ -61,6 +64,16 @@ const navItems = [
     icon: Settings,
   },
   {
+    label: "תבניות",
+    href: "/dashboard/templates",
+    icon: LayoutTemplate,
+  },
+  {
+    label: "מאגר מרצים",
+    href: "/dashboard/faculty",
+    icon: GraduationCap,
+  },
+  {
     label: "סקציות גלובליות",
     href: "/dashboard/shared-sections",
     icon: Globe,
@@ -74,6 +87,11 @@ const navItems = [
     label: "מרכז עזרה",
     href: "/dashboard/help",
     icon: HelpCircle,
+  },
+  {
+    label: "משתמשים",
+    href: "/dashboard/users",
+    icon: Users2,
   },
 ];
 

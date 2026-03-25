@@ -65,6 +65,7 @@ import {
   X,
   AlertTriangle,
   Settings2,
+  Users,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -824,6 +825,366 @@ function VideoListField({ draft, set }: { draft: Record<string, unknown>; set: (
   );
 }
 
+// ---------------------------------------------------------------------------
+// Faculty member types and editor
+// ---------------------------------------------------------------------------
+
+/**
+ * Represents a faculty member used in the faculty section editor.
+ * library_id links to the faculty_members table; fields without it are draft-only edits.
+ */
+interface FacultyMemberData {
+  library_id?: string;
+  name_he: string;
+  name_en?: string;
+  title_he?: string;
+  image_url?: string;
+  phone?: string;
+  email?: string;
+  linkedin_url?: string;
+  facebook_url?: string;
+  instagram_url?: string;
+  website_url?: string;
+}
+
+/**
+ * Faculty member editor with library picker and inline create/edit form.
+ * @param draft - The current section draft content
+ * @param set   - Setter function for draft keys
+ */
+function FacultyMemberEditor({ draft, set }: { draft: Record<string, unknown>; set: (k: string, v: unknown) => void }) {
+  const supabase = createClient();
+  const members = (draft.members as FacultyMemberData[]) || [];
+
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libraryItems, setLibraryItems] = useState<FacultyMemberData[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [memberFormOpen, setMemberFormOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<{ index: number; data: FacultyMemberData } | null>(null);
+
+  // Form state for new/edit member
+  const [form, setForm] = useState<FacultyMemberData>({ name_he: "" });
+  const [formSaving, setFormSaving] = useState(false);
+
+  /** Fetch all members from the faculty_members library table */
+  const loadLibrary = useCallback(async () => {
+    setLibraryLoading(true);
+    const { data } = await supabase.from("faculty_members").select("*").order("sort_order");
+    setLibraryItems(
+      (data || []).map((d: Record<string, unknown>) => ({
+        library_id: d.id as string,
+        name_he: d.name_he as string,
+        name_en: d.name_en as string | undefined,
+        title_he: d.title_he as string | undefined,
+        image_url: d.image_url as string | undefined,
+        phone: d.phone as string | undefined,
+        email: d.email as string | undefined,
+        linkedin_url: d.linkedin_url as string | undefined,
+        facebook_url: d.facebook_url as string | undefined,
+        instagram_url: d.instagram_url as string | undefined,
+        website_url: d.website_url as string | undefined,
+      }))
+    );
+    setLibraryLoading(false);
+  }, [supabase]);
+
+  /** Add a library member to the section's members list — skip if already added */
+  const addFromLibrary = (member: FacultyMemberData) => {
+    if (members.some((m) => m.library_id === member.library_id)) return;
+    set("members", [...members, member]);
+  };
+
+  /** Remove a member from the section by index */
+  const removeMember = (i: number) => set("members", members.filter((_, idx) => idx !== i));
+
+  /** Open the edit form pre-filled with an existing member's data */
+  const openEdit = (i: number) => {
+    setEditingMember({ index: i, data: { ...members[i] } });
+    setForm({ ...members[i] });
+    setMemberFormOpen(true);
+  };
+
+  /** Open the create form with a blank slate */
+  const openCreate = () => {
+    setEditingMember(null);
+    setForm({ name_he: "" });
+    setMemberFormOpen(true);
+  };
+
+  /**
+   * Save the member form — if editing, update draft only.
+   * If creating, insert to the library first then add to draft.
+   */
+  const handleFormSave = async () => {
+    if (!form.name_he.trim()) return;
+    setFormSaving(true);
+    if (editingMember !== null) {
+      // Edit mode: update only within the draft (does not touch the library)
+      const updated = [...members];
+      updated[editingMember.index] = { ...form };
+      set("members", updated);
+    } else {
+      // Create mode: persist to the library then add to the draft
+      const { data } = await supabase
+        .from("faculty_members")
+        .insert({
+          name_he: form.name_he,
+          name_en: form.name_en,
+          title_he: form.title_he,
+          image_url: form.image_url,
+          phone: form.phone,
+          email: form.email,
+          linkedin_url: form.linkedin_url,
+          facebook_url: form.facebook_url,
+          instagram_url: form.instagram_url,
+          website_url: form.website_url,
+        })
+        .select()
+        .single();
+      const newMember: FacultyMemberData = { ...form, library_id: (data as { id: string } | null)?.id };
+      set("members", [...members, newMember]);
+    }
+    setFormSaving(false);
+    setMemberFormOpen(false);
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Selected members compact card list */}
+      {members.map((m, i) => (
+        <div key={i} className="flex items-center gap-2 p-2 rounded-xl border border-[#E5E5E5] bg-[#FAFAFA]">
+          {m.image_url ? (
+            <img src={m.image_url} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-[#B8D900]/20 flex items-center justify-center shrink-0 text-sm font-bold text-[#8aac00]">
+              {m.name_he.charAt(0)}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-[#2A2628] truncate">{m.name_he}</p>
+            {m.title_he && <p className="text-[11px] text-[#9A969A] truncate">{m.title_he}</p>}
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={() => openEdit(i)} className="h-7 w-7 p-0 text-[#9A969A] hover:text-[#2A2628]">
+            <Pencil className="w-3 h-3" />
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => removeMember(i)} className="h-7 w-7 p-0 text-[#9A969A] hover:text-red-500">
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
+      ))}
+
+      {members.length === 0 && (
+        <p className="text-[11px] text-[#9A969A] bg-[#F9F9F9] rounded-lg p-3 border border-dashed border-[#E0E0E0] text-center">
+          לא נבחרו מרצים. בחרו מהמאגר או הוסיפו חדש.
+        </p>
+      )}
+
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => { loadLibrary(); setLibraryOpen(true); }}
+          className="flex-1 h-8 text-xs gap-1.5"
+        >
+          <Users className="w-3 h-3" /> בחר מהמאגר
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={openCreate}
+          className="flex-1 h-8 text-xs gap-1.5 text-[#B8D900] border-[#B8D900]/50 hover:bg-[#B8D900]/5"
+        >
+          <Plus className="w-3 h-3" /> הוסף מרצה חדש
+        </Button>
+      </div>
+
+      {/* Library picker dialog */}
+      <Dialog open={libraryOpen} onOpenChange={setLibraryOpen}>
+        <DialogContent className="max-w-md max-h-[70vh] flex flex-col" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>בחר מרצים מהמאגר</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 py-2">
+            {libraryLoading ? (
+              <div className="text-center py-8 text-[#9A969A] text-sm">טוען...</div>
+            ) : libraryItems.length === 0 ? (
+              <div className="text-center py-8 text-[#9A969A] text-sm">המאגר ריק. הוסיפו מרצים ב&quot;מאגר מרצים&quot;.</div>
+            ) : (
+              libraryItems.map((m) => {
+                const isAdded = members.some((s) => s.library_id === m.library_id);
+                return (
+                  <button
+                    key={m.library_id}
+                    type="button"
+                    onClick={() => addFromLibrary(m)}
+                    disabled={isAdded}
+                    className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-right transition-all ${
+                      isAdded
+                        ? "border-[#B8D900]/30 bg-[#B8D900]/5 opacity-60"
+                        : "border-[#E5E5E5] hover:border-[#B8D900]/50 hover:bg-[#FAFAFA]"
+                    }`}
+                  >
+                    {m.image_url ? (
+                      <img src={m.image_url} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[#B8D900]/15 flex items-center justify-center shrink-0 font-bold text-[#8aac00]">
+                        {m.name_he.charAt(0)}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0 text-right">
+                      <p className="text-sm font-semibold text-[#2A2628]">{m.name_he}</p>
+                      {m.title_he && <p className="text-xs text-[#9A969A]">{m.title_he}</p>}
+                    </div>
+                    {isAdded && <Check className="w-4 h-4 text-[#B8D900] shrink-0" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Member create / edit dialog */}
+      <Dialog open={memberFormOpen} onOpenChange={setMemberFormOpen}>
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>{editingMember !== null ? "עריכת מרצה" : "מרצה חדש"}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-3 py-2 px-1">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">שם (עברית) *</Label>
+              <Input
+                value={form.name_he}
+                onChange={(e) => setForm((p) => ({ ...p, name_he: e.target.value }))}
+                placeholder="פרופ׳ ישראל ישראלי"
+                dir="rtl"
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">שם (אנגלית)</Label>
+              <Input
+                value={form.name_en || ""}
+                onChange={(e) => setForm((p) => ({ ...p, name_en: e.target.value }))}
+                placeholder="Prof. Israel Israeli"
+                dir="ltr"
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">תפקיד / ביו קצר</Label>
+              <Input
+                value={form.title_he || ""}
+                onChange={(e) => setForm((p) => ({ ...p, title_he: e.target.value }))}
+                placeholder="ראש המחלקה למשפטים, PhD"
+                dir="rtl"
+                className="h-9 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">תמונה (URL)</Label>
+              <Input
+                value={form.image_url || ""}
+                onChange={(e) => setForm((p) => ({ ...p, image_url: e.target.value }))}
+                placeholder="https://..."
+                dir="ltr"
+                className="h-9 text-sm font-mono text-xs"
+              />
+              {form.image_url && (
+                <img src={form.image_url} alt="" className="w-16 h-16 rounded-full object-cover border border-[#E5E5E5]" />
+              )}
+            </div>
+
+            {/* Contact details section */}
+            <div className="pt-1 border-t border-[#F0F0F0]">
+              <p className="text-[11px] font-semibold text-[#9A969A] mb-2 uppercase tracking-wide">פרטי קשר</p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#9A969A] text-xs w-16 shrink-0">טלפון</span>
+                  <Input
+                    value={form.phone || ""}
+                    onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                    placeholder="050-1234567"
+                    dir="ltr"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#9A969A] text-xs w-16 shrink-0">אימייל</span>
+                  <Input
+                    value={form.email || ""}
+                    onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                    placeholder="name@ono.ac.il"
+                    dir="ltr"
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#9A969A] text-xs w-16 shrink-0">LinkedIn</span>
+                  <Input
+                    value={form.linkedin_url || ""}
+                    onChange={(e) => setForm((p) => ({ ...p, linkedin_url: e.target.value }))}
+                    placeholder="https://linkedin.com/in/..."
+                    dir="ltr"
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#9A969A] text-xs w-16 shrink-0">Facebook</span>
+                  <Input
+                    value={form.facebook_url || ""}
+                    onChange={(e) => setForm((p) => ({ ...p, facebook_url: e.target.value }))}
+                    placeholder="https://facebook.com/..."
+                    dir="ltr"
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#9A969A] text-xs w-16 shrink-0">Instagram</span>
+                  <Input
+                    value={form.instagram_url || ""}
+                    onChange={(e) => setForm((p) => ({ ...p, instagram_url: e.target.value }))}
+                    placeholder="https://instagram.com/..."
+                    dir="ltr"
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#9A969A] text-xs w-16 shrink-0">אתר</span>
+                  <Input
+                    value={form.website_url || ""}
+                    onChange={(e) => setForm((p) => ({ ...p, website_url: e.target.value }))}
+                    placeholder="https://..."
+                    dir="ltr"
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#F0F0F0] shrink-0">
+            <Button variant="outline" size="sm" onClick={() => setMemberFormOpen(false)}>
+              ביטול
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleFormSave}
+              disabled={formSaving || !form.name_he.trim()}
+              className="bg-[#B8D900] text-[#2A2628] hover:bg-[#A8C400]"
+            >
+              {formSaving ? "שומר..." : "שמור"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 /** Inline image field for use inside ObjectListField rows — supports URL + file upload */
 function ObjectImageField({
   label,
@@ -1104,17 +1465,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
         return (
           <div className="space-y-4">
             <Field label="כותרת" fieldKey="heading_he" placeholder="הסגל האקדמי" draft={draft} set={set} />
-            <ObjectListField
-              label="חברי סגל"
-              fieldKey="members"
-              fields={[
-                { key: "name", label: "שם" },
-                { key: "role", label: "תפקיד / תואר" },
-                { key: "image_url", label: "תמונה (URL)", type: "image" },
-              ]}
-              draft={draft}
-              set={set}
-            />
+            <FacultyMemberEditor draft={draft} set={set} />
           </div>
         );
 
@@ -1463,9 +1814,9 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="px-6 py-5">{renderForm()}</div>
-        </ScrollArea>
+        </div>
 
         <div className="px-6 py-4 border-t border-[#F0F0F0] flex items-center justify-end gap-3 shrink-0">
           <Button variant="outline" onClick={onClose} className="h-9">
