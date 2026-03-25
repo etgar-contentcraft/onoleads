@@ -489,7 +489,7 @@ export default function PagesManagementPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem>
-                        <Link href={`/dashboard/builder?page=${page.id}`} className="gap-2 flex items-center w-full">
+                        <Link href={`/dashboard/pages/${page.id}/builder`} className="gap-2 flex items-center w-full">
                           <Pencil className="w-4 h-4" />
                           עריכה
                         </Link>
@@ -598,7 +598,7 @@ export default function PagesManagementPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem>
-                              <Link href={`/dashboard/builder?page=${page.id}`} className="gap-2 flex items-center w-full">
+                              <Link href={`/dashboard/pages/${page.id}/builder`} className="gap-2 flex items-center w-full">
                                 <Pencil className="w-4 h-4" />
                                 עריכה
                               </Link>
