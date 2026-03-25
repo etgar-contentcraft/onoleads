@@ -8,7 +8,7 @@ import { useState } from "react";
 import {
   FileText, Users, BarChart3, Settings, Globe, ShieldCheck,
   Search, ImageIcon, BookOpen, ChevronDown, ChevronUp,
-  Zap, Target, Eye, Edit3, Layers, TrendingUp
+  Zap, Target, Eye, Edit3, Layers, TrendingUp, Code2, Copy, Check
 } from "lucide-react";
 
 interface HelpSection {
@@ -338,6 +338,231 @@ const HELP_SECTIONS: HelpSection[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// JSON Guide section
+// ---------------------------------------------------------------------------
+
+const JSON_EXAMPLES = [
+  {
+    id: "benefits",
+    title: "יתרונות (benefits)",
+    description: "כרטיסיות יתרון — כותרת + תיאור + אייקון",
+    prompt: `צור JSON של 5 יתרונות ללימודי משפטים באוניברסיטה.
+הפורמט הוא:
+[{"title_he": "כותרת", "description_he": "תיאור קצר של 1-2 משפטים", "icon": "⚖️"}, ...]`,
+    example: `[
+  {
+    "title_he": "מסלולים גמישים",
+    "description_he": "לימוד בימים ובשעות שמתאימים לך — גם בשעות הערב.",
+    "icon": "🕐"
+  },
+  {
+    "title_he": "הכרה מהמשפחה המשפטית",
+    "description_he": "בוגרי הפקולטה מובילים בבתי משפט, חברות הייטק ומשרדי ממשלה.",
+    "icon": "⚖️"
+  }
+]`,
+  },
+  {
+    id: "stats",
+    title: "סטטיסטיקות (stats)",
+    description: "מספרים בולטים עם תווית",
+    prompt: `צור JSON של 4 נתונים סטטיסטיים מרשימים ללימודי [שם תוכנית].
+הפורמט: [{"value": "95%", "label_he": "שיעור תעסוקה", "icon": "📈"}, ...]`,
+    example: `[
+  {"value": "95%", "label_he": "שיעור תעסוקה בתוך שנה", "icon": "📈"},
+  {"value": "3,500+", "label_he": "בוגרים פעילים", "icon": "👩‍💼"},
+  {"value": "20+", "label_he": "שנות ניסיון", "icon": "🏆"},
+  {"value": "#1", "label_he": "מכללה מומלצת בישראל", "icon": "⭐"}
+]`,
+  },
+  {
+    id: "faq",
+    title: "שאלות נפוצות (faq)",
+    description: "FAQ — שאלה + תשובה",
+    prompt: `צור JSON של 6 שאלות נפוצות ללימודי [שם תוכנית].
+הפורמט: [{"question_he": "שאלה?", "answer_he": "תשובה מפורטת של 2-3 משפטים."}, ...]`,
+    example: `[
+  {
+    "question_he": "מהי משך הלימודים?",
+    "answer_he": "התוכנית נמשכת 4 שנים (8 סמסטרים). ניתן ללמוד בקצב מוגבר ולסיים ב-3.5 שנים."
+  },
+  {
+    "question_he": "האם ניתן ללמוד בערב?",
+    "answer_he": "כן — כל הקורסים מתקיימים גם בשעות הערב. ניתן לשלב עם עבודה מלאה."
+  }
+]`,
+  },
+  {
+    id: "testimonials",
+    title: "המלצות (testimonials)",
+    description: "ציטוטים מסטודנטים — שם + ציטוט + תפקיד + תמונה",
+    prompt: `צור JSON של 3 המלצות מסטודנטים בוגרי [שם תוכנית].
+הפורמט: [{"name_he": "שם", "quote_he": "ציטוט", "title_he": "תפקיד/תוכנית", "image_url": ""}, ...]`,
+    example: `[
+  {
+    "name_he": "מיכל כהן",
+    "quote_he": "הלימודים פתחו לי דלתות שלא ידעתי שקיימות. היום אני עורכת דין בחברה ציבורית.",
+    "title_he": "בוגרת המחלקה למשפטים, 2022",
+    "image_url": ""
+  }
+]`,
+  },
+  {
+    id: "curriculum",
+    title: "תוכנית לימודים (curriculum)",
+    description: "מבנה שנתי עם רשימת קורסים",
+    prompt: `צור JSON לתוכנית לימודים של 4 שנים בנושא [שם תוכנית].
+הפורמט הוא מערך של שנות לימוד:
+[{"year": "שנה א", "courses": ["קורס 1", "קורס 2", ...]}, ...]
+תכין 4 שנים, 8-10 קורסים לכל שנה. השתמש בשמות קורסים אקדמיים ריאליסטיים.`,
+    example: `[
+  {
+    "year": "שנה א",
+    "courses": ["מבוא למשפט", "משפט חוקתי", "משפט פלילי א", "חוזים א", "נזיקין א"]
+  },
+  {
+    "year": "שנה ב",
+    "courses": ["דיני קניין", "משפט מסחרי", "דיני עבודה", "משפט אזרחי", "דיני חוזים ב"]
+  }
+]`,
+  },
+  {
+    id: "career",
+    title: "קריירה / תפקידים (career)",
+    description: "תפקידים נפוצים של בוגרים עם שכר",
+    prompt: `צור JSON של 4 תפקידים נפוצים של בוגרי [שם תוכנית].
+הפורמט: [{"title_he": "תפקיד", "description_he": "תיאור", "salary_he": "15,000-25,000 ₪"}, ...]`,
+    example: `[
+  {
+    "title_he": "עורך/ת דין",
+    "description_he": "ייצוג לקוחות בבתי משפט, ניסוח חוזים, ייעוץ משפטי שוטף.",
+    "salary_he": "15,000–30,000 ₪"
+  },
+  {
+    "title_he": "יועץ/ת משפטי/ת בחברה",
+    "description_he": "עבודה פנים-ארגונית בחברות הייטק, בנקים וחברות ממשלתיות.",
+    "salary_he": "20,000–45,000 ₪"
+  }
+]`,
+  },
+  {
+    id: "faculty",
+    title: "סגל אקדמי (faculty)",
+    description: "חברי סגל — שם + תואר + תיאור + תמונה",
+    prompt: `צור JSON של 4 חברי סגל אקדמי בתחום [שם תוכנית].
+הפורמט: [{"name_he": "שם", "title_he": "תואר/מוסד", "bio_he": "תיאור קצר", "image_url": ""}, ...]`,
+    example: `[
+  {
+    "name_he": "פרופ' ישראל ישראלי",
+    "title_he": "ראש החוג, דוקטורט מהרווארד",
+    "bio_he": "מומחה בדיני חוזים בינלאומיים, בעל 20 שנות ניסיון בפסיקה ובמחקר.",
+    "image_url": "https://..."
+  }
+]`,
+  },
+];
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }}
+      className="flex items-center gap-1 text-[11px] font-semibold text-[#716C70] hover:text-[#B8D900] transition-colors"
+    >
+      {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+      {copied ? "הועתק!" : "העתק פרומפט"}
+    </button>
+  );
+}
+
+function JsonGuideSection() {
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  return (
+    <div id="json-guide" className="rounded-2xl border border-[#E5E5E5] overflow-hidden">
+      {/* Header */}
+      <div className="bg-[#2A2628] px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
+            <Code2 className="w-5 h-5 text-[#B8D900]" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">מדריך JSON — יצירה עם AI</h3>
+            <p className="text-xs text-white/50 mt-0.5">
+              לכל סוג סקציה — פרומפט מוכן ל-ChatGPT/Claude + דוגמה מלאה
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Intro */}
+      <div className="bg-[#B8D900]/5 border-b border-[#E5E5E5] px-5 py-3">
+        <p className="text-xs text-[#4A4648] leading-relaxed">
+          <strong>איך עובד:</strong> העתק את הפרומפט לתוך ChatGPT, Claude, או כל AI אחר. החלף את{" "}
+          <code className="font-mono bg-white px-1 rounded">[שם תוכנית]</code> בשם התוכנית שלך. הדבק את הJSON שתקבל בשדה הרלוונטי בעורך.
+        </p>
+      </div>
+
+      {/* Section examples */}
+      <div className="divide-y divide-[#F0F0F0]">
+        {JSON_EXAMPLES.map((ex) => (
+          <div key={ex.id} className="overflow-hidden">
+            <button
+              onClick={() => setActiveId(activeId === ex.id ? null : ex.id)}
+              className="w-full flex items-center justify-between px-5 py-3.5 text-right hover:bg-[#FAFAFA] transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#2A2628] text-[#B8D900] font-mono text-[10px] font-bold">
+                  {ex.id}
+                </span>
+                <div>
+                  <span className="text-sm font-semibold text-[#2A2628]">{ex.title}</span>
+                  <span className="text-xs text-[#9A969A] mr-2">{ex.description}</span>
+                </div>
+              </div>
+              {activeId === ex.id ? (
+                <ChevronUp className="w-4 h-4 text-[#9A969A] shrink-0" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-[#9A969A] shrink-0" />
+              )}
+            </button>
+
+            {activeId === ex.id && (
+              <div className="px-5 pb-4 space-y-4 bg-[#FAFAFA]">
+                {/* Prompt */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-semibold text-[#9A969A] uppercase tracking-wider">פרומפט לAI</span>
+                    <CopyButton text={ex.prompt} />
+                  </div>
+                  <pre className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-900 font-mono whitespace-pre-wrap leading-relaxed">
+                    {ex.prompt}
+                  </pre>
+                </div>
+                {/* Example output */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-semibold text-[#9A969A] uppercase tracking-wider">דוגמה לפלט</span>
+                    <CopyButton text={ex.example} />
+                  </div>
+                  <pre className="bg-[#2A2628] rounded-xl p-3 text-[11px] text-[#B8D900] font-mono overflow-x-auto whitespace-pre leading-relaxed">
+                    {ex.example}
+                  </pre>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function HelpCard({ section }: { section: HelpSection }) {
   const [open, setOpen] = useState(false);
   const Icon = section.icon;
@@ -454,6 +679,11 @@ export default function HelpPage() {
             <p>לא נמצאו תוצאות עבור &ldquo;{search}&rdquo;</p>
           </div>
         )}
+      </div>
+
+      {/* JSON Guide */}
+      <div className="mt-8">
+        <JsonGuideSection />
       </div>
     </div>
   );

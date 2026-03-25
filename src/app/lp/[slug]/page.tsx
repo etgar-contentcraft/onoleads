@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Page, PageSection, Language, Program } from "@/lib/types/database";
 import { LandingPageLayout, type PageSettings } from "@/components/landing/landing-page-layout";
 import type { Metadata } from "next";
@@ -123,7 +124,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export const revalidate = 3600;
+/** Pre-generate all published pages as static HTML at build time. */
+export async function generateStaticParams() {
+  const supabase = createAdminClient();
+  const { data } = await supabase.from("pages").select("slug").eq("status", "published");
+  return (data || []).map(({ slug }: { slug: string }) => ({ slug }));
+}
+
+/**
+ * Never auto-revalidate — pages stay static until the admin explicitly saves,
+ * which triggers on-demand revalidation via /api/revalidate.
+ * New slugs not in generateStaticParams are SSR'd on first request, then cached.
+ */
+export const revalidate = false;
+export const dynamicParams = true;
 
 export default async function LandingPage({ params }: PageProps) {
   const { slug } = await params;

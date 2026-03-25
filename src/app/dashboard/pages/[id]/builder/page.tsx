@@ -2653,6 +2653,14 @@ export default function PageBuilderPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
       showToast("הדף נשמר בהצלחה");
+      // Trigger on-demand ISR so the static LP HTML is regenerated
+      if (page?.slug) {
+        fetch("/api/revalidate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug: page.slug }),
+        }).catch(() => {/* non-blocking */});
+      }
     } else {
       showToast("שגיאה בשמירה", "error");
     }
