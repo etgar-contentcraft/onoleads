@@ -22,6 +22,8 @@ interface SharedSection {
   id: string;
   name_he: string;
   section_type: string;
+  /** Program/degree category, e.g. "משפטים", "ניהול עסקי". Empty = uncategorized */
+  category: string;
   content: Record<string, unknown>;
   styles: Record<string, unknown>;
   created_at: string;
@@ -63,6 +65,7 @@ export default function SharedSectionsPage() {
   // Form state
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState("cta");
+  const [formCategory, setFormCategory] = useState("");
   const [formContentJson, setFormContentJson] = useState("{}");
   const [jsonError, setJsonError] = useState("");
 
@@ -103,6 +106,7 @@ export default function SharedSectionsPage() {
     setEditTarget(null);
     setFormName("");
     setFormType("cta");
+    setFormCategory("");
     setFormContentJson("{}");
     setJsonError("");
     setEditOpen(true);
@@ -112,6 +116,7 @@ export default function SharedSectionsPage() {
     setEditTarget(section);
     setFormName(section.name_he);
     setFormType(section.section_type);
+    setFormCategory(section.category || "");
     setFormContentJson(JSON.stringify(section.content, null, 2));
     setJsonError("");
     setEditOpen(true);
@@ -131,13 +136,13 @@ export default function SharedSectionsPage() {
     if (editTarget) {
       const { error } = await supabase
         .from("shared_sections")
-        .update({ name_he: formName, section_type: formType, content: parsed })
+        .update({ name_he: formName, section_type: formType, category: formCategory, content: parsed })
         .eq("id", editTarget.id);
       if (!error) { setEditOpen(false); load(); }
     } else {
       const { error } = await supabase
         .from("shared_sections")
-        .insert({ name_he: formName, section_type: formType, content: parsed });
+        .insert({ name_he: formName, section_type: formType, category: formCategory, content: parsed });
       if (!error) { setEditOpen(false); load(); }
     }
     setSaving(false);
@@ -188,6 +193,7 @@ export default function SharedSectionsPage() {
             <thead className="bg-[#F8F9FA] border-b border-[#F0F0F0]">
               <tr>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-[#9A969A]">שם</th>
+                <th className="px-5 py-3 text-right text-xs font-semibold text-[#9A969A]">קטגוריה</th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-[#9A969A]">סוג סקציה</th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-[#9A969A]">שימוש בעמודים</th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-[#9A969A]">עדכון אחרון</th>
@@ -204,6 +210,15 @@ export default function SharedSectionsPage() {
                       </div>
                       <span className="font-medium text-[#2A2628]">{section.name_he}</span>
                     </div>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    {section.category ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">
+                        {section.category}
+                      </span>
+                    ) : (
+                      <span className="text-[#C8C4C8] text-xs">—</span>
+                    )}
                   </td>
                   <td className="px-5 py-3.5">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#F0F0F0] text-[#716C70] text-xs font-medium">
@@ -257,9 +272,19 @@ export default function SharedSectionsPage() {
               <Input
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                placeholder="למשל: Footer CTA — אונו"
+                placeholder="למשל: Hero — משפטים"
                 dir="rtl"
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">קטגוריה / תחום לימוד</Label>
+              <Input
+                value={formCategory}
+                onChange={(e) => setFormCategory(e.target.value)}
+                placeholder="למשל: משפטים, ניהול עסקי, פסיכולוגיה"
+                dir="rtl"
+              />
+              <p className="text-xs text-[#9A969A]">לארגון הסקציות בספרייה לפי תחום — לא חובה</p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm font-medium">סוג סקציה</Label>

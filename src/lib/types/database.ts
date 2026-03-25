@@ -186,6 +186,8 @@ export interface PageSection {
   is_visible: boolean;
   content: Record<string, unknown> | null;
   styles: Record<string, unknown> | null;
+  /** When set, this section mirrors content from the shared_sections table */
+  shared_section_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }

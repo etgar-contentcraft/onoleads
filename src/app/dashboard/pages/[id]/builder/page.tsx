@@ -66,6 +66,8 @@ import {
   AlertTriangle,
   Settings2,
   Users,
+  Globe,
+  Search,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -87,6 +89,16 @@ interface PageOverrideSettings {
   social_proof_enabled?: string;
   /** Days window for social proof count, stored as string */
   social_proof_days?: string;
+}
+
+/** A shared (global) section from the shared_sections library */
+interface GlobalSectionItem {
+  id: string;
+  name_he: string;
+  section_type: string;
+  category: string;
+  content: Record<string, unknown>;
+  styles: Record<string, unknown> | null;
 }
 
 /** A saved version snapshot of page sections */
@@ -439,6 +451,11 @@ function SortableSectionRow({
           {!section.is_visible && (
             <Badge className="text-[10px] bg-[#F3F4F6] text-[#9A969A] border-0 px-1.5">
               מוסתר
+            </Badge>
+          )}
+          {section.shared_section_id && (
+            <Badge className="text-[10px] bg-blue-50 text-blue-600 border border-blue-200 px-1.5 gap-1">
+              🔗 גלובלי
             </Badge>
           )}
         </div>
@@ -2227,6 +2244,13 @@ export default function PageBuilderPage() {
   const [tySettings, setTySettings] = useState<Partial<ThankYouPageSettings>>({});
   const [pageSettingsSaving, setPageSettingsSaving] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  // Global sections library panel state
+  const [libraryTab, setLibraryTab] = useState<"types" | "global">("types");
+  const [globalSections, setGlobalSections] = useState<GlobalSectionItem[]>([]);
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [globalEditDialogOpen, setGlobalEditDialogOpen] = useState(false);
+  const [globalEditSection, setGlobalEditSection] = useState<PageSection | null>(null);
   const [versions, setVersions] = useState<PageVersion[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -2300,6 +2324,78 @@ export default function PageBuilderPage() {
     },
     [persistOrder]
   );
+
+  // ---- Global Sections Library ----
+
+  const loadGlobalSections = useCallback(async () => {
+    setGlobalLoading(true);
+    const { data } = await supabase
+      .from("shared_sections")
+      .select("id, name_he, section_type, category, content, styles")
+      .order("category", { ascending: true })
+      .order("name_he", { ascending: true });
+    setGlobalSections((data as GlobalSectionItem[]) || []);
+    setGlobalLoading(false);
+  }, [supabase]);
+
+  /** Adds a shared section (by reference) to the current page */
+  const addSharedSection = useCallback(async (gs: GlobalSectionItem) => {
+    const maxSort = sections.reduce((m, s) => Math.max(m, s.sort_order), -1);
+    const row = {
+      page_id: pageId,
+      section_type: gs.section_type,
+      sort_order: maxSort + 1,
+      is_visible: true,
+      content: gs.content,
+      styles: gs.styles ?? null,
+      shared_section_id: gs.id,
+    };
+    const { data, error } = await supabase
+      .from("page_sections")
+      .insert(row)
+      .select()
+      .single();
+    if (!error && data) {
+      setSections((prev) => [...prev, data as PageSection]);
+      showToast(`סקציה גלובלית "${gs.name_he}" נוספה`);
+    } else {
+      showToast("שגיאה בהוספת סקציה גלובלית", "error");
+    }
+  }, [pageId, sections, supabase, showToast]);
+
+  /** Detaches a section from its shared_section, making it locally editable */
+  const detachSharedSection = useCallback(async (sectionId: string) => {
+    const { error } = await supabase
+      .from("page_sections")
+      .update({ shared_section_id: null })
+      .eq("id", sectionId);
+    if (!error) {
+      setSections((prev) =>
+        prev.map((s) => s.id === sectionId ? { ...s, shared_section_id: null } : s)
+      );
+    }
+  }, [supabase]);
+
+  /** Saves content to the shared_sections table — updates all pages using this section */
+  const saveGlobalSection = useCallback(async (sharedId: string, sectionId: string, content: Record<string, unknown>) => {
+    setEditSaving(true);
+    const { error } = await supabase
+      .from("shared_sections")
+      .update({ content })
+      .eq("id", sharedId);
+    if (!error) {
+      // Reflect new content locally
+      setSections((prev) =>
+        prev.map((s) => s.id === sectionId ? { ...s, content } : s)
+      );
+      setGlobalEditDialogOpen(false);
+      setEditingSection(null);
+      showToast("הסקציה הגלובלית עודכנה — כל הדפים המשתמשים בה עודכנו");
+    } else {
+      showToast("שגיאה בשמירה הגלובלית", "error");
+    }
+    setEditSaving(false);
+  }, [supabase, showToast]);
 
   // ---- Version History ----
 
@@ -2456,6 +2552,12 @@ export default function PageBuilderPage() {
   const saveEditSection = useCallback(
     async (id: string, content: Record<string, unknown>) => {
       setEditSaving(true);
+      const section = sections.find((s) => s.id === id);
+      // If section references a shared_section, update the shared table (updates all pages)
+      if (section?.shared_section_id) {
+        await saveGlobalSection(section.shared_section_id, id, content);
+        return;
+      }
       const { error } = await supabase
         .from("page_sections")
         .update({ content })
@@ -2758,8 +2860,8 @@ export default function PageBuilderPage() {
         {/* ── LEFT PANEL — Section Library ── */}
         <aside className="w-[300px] shrink-0 bg-gradient-to-b from-[#1a1a2e] to-[#16213e] border-l border-[#2a2a42] flex flex-col overflow-hidden">
           {/* Panel header */}
-          <div className="px-4 py-3.5 border-b border-white/10">
-            <div className="flex items-center gap-2">
+          <div className="px-4 pt-3.5 pb-2 border-b border-white/10">
+            <div className="flex items-center gap-2 mb-3">
               <div className="w-7 h-7 rounded-lg bg-[#B8D900]/20 flex items-center justify-center">
                 <Layers className="w-3.5 h-3.5 text-[#B8D900]" />
               </div>
@@ -2768,9 +2870,36 @@ export default function PageBuilderPage() {
                 <p className="text-[10px] text-white/40 mt-0.5">לחץ להוספה לדף</p>
               </div>
             </div>
+            {/* Tab switcher */}
+            <div className="flex gap-1 bg-white/[0.05] rounded-lg p-0.5">
+              <button
+                onClick={() => setLibraryTab("types")}
+                className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  libraryTab === "types"
+                    ? "bg-[#B8D900] text-[#1a1a2e]"
+                    : "text-white/50 hover:text-white/80"
+                }`}
+              >
+                סוגי סקציות
+              </button>
+              <button
+                onClick={() => {
+                  setLibraryTab("global");
+                  if (globalSections.length === 0) loadGlobalSections();
+                }}
+                className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  libraryTab === "global"
+                    ? "bg-[#B8D900] text-[#1a1a2e]"
+                    : "text-white/50 hover:text-white/80"
+                }`}
+              >
+                ספרייה גלובלית
+              </button>
+            </div>
           </div>
 
-          {/* Section type cards */}
+          {/* ── TAB: Section types ── */}
+          {libraryTab === "types" && (
           <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="p-3 space-y-1.5">
               {SECTION_LIBRARY.map((item) => {
@@ -2839,6 +2968,91 @@ export default function PageBuilderPage() {
               })}
             </div>
           </div>
+          )}
+
+          {/* ── TAB: Global sections library ── */}
+          {libraryTab === "global" && (
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            {/* Search box */}
+            <div className="px-3 py-2.5 border-b border-white/10">
+              <div className="relative">
+                <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+                <input
+                  value={globalSearch}
+                  onChange={(e) => setGlobalSearch(e.target.value)}
+                  placeholder="חיפוש לפי שם / קטגוריה..."
+                  dir="rtl"
+                  className="w-full h-8 bg-white/[0.06] border border-white/10 rounded-lg pl-2 pr-8 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-[#B8D900]/50"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-1.5">
+              {globalLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="w-5 h-5 animate-spin text-white/30" />
+                </div>
+              ) : (() => {
+                const query = globalSearch.trim().toLowerCase();
+                const filtered = globalSections.filter((gs) =>
+                  !query ||
+                  gs.name_he.toLowerCase().includes(query) ||
+                  (gs.category || "").toLowerCase().includes(query) ||
+                  gs.section_type.toLowerCase().includes(query)
+                );
+                if (filtered.length === 0) {
+                  return (
+                    <div className="text-center py-10">
+                      <Globe className="w-8 h-8 mx-auto mb-2 text-white/20" />
+                      <p className="text-xs text-white/30">
+                        {globalSections.length === 0 ? "אין סקציות בספרייה עדיין" : "לא נמצאו תוצאות"}
+                      </p>
+                      {globalSections.length === 0 && (
+                        <p className="text-[10px] text-white/20 mt-1">
+                          הוסיפו מ&ldquo;סקציות גלובליות&rdquo; בסיידבר
+                        </p>
+                      )}
+                    </div>
+                  );
+                }
+                // Group by category
+                const grouped: Record<string, GlobalSectionItem[]> = {};
+                for (const gs of filtered) {
+                  const cat = gs.category || "כללי";
+                  if (!grouped[cat]) grouped[cat] = [];
+                  grouped[cat].push(gs);
+                }
+                return Object.entries(grouped).map(([cat, items]) => (
+                  <div key={cat}>
+                    <p className="text-[10px] font-bold text-[#B8D900]/60 uppercase tracking-wider px-1 mb-1 mt-2">{cat}</p>
+                    {items.map((gs) => {
+                      const alreadyUsed = sections.some((s) => s.shared_section_id === gs.id);
+                      return (
+                        <button
+                          key={gs.id}
+                          onClick={() => addSharedSection(gs)}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-white/[0.06] bg-white/[0.04] hover:bg-white/[0.09] hover:border-[#B8D900]/30 transition-all text-right group mb-1"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
+                            <Globe className="w-3.5 h-3.5 text-blue-300" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-white/90 truncate">{gs.name_he}</p>
+                            <p className="text-[10px] text-white/35 mt-0.5">{gs.section_type}</p>
+                          </div>
+                          {alreadyUsed && (
+                            <span className="text-[9px] text-[#B8D900] font-bold shrink-0">✓</span>
+                          )}
+                          <Plus className="w-3.5 h-3.5 text-white/30 group-hover:text-[#B8D900] transition-colors shrink-0" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+          )}
 
           {/* Bottom hint */}
           <div className="px-4 py-3 border-t border-white/10">
@@ -2905,7 +3119,14 @@ export default function PageBuilderPage() {
                           onMoveUp={() => moveSection(section.id, "up")}
                           onMoveDown={() => moveSection(section.id, "down")}
                           onToggleVisibility={() => toggleVisibility(section.id)}
-                          onEdit={() => setEditingSection(section)}
+                          onEdit={() => {
+                            if (section.shared_section_id) {
+                              setGlobalEditSection(section);
+                              setGlobalEditDialogOpen(true);
+                            } else {
+                              setEditingSection(section);
+                            }
+                          }}
                           onDelete={() => setDeleteTargetId(section.id)}
                         />
                       ))}
@@ -3033,6 +3254,55 @@ export default function PageBuilderPage() {
             </div>
           </aside>
         </>
+      )}
+
+      {/* ── Global Section Edit Dialog ── */}
+      {globalEditDialogOpen && globalEditSection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-[360px] p-6 flex flex-col gap-4" dir="rtl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                <Globe className="w-5 h-5 text-blue-500" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-[#2A2628]">עריכת סקציה גלובלית</h2>
+                <p className="text-xs text-[#9A969A] mt-0.5">סקציה זו משותפת בין מספר עמודים</p>
+              </div>
+            </div>
+            <p className="text-sm text-[#4A4648] leading-relaxed">
+              כיצד תרצו לערוך את הסקציה?
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  setGlobalEditDialogOpen(false);
+                  setEditingSection(globalEditSection);
+                }}
+                className="w-full px-4 py-3 rounded-xl bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors text-right"
+              >
+                <p className="text-sm font-semibold text-blue-700">ערוך גלובלי</p>
+                <p className="text-xs text-blue-500 mt-0.5">השינויים יעודכנו בכל הדפים המשתמשים בסקציה זו</p>
+              </button>
+              <button
+                onClick={async () => {
+                  await detachSharedSection(globalEditSection.id);
+                  setGlobalEditDialogOpen(false);
+                  setEditingSection({ ...globalEditSection, shared_section_id: null });
+                }}
+                className="w-full px-4 py-3 rounded-xl bg-[#F8F9FA] border border-[#E5E5E5] hover:bg-[#F0F0F0] transition-colors text-right"
+              >
+                <p className="text-sm font-semibold text-[#2A2628]">ניתוק ועריכה מקומית</p>
+                <p className="text-xs text-[#9A969A] mt-0.5">הסקציה תנותק מהספרייה ותהיה ייחודית לעמוד זה בלבד</p>
+              </button>
+            </div>
+            <button
+              onClick={() => setGlobalEditDialogOpen(false)}
+              className="text-xs text-[#9A969A] hover:text-[#4A4648] transition-colors self-center"
+            >
+              ביטול
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
