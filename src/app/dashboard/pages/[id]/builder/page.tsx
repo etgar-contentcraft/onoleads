@@ -2230,6 +2230,9 @@ export default function PageBuilderPage() {
 
   const [page, setPage] = useState<PageData | null>(null);
   const [sections, setSections] = useState<PageSection[]>([]);
+  /** Always-fresh ref to sections — prevents stale closure bugs in useCallback */
+  const sectionsRef = useRef<PageSection[]>([]);
+  useEffect(() => { sectionsRef.current = sections; }, [sections]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -2305,6 +2308,7 @@ export default function PageBuilderPage() {
           is_visible: s.is_visible,
           content: s.content,
           styles: s.styles ?? null,
+          shared_section_id: s.shared_section_id ?? null,
         }));
         const { error } = await supabase.from("page_sections").upsert(upserts);
         if (!error) {
@@ -2551,8 +2555,11 @@ export default function PageBuilderPage() {
 
   const saveEditSection = useCallback(
     async (id: string, content: Record<string, unknown>) => {
+      // Cancel any pending debounced persistOrder — prevents it from overwriting our save
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       setEditSaving(true);
-      const section = sections.find((s) => s.id === id);
+      // Use sectionsRef for always-fresh sections (avoids stale closure bug)
+      const section = sectionsRef.current.find((s) => s.id === id);
       // If section references a shared_section, update the shared table (updates all pages)
       if (section?.shared_section_id) {
         await saveGlobalSection(section.shared_section_id, id, content);
@@ -2570,11 +2577,12 @@ export default function PageBuilderPage() {
         setEditingSection(null);
         showToast("התוכן נשמר בהצלחה");
       } else {
-        showToast("שגיאה בשמירה", "error");
+        console.error("[saveEditSection] error:", JSON.stringify(error));
+        showToast(`שגיאה בשמירה: ${error.message || error.code || "unknown"}`, "error");
       }
       setEditSaving(false);
     },
-    [supabase, showToast]
+    [supabase, showToast, saveGlobalSection]
   );
 
   // ---- Delete section ----
