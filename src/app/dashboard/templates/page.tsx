@@ -31,6 +31,7 @@ import {
   Eye,
   EyeOff,
   X,
+  Globe,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -86,6 +87,17 @@ interface SectionSchemaItem {
   sort_order: number;
   is_visible: boolean;
   content: Record<string, unknown>;
+  /** When set, this slot references a global (shared) section by its UUID */
+  shared_section_id?: string;
+  /** Display name of the linked global section (stored for readability) */
+  shared_section_name?: string;
+}
+
+/** A row from the shared_sections table */
+interface SharedSection {
+  id: string;
+  name: string;
+  section_type: string;
 }
 
 interface Template {
@@ -181,6 +193,7 @@ interface SectionRowProps {
  */
 function SectionRow({ item, index, total, onMoveUp, onMoveDown, onToggleVisible, onRemove }: SectionRowProps) {
   const config = SECTION_CONFIG[item.section_type] ?? { label: item.section_type, color: "bg-gray-100 text-gray-600" };
+  const isGlobal = !!item.shared_section_id;
   return (
     <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-colors ${item.is_visible ? "border-[#E5E5E5] bg-white" : "border-dashed border-[#E0E0E0] bg-[#FAFAFA]"}`}>
       {/* Order controls */}
@@ -210,9 +223,11 @@ function SectionRow({ item, index, total, onMoveUp, onMoveDown, onToggleVisible,
         {index + 1}
       </span>
 
-      {/* Section type chip */}
-      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold flex-1 ${config.color}`}>
-        {config.label}
+      {/* Section type chip — shows name of global section when linked */}
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold flex-1 ${config.color}`}>
+        {isGlobal && <Globe className="w-3 h-3 shrink-0 opacity-70" />}
+        {isGlobal ? item.shared_section_name || config.label : config.label}
+        {isGlobal && <span className="opacity-50 font-normal">({config.label})</span>}
       </span>
 
       {/* Visibility toggle */}
@@ -262,8 +277,13 @@ export default function TemplatesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Section type picker visibility inside the dialog
+  // Section type picker visibility and tab inside the dialog
   const [showSectionPicker, setShowSectionPicker] = useState(false);
+  const [pickerTab, setPickerTab] = useState<"new" | "global">("new");
+
+  // Global (shared) sections available for linking
+  const [sharedSections, setSharedSections] = useState<SharedSection[]>([]);
+  const [loadingShared, setLoadingShared] = useState(false);
 
   // ---------------------------------------------------------------------------
   // Data loading
@@ -339,12 +359,29 @@ export default function TemplatesPage() {
   // Dialog helpers
   // ---------------------------------------------------------------------------
 
+  /**
+   * Loads active global sections from the shared_sections table for the picker.
+   * Called once when the dialog opens to avoid fetching on every render.
+   */
+  const loadSharedSections = useCallback(async () => {
+    setLoadingShared(true);
+    const { data } = await supabase
+      .from("shared_sections")
+      .select("id, name, section_type")
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+    setSharedSections((data as SharedSection[]) || []);
+    setLoadingShared(false);
+  }, [supabase]);
+
   /** Opens the dialog in create mode with a blank form */
   const openCreate = () => {
     setEditTarget(null);
     setForm(EMPTY_FORM);
     setShowSectionPicker(false);
+    setPickerTab("new");
     setEditOpen(true);
+    loadSharedSections();
   };
 
   /** Opens the dialog in edit mode, pre-filling all fields */
@@ -359,7 +396,9 @@ export default function TemplatesPage() {
       sections: template.section_schema ? [...template.section_schema] : [],
     });
     setShowSectionPicker(false);
+    setPickerTab("new");
     setEditOpen(true);
+    loadSharedSections();
   };
 
   /**
@@ -376,13 +415,36 @@ export default function TemplatesPage() {
   // ---------------------------------------------------------------------------
 
   /**
-   * Appends a new section of the given type to the end of the list.
+   * Appends a new blank section of the given type to the end of the list.
    * @param sectionType - The section type string to add
    */
   const addSection = (sectionType: string) => {
     setForm((prev) => ({
       ...prev,
       sections: reindex([...prev.sections, buildSection(sectionType, prev.sections.length)]),
+    }));
+    setShowSectionPicker(false);
+  };
+
+  /**
+   * Appends a global section reference to the end of the list.
+   * Global sections are linked by shared_section_id so they render live content.
+   * @param shared - The global section to link
+   */
+  const addGlobalSection = (shared: SharedSection) => {
+    setForm((prev) => ({
+      ...prev,
+      sections: reindex([
+        ...prev.sections,
+        {
+          section_type: shared.section_type,
+          sort_order: prev.sections.length,
+          is_visible: true,
+          content: {},
+          shared_section_id: shared.id,
+          shared_section_name: shared.name,
+        },
+      ]),
     }));
     setShowSectionPicker(false);
   };
@@ -654,32 +716,101 @@ export default function TemplatesPage() {
                 </Button>
               </div>
 
-              {/* Section type picker dropdown */}
+              {/* Section picker panel with tabs: blank type vs. global section */}
               {showSectionPicker && (
-                <div className="border border-[#E5E5E5] rounded-xl p-3 bg-[#FAFAFA]">
-                  <p className="text-xs text-[#9A969A] mb-2 font-medium">בחר סוג סקציה להוספה:</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ALL_SECTION_TYPES.map((type) => {
-                      const cfg = SECTION_CONFIG[type];
-                      const alreadyAdded = form.sections.some((s) => s.section_type === type);
-                      return (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => addSection(type)}
-                          disabled={alreadyAdded}
-                          className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                            alreadyAdded
-                              ? "opacity-40 cursor-not-allowed " + cfg.color
-                              : cfg.color + " hover:opacity-80 hover:shadow-sm"
-                          }`}
-                          title={alreadyAdded ? "סקציה זו כבר קיימת בתבנית" : `הוסף ${cfg.label}`}
-                        >
-                          {cfg.label}
-                          {alreadyAdded && " ✓"}
-                        </button>
-                      );
-                    })}
+                <div className="border border-[#E5E5E5] rounded-xl bg-[#FAFAFA] overflow-hidden">
+                  {/* Tab header */}
+                  <div className="flex border-b border-[#E5E5E5]">
+                    <button
+                      type="button"
+                      onClick={() => setPickerTab("new")}
+                      className={`flex-1 px-3 py-2 text-xs font-medium transition-colors ${
+                        pickerTab === "new"
+                          ? "bg-white text-[#2A2628] border-b-2 border-[#B8D900] -mb-px"
+                          : "text-[#9A969A] hover:text-[#4A4648]"
+                      }`}
+                    >
+                      סקציה חדשה
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPickerTab("global")}
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
+                        pickerTab === "global"
+                          ? "bg-white text-[#2A2628] border-b-2 border-[#B8D900] -mb-px"
+                          : "text-[#9A969A] hover:text-[#4A4648]"
+                      }`}
+                    >
+                      <Globe className="w-3 h-3" />
+                      סקציות גלובאליות
+                    </button>
+                  </div>
+
+                  <div className="p-3">
+                    {pickerTab === "new" ? (
+                      /* Blank section type chips */
+                      <div className="flex flex-wrap gap-1.5">
+                        {ALL_SECTION_TYPES.map((type) => {
+                          const cfg = SECTION_CONFIG[type];
+                          const alreadyAdded = form.sections.some(
+                            (s) => s.section_type === type && !s.shared_section_id
+                          );
+                          return (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => addSection(type)}
+                              disabled={alreadyAdded}
+                              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                                alreadyAdded
+                                  ? "opacity-40 cursor-not-allowed " + cfg.color
+                                  : cfg.color + " hover:opacity-80 hover:shadow-sm"
+                              }`}
+                              title={alreadyAdded ? "סקציה זו כבר קיימת בתבנית" : `הוסף ${cfg.label}`}
+                            >
+                              {cfg.label}
+                              {alreadyAdded && " ✓"}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* Global sections list */
+                      loadingShared ? (
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="w-4 h-4 animate-spin text-[#9A969A]" />
+                        </div>
+                      ) : sharedSections.length === 0 ? (
+                        <p className="text-xs text-[#9A969A] text-center py-4">
+                          אין סקציות גלובאליות פעילות. צור אותן ב&quot;איזורים גלובאליים&quot;.
+                        </p>
+                      ) : (
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                          {sharedSections.map((shared) => {
+                            const cfg = SECTION_CONFIG[shared.section_type] ?? {
+                              label: shared.section_type,
+                              color: "bg-gray-100 text-gray-600",
+                            };
+                            return (
+                              <button
+                                key={shared.id}
+                                type="button"
+                                onClick={() => addGlobalSection(shared)}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-right hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-[#E5E5E5]"
+                              >
+                                <Globe className="w-3.5 h-3.5 text-[#9A969A] shrink-0" />
+                                <span className="flex-1 text-xs font-medium text-[#2A2628] truncate">
+                                  {shared.name}
+                                </span>
+                                <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium ${cfg.color}`}>
+                                  {cfg.label}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
               )}

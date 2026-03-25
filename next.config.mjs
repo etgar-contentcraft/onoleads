@@ -16,7 +16,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https: http:",
+      "img-src 'self' data: blob: https://img.youtube.com https://i.ytimg.com https:",
       "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://calendar.google.com https://calendly.com",
       "connect-src 'self' https://*.supabase.co https://api.supabase.co wss://*.supabase.co https://hooks.zapier.com https://www.google-analytics.com",
       "media-src 'self' https://www.youtube-nocookie.com https://www.youtube.com",

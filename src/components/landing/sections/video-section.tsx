@@ -36,7 +36,8 @@ interface VideoSectionProps {
 function getThumbnailUrl(youtubeIdOrUrl: string, providedUrl?: string): string | null {
   if (providedUrl) return providedUrl;
   const id = extractYoutubeId(youtubeIdOrUrl);
-  if (!id || id.length < 5) return null; // No valid ID — caller will skip the <img>
+  // Strictly require an 11-char YouTube ID — anything else produces a broken URL
+  if (!id || !/^[A-Za-z0-9_-]{11}$/.test(id)) return null;
   return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
 }
 
@@ -67,18 +68,22 @@ function extractYoutubeId(input: string): string {
   if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
   try {
     const url = new URL(input);
+    let candidate = "";
     // youtu.be/<id>
-    if (url.hostname === "youtu.be") return url.pathname.slice(1).split("?")[0];
+    if (url.hostname === "youtu.be") candidate = url.pathname.slice(1).split("?")[0];
     // /embed/<id> or /v/<id>
     const pathMatch = url.pathname.match(/\/(?:embed|v)\/([A-Za-z0-9_-]{11})/);
-    if (pathMatch) return pathMatch[1];
+    if (pathMatch) candidate = pathMatch[1];
     // ?v=<id>
     const v = url.searchParams.get("v");
-    if (v) return v;
+    if (v) candidate = v;
+    // Only return if extracted value is a valid 11-char YouTube ID
+    if (/^[A-Za-z0-9_-]{11}$/.test(candidate)) return candidate;
   } catch {
-    // Not a URL — return as-is and let YouTube handle any error
+    // Not a URL — fall through to empty return
   }
-  return input;
+  // Could not extract a valid ID — caller should skip the <img> / embed
+  return "";
 }
 
 /**
@@ -94,6 +99,63 @@ function buildEmbedUrl(youtubeIdOrUrl: string, autoplay = false): string {
     ...(autoplay ? { autoplay: "1" } : {}),
   });
   return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
+}
+
+/**
+ * YouTube iframe player with an inline "Watch on YouTube" fallback link.
+ * The fallback is hidden by default and shown only when the iframe fails to load,
+ * which happens when an ad-blocker or strict CSP prevents the embed.
+ * @param youtubeId - Validated 11-char YouTube video ID
+ * @param title - Accessible title for the iframe
+ * @param size - Controls the fallback button size
+ */
+function YoutubeEmbed({ youtubeId, title, size }: { youtubeId: string; title: string; size: "sm" | "lg" }) {
+  const [blocked, setBlocked] = useState(false);
+  const watchUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
+
+  if (blocked || !youtubeId) {
+    /* Fallback: direct YouTube link when embed is blocked */
+    return (
+      <a
+        href={watchUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#1a1a1a] text-white hover:bg-[#222]`}
+      >
+        <svg
+          className={size === "lg" ? "w-12 h-12" : "w-8 h-8"}
+          viewBox="0 0 24 24"
+          fill="#FF0000"
+          aria-hidden="true"
+        >
+          <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.13C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.56A3.02 3.02 0 0 0 .5 6.19C0 8.03 0 12 0 12s0 3.97.5 5.81a3.02 3.02 0 0 0 2.12 2.13C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.56a3.02 3.02 0 0 0 2.12-2.13C24 15.97 24 12 24 12s0-3.97-.5-5.81zM9.75 15.5v-7l6.5 3.5-6.5 3.5z" />
+        </svg>
+        <span className={`font-heebo font-medium ${size === "lg" ? "text-base" : "text-sm"}`}>
+          לצפייה ביוטיוב
+        </span>
+      </a>
+    );
+  }
+
+  return (
+    <iframe
+      src={buildEmbedUrl(youtubeId, true)}
+      className="absolute inset-0 w-full h-full"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowFullScreen
+      title={title}
+      onError={() => setBlocked(true)}
+      onLoad={(e) => {
+        /* Detect blocked embed: contentWindow is null when browser extensions block the frame */
+        try {
+          const frame = e.currentTarget;
+          if (!frame.contentWindow) setBlocked(true);
+        } catch {
+          setBlocked(true);
+        }
+      }}
+    />
+  );
 }
 
 /**
@@ -170,13 +232,8 @@ function VideoCard({
             </div>
           </button>
         ) : (
-          <iframe
-            src={buildEmbedUrl(video.youtube_id, true)}
-            className="absolute inset-0 w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title={video.title_he}
-          />
+          /* Iframe + direct-link fallback for ad-blockers / CSP restrictions */
+          <YoutubeEmbed youtubeId={extractYoutubeId(video.youtube_id)} title={video.title_he} size="sm" />
         )}
       </div>
 
@@ -316,13 +373,8 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                     </div>
                   </button>
                 ) : (
-                  <iframe
-                    src={buildEmbedUrl(activeVideo.youtube_id, true)}
-                    className="absolute inset-0 w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    title={activeVideo.title_he}
-                  />
+                  /* Iframe + direct-link fallback for ad-blockers / CSP restrictions */
+                  <YoutubeEmbed youtubeId={extractYoutubeId(activeVideo.youtube_id)} title={activeVideo.title_he} size="lg" />
                 )}
               </div>
 
