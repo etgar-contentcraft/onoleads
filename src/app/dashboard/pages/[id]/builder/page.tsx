@@ -30,6 +30,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { createClient } from "@/lib/supabase/client";
 import type { PageSection } from "@/lib/types/database";
+import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -78,7 +79,6 @@ interface PageOverrideSettings {
   default_cta_text?: string;
   google_analytics_id?: string;
   facebook_pixel_id?: string;
-  thank_you_message?: string;
 }
 
 interface PageData {
@@ -1206,6 +1206,8 @@ interface PageSettingsDialogProps {
   onClose: () => void;
   settings: PageOverrideSettings;
   onChange: (key: keyof PageOverrideSettings, value: string) => void;
+  tySettings: Partial<ThankYouPageSettings>;
+  onTyChange: (key: keyof ThankYouPageSettings, value: string | boolean) => void;
   onSave: () => Promise<void>;
   saving: boolean;
 }
@@ -1214,7 +1216,7 @@ interface PageSettingsDialogProps {
  * Per-page settings override dialog.
  * Empty fields fall back to the global settings configured in הגדרות.
  */
-function PageSettingsDialog({ open, onClose, settings, onChange, onSave, saving }: PageSettingsDialogProps) {
+function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onTyChange, onSave, saving }: PageSettingsDialogProps) {
   /** A labeled input field with placeholder showing the fallback */
   const SettingField = ({
     label,
@@ -1300,18 +1302,124 @@ function PageSettingsDialog({ open, onClose, settings, onChange, onSave, saving 
                   hint="הטקסט על כפתורי הרשמה בעמוד"
                 />
                 <SettingField
-                  label="הודעת תודה לאחר הרשמה"
-                  fieldKey="thank_you_message"
-                  placeholder="תודה! פנייתך התקבלה. ניצור איתך קשר בהקדם. (מהגדרות הכלליות)"
-                  dir="rtl"
-                  hint="הטקסט שיוצג לאחר שליחת הטופס"
-                />
-                <SettingField
                   label="לוגו מותאם (URL)"
                   fieldKey="logo_url"
                   placeholder="https://... (לוגו אונו כברירת מחדל)"
                   hint="להחלפת הלוגו בעמוד זה בלבד"
                 />
+              </div>
+            </div>
+
+            <div className="border-t border-[#F0F0F0]" />
+
+            {/* Thank You Page */}
+            <div>
+              <h3 className="text-xs font-bold text-[#9A969A] uppercase tracking-wider mb-3">עמוד תודה</h3>
+              <div className="space-y-3">
+                {/* Heading */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-[#2A2628]">כותרת עמוד תודה</Label>
+                  <Input
+                    value={tySettings.heading_he || ""}
+                    onChange={(e) => onTyChange("heading_he", e.target.value)}
+                    placeholder="תודה! קיבלנו את פרטיך (ברירת מחדל)"
+                    dir="rtl"
+                    className="h-9 text-sm"
+                  />
+                  <p className="text-[11px] text-[#9A969A]">ניתן לכלול [שם] לפרסונליזציה</p>
+                </div>
+
+                {/* Subheading */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-[#2A2628]">כותרת משנה</Label>
+                  <Input
+                    value={tySettings.subheading_he || ""}
+                    onChange={(e) => onTyChange("subheading_he", e.target.value)}
+                    placeholder="יועץ לימודים ייצור איתך קשר תוך 24 שעות (ברירת מחדל)"
+                    dir="rtl"
+                    className="h-9 text-sm"
+                  />
+                </div>
+
+                {/* WhatsApp CTA */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-[#2A2628]">טקסט כפתור WhatsApp</Label>
+                  <Input
+                    value={tySettings.whatsapp_cta_he || ""}
+                    onChange={(e) => onTyChange("whatsapp_cta_he", e.target.value)}
+                    placeholder="רוצים לדבר עכשיו? כתבו לנו (ברירת מחדל)"
+                    dir="rtl"
+                    className="h-9 text-sm"
+                  />
+                </div>
+
+                {/* Calendar */}
+                <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-[#2A2628]">הזמנת פגישה (קלנדלי)</Label>
+                    <button
+                      type="button"
+                      onClick={() => onTyChange("show_calendar", !tySettings.show_calendar)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_calendar ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}
+                    >
+                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tySettings.show_calendar ? "translate-x-4" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+                  {tySettings.show_calendar && (
+                    <>
+                      <Input
+                        value={tySettings.calendar_url || ""}
+                        onChange={(e) => onTyChange("calendar_url", e.target.value)}
+                        placeholder="https://calendly.com/..."
+                        dir="ltr"
+                        className="h-8 text-xs"
+                      />
+                      <Input
+                        value={tySettings.calendar_cta_he || ""}
+                        onChange={(e) => onTyChange("calendar_cta_he", e.target.value)}
+                        placeholder="קבעו שיחת ייעוץ עכשיו"
+                        dir="rtl"
+                        className="h-8 text-xs"
+                      />
+                    </>
+                  )}
+                </div>
+
+                {/* Video */}
+                <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-[#2A2628]">סרטון וידאו</Label>
+                    <button
+                      type="button"
+                      onClick={() => onTyChange("show_video", !tySettings.show_video)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_video ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}
+                    >
+                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tySettings.show_video ? "translate-x-4" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+                  {tySettings.show_video && (
+                    <Input
+                      value={tySettings.video_url || ""}
+                      onChange={(e) => onTyChange("video_url", e.target.value)}
+                      placeholder="https://youtube.com/watch?v=..."
+                      dir="ltr"
+                      className="h-8 text-xs"
+                    />
+                  )}
+                </div>
+
+                {/* Custom redirect */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-[#2A2628]">הפניה מיוחדת לאחר הרשמה</Label>
+                  <Input
+                    value={tySettings.custom_redirect_url || ""}
+                    onChange={(e) => onTyChange("custom_redirect_url", e.target.value)}
+                    placeholder="https://... (מדלג על עמוד /ty לגמרי)"
+                    dir="ltr"
+                    className="h-9 text-sm"
+                  />
+                  <p className="text-[11px] text-[#9A969A]">אם מוגדר, המשתמש יועבר לכתובת זו במקום לעמוד התודה</p>
+                </div>
               </div>
             </div>
 
@@ -1423,6 +1531,7 @@ export default function PageBuilderPage() {
   const [addingType, setAddingType] = useState<string | null>(null);
   const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
   const [pageSettings, setPageSettings] = useState<PageOverrideSettings>({});
+  const [tySettings, setTySettings] = useState<Partial<ThankYouPageSettings>>({});
   const [pageSettingsSaving, setPageSettingsSaving] = useState(false);
 
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1448,10 +1557,9 @@ export default function PageBuilderPage() {
       ]);
       if (pageRes.data) {
         setPage(pageRes.data as PageData);
-        // Extract per-page settings stored under custom_styles.page_settings
         const customStyles = pageRes.data.custom_styles as Record<string, unknown> | null;
-        const saved = (customStyles?.page_settings as PageOverrideSettings) || {};
-        setPageSettings(saved);
+        setPageSettings((customStyles?.page_settings as PageOverrideSettings) || {});
+        setTySettings((customStyles?.thank_you_settings as Partial<ThankYouPageSettings>) || {});
       }
       if (sectionsRes.data) setSections(sectionsRes.data as PageSection[]);
       setLoading(false);
@@ -1655,29 +1763,45 @@ export default function PageBuilderPage() {
     setPageSettings((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  /** Saves per-page override settings to pages.custom_styles.page_settings */
+  const updateTySetting = useCallback((key: keyof ThankYouPageSettings, value: string | boolean) => {
+    setTySettings((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  /** Saves both page_settings and thank_you_settings to pages.custom_styles */
   const savePageSettings = useCallback(async () => {
     setPageSettingsSaving(true);
     // Strip empty strings so fallback to global works correctly
-    const cleaned: PageOverrideSettings = Object.fromEntries(
+    const cleanedPage: PageOverrideSettings = Object.fromEntries(
       Object.entries(pageSettings).filter(([, v]) => v && String(v).trim() !== "")
     ) as PageOverrideSettings;
+
+    // Strip empty strings from TY settings (but keep booleans)
+    const cleanedTy: Partial<ThankYouPageSettings> = Object.fromEntries(
+      Object.entries(tySettings).filter(([, v]) => v !== undefined && v !== "")
+    ) as Partial<ThankYouPageSettings>;
 
     const existingCustomStyles = (page?.custom_styles as Record<string, unknown>) || {};
     const { error } = await supabase
       .from("pages")
-      .update({ custom_styles: { ...existingCustomStyles, page_settings: cleaned } })
+      .update({
+        custom_styles: {
+          ...existingCustomStyles,
+          page_settings: cleanedPage,
+          thank_you_settings: cleanedTy,
+        },
+      })
       .eq("id", pageId);
 
     if (!error) {
-      setPageSettings(cleaned);
+      setPageSettings(cleanedPage);
+      setTySettings(cleanedTy);
       setPageSettingsOpen(false);
       showToast("הגדרות העמוד נשמרו");
     } else {
       showToast("שגיאה בשמירת הגדרות", "error");
     }
     setPageSettingsSaving(false);
-  }, [page, pageId, pageSettings, supabase, showToast]);
+  }, [page, pageId, pageSettings, tySettings, supabase, showToast]);
 
   // ---------------------------------------------------------------------------
   // Loading / 404 states
@@ -2017,6 +2141,8 @@ export default function PageBuilderPage() {
         onClose={() => setPageSettingsOpen(false)}
         settings={pageSettings}
         onChange={updatePageSetting}
+        tySettings={tySettings}
+        onTyChange={updateTySetting}
         onSave={savePageSettings}
         saving={pageSettingsSaving}
       />

@@ -5,6 +5,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { useRouter } from "next/navigation";
 
 // ============================================================================
 // CTA Modal Context - allows any component to open/close the form modal
@@ -52,8 +53,8 @@ interface CtaModalProps {
   pageId?: string;
   programId?: string;
   programName?: string;
-  /** Override the thank-you message shown after form submission */
-  thankYouMessage?: string;
+  /** Page slug — used to build the /ty redirect URL */
+  pageSlug?: string;
   /** Override the CTA button text */
   ctaText?: string;
 }
@@ -62,14 +63,14 @@ interface CtaModalProps {
  * Lead capture modal with form validation, CSRF protection, and honeypot field.
  * Displayed as a bottom sheet on mobile and centered modal on desktop.
  */
-export function CtaModal({ pageId, programId, programName, thankYouMessage, ctaText }: CtaModalProps) {
+export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: CtaModalProps) {
   const { isOpen, close } = useCtaModal();
+  const router = useRouter();
   const [formData, setFormData] = useState({ full_name: "", phone: "", email: "" });
   const [honeypot, setHoneypot] = useState("");
   const [csrfToken, setCsrfToken] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   /* Lock body scroll when modal is open */
@@ -173,7 +174,14 @@ export function CtaModal({ pageId, programId, programName, thankYouMessage, ctaT
       });
 
       if (res.ok) {
-        setSubmitted(true);
+        // Redirect to the thank you page with name + slug for personalization
+        const firstName = formData.full_name.trim().split(" ")[0] || "";
+        const tyUrl = `/ty?${new URLSearchParams({
+          ...(pageSlug ? { slug: pageSlug } : {}),
+          ...(firstName ? { name: firstName } : {}),
+        }).toString()}`;
+        close();
+        router.push(tyUrl);
       } else {
         const errorData = await res.json().catch(() => null);
         setSubmitError(
@@ -193,13 +201,10 @@ export function CtaModal({ pageId, programId, programName, thankYouMessage, ctaT
   const handleClose = () => {
     close();
     setTimeout(() => {
-      if (submitted) {
-        setSubmitted(false);
-        setFormData({ full_name: "", phone: "", email: "" });
-        setHoneypot("");
-        setErrors({});
-        setSubmitError(null);
-      }
+      setFormData({ full_name: "", phone: "", email: "" });
+      setHoneypot("");
+      setErrors({});
+      setSubmitError(null);
     }, 300);
   };
 
@@ -237,31 +242,7 @@ export function CtaModal({ pageId, programId, programName, thankYouMessage, ctaT
           <div className="h-1 bg-gradient-to-l from-[#B8D900] via-[#c8e920] to-[#B8D900]" />
 
           <div className="p-6 md:p-8">
-            {submitted ? (
-              /* Thank you state */
-              <div className="text-center py-6 animate-scale-in">
-                <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-[#B8D900]/20 flex items-center justify-center">
-                  <svg className="w-10 h-10 text-[#B8D900]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" className="animate-check-draw" />
-                  </svg>
-                </div>
-                <h3 className="font-heading text-2xl font-extrabold text-white mb-2">
-                  תודה רבה!
-                </h3>
-                <p className="text-white/60 text-base mb-1">
-                  {thankYouMessage || "יועץ לימודים יחזור אליכם בהקדם"}
-                </p>
-                <p className="text-white/30 text-sm">
-                  הקריה האקדמית אונו
-                </p>
-                <button
-                  onClick={handleClose}
-                  className="mt-6 px-8 py-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
-                >
-                  סגור
-                </button>
-              </div>
-            ) : (
+            {(
               /* Form state */
               <>
                 <div className="text-center mb-6">
@@ -414,6 +395,7 @@ export function CtaModal({ pageId, programId, programName, thankYouMessage, ctaT
     </div>
   );
 }
+
 
 // ============================================================================
 // Floating CTA Button

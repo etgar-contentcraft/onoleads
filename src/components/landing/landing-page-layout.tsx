@@ -41,7 +41,6 @@ export interface PageSettings {
   default_cta_text?: string;
   google_analytics_id?: string;
   facebook_pixel_id?: string;
-  thank_you_message?: string;
 }
 
 interface LandingPageLayoutProps {
@@ -49,6 +48,7 @@ interface LandingPageLayoutProps {
   language: Language;
   pageId?: string;
   programId?: string;
+  pageSlug?: string;
   pageTitle?: string;
   program?: Program | null;
   settings?: PageSettings;
@@ -268,6 +268,7 @@ function InnerLayout({
   language,
   pageId,
   programId,
+  pageSlug,
   pageTitle,
   program,
   settings,
@@ -415,8 +416,8 @@ function InnerLayout({
       <CtaModal
         pageId={pageId}
         programId={programId}
+        pageSlug={pageSlug}
         programName={pageTitle || program?.name_he}
-        thankYouMessage={settings?.thank_you_message}
         ctaText={settings?.default_cta_text}
       />
 

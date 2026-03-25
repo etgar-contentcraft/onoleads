@@ -11,8 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import type { ThankYouPageSettings } from "@/lib/types/thank-you";
+import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 
 /** Shape of the settings stored in the database */
 interface AppSettings {
@@ -26,7 +28,6 @@ interface AppSettings {
   default_cta_text: string;
   google_analytics_id: string;
   facebook_pixel_id: string;
-  thank_you_message: string;
 }
 
 /** Default settings values */
@@ -41,7 +42,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   default_cta_text: "השאירו פרטים ונחזור אליכם",
   google_analytics_id: "",
   facebook_pixel_id: "",
-  thank_you_message: "תודה! פנייתך התקבלה בהצלחה. ניצור איתך קשר בהקדם.",
 };
 
 /** Toast notification state */
@@ -52,6 +52,7 @@ interface Toast {
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [tySettings, setTySettings] = useState<ThankYouPageSettings>({ ...ONO_TY_DEFAULTS });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
@@ -89,8 +90,15 @@ export default function SettingsPage() {
         default_cta_text: settingsMap.default_cta_text || DEFAULT_SETTINGS.default_cta_text,
         google_analytics_id: settingsMap.google_analytics_id || DEFAULT_SETTINGS.google_analytics_id,
         facebook_pixel_id: settingsMap.facebook_pixel_id || DEFAULT_SETTINGS.facebook_pixel_id,
-        thank_you_message: settingsMap.thank_you_message || DEFAULT_SETTINGS.thank_you_message,
       });
+
+      // Parse thank you page settings from JSON key
+      if (settingsMap.thank_you_page_settings) {
+        try {
+          const parsed = JSON.parse(settingsMap.thank_you_page_settings);
+          setTySettings({ ...ONO_TY_DEFAULTS, ...parsed });
+        } catch { /* keep defaults */ }
+      }
     }
 
     setLoading(false);
@@ -104,10 +112,11 @@ export default function SettingsPage() {
   const handleSave = useCallback(async () => {
     setSaving(true);
 
-    const rows = Object.entries(settings).map(([key, value]) => ({
-      key,
-      value: value || "",
-    }));
+    const rows = [
+      ...Object.entries(settings).map(([key, value]) => ({ key, value: value || "" })),
+      // Serialize TY settings as a single JSON blob
+      { key: "thank_you_page_settings", value: JSON.stringify(tySettings) },
+    ];
 
     /* Upsert each setting key-value pair */
     for (const row of rows) {
@@ -300,7 +309,7 @@ export default function SettingsPage() {
               </svg>
               לוגו וטקסטים
             </CardTitle>
-            <CardDescription>לוגו, CTA והודעת תודה</CardDescription>
+            <CardDescription>לוגו וטקסט ברירת מחדל לכפתורי CTA</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -334,17 +343,7 @@ export default function SettingsPage() {
               />
             </div>
 
-            <div>
-              <Label className="text-sm font-medium text-[#2a2628]">הודעת תודה</Label>
-              <Textarea
-                value={settings.thank_you_message}
-                onChange={(e) => updateSetting("thank_you_message", e.target.value)}
-                placeholder="תודה! פנייתך התקבלה..."
-                rows={3}
-                className="mt-1.5"
-              />
-              <p className="text-[11px] text-[#9A969A] mt-1">מוצגת לאחר שליחת טופס בהצלחה</p>
-            </div>
+            <p className="text-[11px] text-[#9A969A]">עמוד התודה המלא מוגדר בסעיף "עמוד תודה" למטה</p>
           </CardContent>
         </Card>
 
@@ -388,6 +387,181 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Thank You Page Settings — full width card */}
+      <Card className="border-0 shadow-sm lg:col-span-2">
+        <CardHeader>
+          <CardTitle className="text-base text-[#2a2628] flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            עמוד תודה — ברירת מחדל
+          </CardTitle>
+          <CardDescription>
+            מוצג לאחר שליחת טופס ליד. ניתן לדרוס עמוד לעמוד דרך "הגדרות עמוד" בבונה.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Message */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-sm font-medium text-[#2a2628]">כותרת ראשית</Label>
+              <Input
+                value={tySettings.heading_he || ""}
+                onChange={(e) => setTySettings((p) => ({ ...p, heading_he: e.target.value }))}
+                placeholder="תודה! קיבלנו את פרטיך"
+                className="mt-1.5 h-9"
+                dir="rtl"
+              />
+              <p className="text-[11px] text-[#9A969A] mt-1">השתמשו ב-[שם] להצגת שם הלקוח</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium text-[#2a2628]">כותרת משנה</Label>
+              <Input
+                value={tySettings.subheading_he || ""}
+                onChange={(e) => setTySettings((p) => ({ ...p, subheading_he: e.target.value }))}
+                placeholder="יועץ לימודים ייצור איתך קשר תוך 24 שעות"
+                className="mt-1.5 h-9"
+                dir="rtl"
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Social media */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-sm font-semibold text-[#2a2628]">רשתות חברתיות</Label>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={tySettings.show_social !== false}
+                  onCheckedChange={(v) => setTySettings((p) => ({ ...p, show_social: v }))}
+                />
+                <span className="text-xs text-[#9A969A]">{tySettings.show_social !== false ? "מוצג" : "מוסתר"}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[
+                { key: "facebook_url" as const, label: "Facebook" },
+                { key: "instagram_url" as const, label: "Instagram" },
+                { key: "youtube_url" as const, label: "YouTube" },
+                { key: "linkedin_url" as const, label: "LinkedIn" },
+                { key: "tiktok_url" as const, label: "TikTok" },
+              ].map((s) => (
+                <div key={s.key}>
+                  <Label className="text-xs text-[#716C70]">{s.label}</Label>
+                  <Input
+                    value={tySettings[s.key] || ""}
+                    onChange={(e) => setTySettings((p) => ({ ...p, [s.key]: e.target.value }))}
+                    placeholder="https://..."
+                    className="mt-1 h-8 text-xs"
+                    dir="ltr"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* WhatsApp */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-sm font-semibold text-[#2a2628]">כפתור WhatsApp</Label>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={tySettings.show_whatsapp !== false}
+                  onCheckedChange={(v) => setTySettings((p) => ({ ...p, show_whatsapp: v }))}
+                />
+                <span className="text-xs text-[#9A969A]">{tySettings.show_whatsapp !== false ? "מוצג" : "מוסתר"}</span>
+              </div>
+            </div>
+            <Input
+              value={tySettings.whatsapp_cta_he || ""}
+              onChange={(e) => setTySettings((p) => ({ ...p, whatsapp_cta_he: e.target.value }))}
+              placeholder="רוצים לדבר עכשיו? כתבו לנו"
+              className="h-9"
+              dir="rtl"
+            />
+            <p className="text-[11px] text-[#9A969A] mt-1">מספר ה-WhatsApp נלקח מהגדרות האינטגרציות</p>
+          </div>
+
+          <Separator />
+
+          {/* Referral */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-sm font-semibold text-[#2a2628]">שיתוף עם חבר</Label>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={tySettings.show_referral !== false}
+                  onCheckedChange={(v) => setTySettings((p) => ({ ...p, show_referral: v }))}
+                />
+                <span className="text-xs text-[#9A969A]">{tySettings.show_referral !== false ? "מוצג" : "מוסתר"}</span>
+              </div>
+            </div>
+            <Input
+              value={tySettings.referral_cta_he || ""}
+              onChange={(e) => setTySettings((p) => ({ ...p, referral_cta_he: e.target.value }))}
+              placeholder="שתפו עם חבר שמחפש תואר"
+              className="h-9"
+              dir="rtl"
+            />
+          </div>
+
+          <Separator />
+
+          {/* Calendar */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label className="text-sm font-semibold text-[#2a2628]">קביעת שיחה (Calendly)</Label>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={tySettings.show_calendar === true}
+                  onCheckedChange={(v) => setTySettings((p) => ({ ...p, show_calendar: v }))}
+                />
+                <span className="text-xs text-[#9A969A]">{tySettings.show_calendar ? "מוצג" : "מוסתר"}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                value={tySettings.calendar_url || ""}
+                onChange={(e) => setTySettings((p) => ({ ...p, calendar_url: e.target.value }))}
+                placeholder="https://calendly.com/..."
+                className="h-9"
+                dir="ltr"
+              />
+              <Input
+                value={tySettings.calendar_cta_he || ""}
+                onChange={(e) => setTySettings((p) => ({ ...p, calendar_cta_he: e.target.value }))}
+                placeholder="קבעו שיחה עכשיו"
+                className="h-9"
+                dir="rtl"
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Preview link */}
+          <div className="p-3 rounded-xl bg-[#f9fafb] border border-[#e5e7eb] flex items-center justify-between">
+            <span className="text-xs text-[#9A969A]">תצוגה מקדימה של עמוד תודה</span>
+            <a
+              href="/ty?name=ישראל"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-medium text-[#B8D900] hover:underline flex items-center gap-1"
+            >
+              פתחו עמוד תודה
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Save button (bottom) */}
       <div className="flex justify-end pt-4">
