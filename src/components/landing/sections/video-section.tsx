@@ -38,16 +38,23 @@ function getThumbnailUrl(youtubeIdOrUrl: string, providedUrl?: string): string |
   const id = extractYoutubeId(youtubeIdOrUrl);
   // Strictly require an 11-char YouTube ID — anything else produces a broken URL
   if (!id || !/^[A-Za-z0-9_-]{11}$/.test(id)) return null;
-  return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+  // Use i.ytimg.com (YouTube's image CDN) — less aggressively blocked than img.youtube.com
+  return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 }
 
-/** Fallback chain: hqdefault → mqdefault → hide img (dark bg shows through) */
+/**
+ * Fallback chain on thumbnail load error:
+ *   i.ytimg.com/hqdefault → i.ytimg.com/mqdefault → hide img (dark bg shows)
+ * Both domains serve the same images; i.ytimg.com is YouTube's CDN and is
+ * less likely to be blocked by aggressive ad-blockers.
+ */
 function handleThumbnailError(e: React.SyntheticEvent<HTMLImageElement>, youtubeIdOrUrl: string) {
   const img = e.currentTarget;
   const id = extractYoutubeId(youtubeIdOrUrl);
+  if (!id) { img.style.display = "none"; return; }
   const current = img.src;
   if (current.includes("hqdefault")) {
-    img.src = `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+    img.src = `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
   } else {
     // All thumbnail URLs failed — hide the broken image, dark bg shows through
     img.style.display = "none";
@@ -102,41 +109,17 @@ function buildEmbedUrl(youtubeIdOrUrl: string, autoplay = false): string {
 }
 
 /**
- * YouTube iframe player with an inline "Watch on YouTube" fallback link.
- * The fallback is hidden by default and shown only when the iframe fails to load,
- * which happens when an ad-blocker or strict CSP prevents the embed.
+ * YouTube iframe player.
+ * Detection of "blocked by Brave/uBlock" is unreliable because those blockers
+ * replace iframe content with their own page — onLoad fires and contentWindow
+ * is non-null. So we never try to detect: the iframe always renders and a
+ * persistent "Watch on YouTube" link is shown BELOW the player container by
+ * the parent component.
  * @param youtubeId - Validated 11-char YouTube video ID
  * @param title - Accessible title for the iframe
- * @param size - Controls the fallback button size
  */
-function YoutubeEmbed({ youtubeId, title, size }: { youtubeId: string; title: string; size: "sm" | "lg" }) {
-  const [blocked, setBlocked] = useState(false);
-  const watchUrl = `https://www.youtube.com/watch?v=${youtubeId}`;
-
-  if (blocked || !youtubeId) {
-    /* Fallback: direct YouTube link when embed is blocked */
-    return (
-      <a
-        href={watchUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#1a1a1a] text-white hover:bg-[#222]`}
-      >
-        <svg
-          className={size === "lg" ? "w-12 h-12" : "w-8 h-8"}
-          viewBox="0 0 24 24"
-          fill="#FF0000"
-          aria-hidden="true"
-        >
-          <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.13C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.56A3.02 3.02 0 0 0 .5 6.19C0 8.03 0 12 0 12s0 3.97.5 5.81a3.02 3.02 0 0 0 2.12 2.13C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.56a3.02 3.02 0 0 0 2.12-2.13C24 15.97 24 12 24 12s0-3.97-.5-5.81zM9.75 15.5v-7l6.5 3.5-6.5 3.5z" />
-        </svg>
-        <span className={`font-heebo font-medium ${size === "lg" ? "text-base" : "text-sm"}`}>
-          לצפייה ביוטיוב
-        </span>
-      </a>
-    );
-  }
-
+function YoutubeEmbed({ youtubeId, title }: { youtubeId: string; title: string }) {
+  if (!youtubeId) return null;
   return (
     <iframe
       src={buildEmbedUrl(youtubeId, true)}
@@ -144,17 +127,25 @@ function YoutubeEmbed({ youtubeId, title, size }: { youtubeId: string; title: st
       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowFullScreen
       title={title}
-      onError={() => setBlocked(true)}
-      onLoad={(e) => {
-        /* Detect blocked embed: contentWindow is null when browser extensions block the frame */
-        try {
-          const frame = e.currentTarget;
-          if (!frame.contentWindow) setBlocked(true);
-        } catch {
-          setBlocked(true);
-        }
-      }}
     />
+  );
+}
+
+/** Small "Watch on YouTube" link shown below the player when an embed is active */
+function WatchOnYoutube({ youtubeId }: { youtubeId: string }) {
+  if (!youtubeId) return null;
+  return (
+    <a
+      href={`https://www.youtube.com/watch?v=${youtubeId}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 text-xs text-[#9A969A] hover:text-[#2a2628] transition-colors font-heebo mt-2"
+    >
+      <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="#FF0000" aria-hidden="true">
+        <path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.13C19.54 3.5 12 3.5 12 3.5s-7.54 0-9.38.56A3.02 3.02 0 0 0 .5 6.19C0 8.03 0 12 0 12s0 3.97.5 5.81a3.02 3.02 0 0 0 2.12 2.13C4.46 20.5 12 20.5 12 20.5s7.54 0 9.38-.56a3.02 3.02 0 0 0 2.12-2.13C24 15.97 24 12 24 12s0-3.97-.5-5.81zM9.75 15.5v-7l6.5 3.5-6.5 3.5z" />
+      </svg>
+      צפה ביוטיוב
+    </a>
   );
 }
 
@@ -232,10 +223,10 @@ function VideoCard({
             </div>
           </button>
         ) : (
-          /* Iframe + direct-link fallback for ad-blockers / CSP restrictions */
-          <YoutubeEmbed youtubeId={extractYoutubeId(video.youtube_id)} title={video.title_he} size="sm" />
+          <YoutubeEmbed youtubeId={extractYoutubeId(video.youtube_id)} title={video.title_he} />
         )}
       </div>
+      {playing && <WatchOnYoutube youtubeId={extractYoutubeId(video.youtube_id)} />}
 
       {/* Card metadata */}
       <div className="mt-3 flex items-start justify-between gap-2">
@@ -373,16 +364,18 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                     </div>
                   </button>
                 ) : (
-                  /* Iframe + direct-link fallback for ad-blockers / CSP restrictions */
-                  <YoutubeEmbed youtubeId={extractYoutubeId(activeVideo.youtube_id)} title={activeVideo.title_he} size="lg" />
+                  <YoutubeEmbed youtubeId={extractYoutubeId(activeVideo.youtube_id)} title={activeVideo.title_he} />
                 )}
               </div>
 
-              {/* Active video title + duration below player */}
+              {/* Active video title + duration + YouTube link below player */}
               <div className="mt-4 flex items-start justify-between gap-3">
-                <h3 className="font-heading font-bold text-[#2a2628] text-lg md:text-xl leading-snug">
-                  {activeVideo.title_he}
-                </h3>
+                <div>
+                  <h3 className="font-heading font-bold text-[#2a2628] text-lg md:text-xl leading-snug">
+                    {activeVideo.title_he}
+                  </h3>
+                  {playing && <WatchOnYoutube youtubeId={extractYoutubeId(activeVideo.youtube_id)} />}
+                </div>
                 {activeVideo.duration_he && (
                   <span className="shrink-0 font-heebo text-sm text-[#716C70] bg-gray-100 rounded-lg px-3 py-1 mt-0.5">
                     {activeVideo.duration_he}
@@ -408,14 +401,16 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                   >
                     {/* Thumbnail */}
                     <div className="relative shrink-0 w-24 h-14 rounded-lg overflow-hidden bg-[#2a2628]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={getThumbnailUrl(video.youtube_id, video.thumbnail_url)}
-                        alt=""
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
-                        onError={(e) => handleThumbnailError(e, video.youtube_id)}
-                      />
+                      {getThumbnailUrl(video.youtube_id, video.thumbnail_url) && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={getThumbnailUrl(video.youtube_id, video.thumbnail_url)!}
+                          alt=""
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                          onError={(e) => handleThumbnailError(e, video.youtube_id)}
+                        />
+                      )}
                       {/* Play indicator overlay */}
                       <div
                         className={`absolute inset-0 bg-black/20 flex items-center justify-center transition-opacity ${
