@@ -174,12 +174,11 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
       });
 
       if (res.ok) {
-        // Redirect to the thank you page with name + slug for personalization
+        // Store first name in sessionStorage — never in the URL (PII)
         const firstName = formData.full_name.trim().split(" ")[0] || "";
-        const tyUrl = `/ty?${new URLSearchParams({
-          ...(pageSlug ? { slug: pageSlug } : {}),
-          ...(firstName ? { name: firstName } : {}),
-        }).toString()}`;
+        if (firstName) sessionStorage.setItem("ty_name", firstName);
+
+        const tyUrl = pageSlug ? `/ty?slug=${encodeURIComponent(pageSlug)}` : "/ty";
         close();
         router.push(tyUrl);
       } else {

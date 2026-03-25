@@ -7,7 +7,7 @@
  *
  * Query params:
  *   slug  - the landing page slug (to fetch per-page settings + back link)
- *   name  - the lead's full name (for personalization)
+ *   name  - NOT passed via URL; read from sessionStorage on the client
  */
 
 import { redirect } from "next/navigation";
@@ -19,7 +19,7 @@ import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 
 interface PageProps {
-  searchParams: Promise<{ slug?: string; name?: string }>;
+  searchParams: Promise<{ slug?: string }>;
 }
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ThankYouRoute({ searchParams }: PageProps) {
-  const { slug, name } = await searchParams;
+  const { slug } = await searchParams;
   const supabase = await createClient();
 
   // ── Fetch global TY settings ──────────────────────────────────────────────
@@ -109,7 +109,6 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
       </head>
       <body className="antialiased">
         <ThankYouPage
-          name={name || ""}
           programName={programName}
           settings={settings}
           pageSlug={slug}

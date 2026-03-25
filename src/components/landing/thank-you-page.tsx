@@ -94,17 +94,25 @@ const NEXT_STEPS = [
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface ThankYouPageProps {
-  name: string;
   programName?: string;
   settings: ThankYouPageSettings;
   pageSlug?: string;
 }
 
-export function ThankYouPage({ name, programName, settings, pageSlug }: ThankYouPageProps) {
+export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPageProps) {
   const [visible, setVisible] = useState(false);
   const [shared, setShared] = useState(false);
+  const [displayName, setDisplayName] = useState("");
 
-  const displayName = name ? firstName(decodeURIComponent(name)) : "";
+  /* Read first name from sessionStorage (set by cta-modal before redirect) */
+  useEffect(() => {
+    const stored = sessionStorage.getItem("ty_name") || "";
+    if (stored) {
+      setDisplayName(firstName(stored));
+      sessionStorage.removeItem("ty_name"); // consume once
+    }
+  }, []);
+
   const heading = (settings.heading_he || "תודה! קיבלנו את פרטיך")
     .replace("[שם]", displayName || "")
     .replace(/^  +/, "")
