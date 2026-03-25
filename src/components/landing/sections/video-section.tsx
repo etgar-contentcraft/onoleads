@@ -26,13 +26,26 @@ interface VideoSectionProps {
 
 /**
  * Returns the YouTube thumbnail URL for a given video ID.
- * Falls back to hqdefault if maxresdefault is not available (handled by browser).
- * @param youtubeId - The 11-character YouTube video ID
+ * Uses hqdefault (always available) rather than maxresdefault (HD-only).
+ * @param youtubeIdOrUrl - The 11-character YouTube video ID or any YouTube URL
  */
 function getThumbnailUrl(youtubeIdOrUrl: string, providedUrl?: string): string {
   if (providedUrl) return providedUrl;
   const id = extractYoutubeId(youtubeIdOrUrl);
-  return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+  return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+}
+
+/** Fallback chain: if hqdefault fails, try mqdefault then a solid dark placeholder */
+function handleThumbnailError(e: React.SyntheticEvent<HTMLImageElement>, youtubeIdOrUrl: string) {
+  const img = e.currentTarget;
+  const id = extractYoutubeId(youtubeIdOrUrl);
+  const current = img.src;
+  if (current.includes("hqdefault")) {
+    img.src = `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+  } else if (current.includes("mqdefault")) {
+    // Final fallback: hide broken img, dark bg shows through
+    img.style.opacity = "0";
+  }
 }
 
 /**
@@ -143,6 +156,7 @@ function VideoCard({
               alt=""
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               loading="lazy"
+              onError={(e) => handleThumbnailError(e, video.youtube_id)}
             />
             <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
               <PlayOverlay size="sm" />
@@ -286,6 +300,7 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                       alt=""
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       loading="lazy"
+                      onError={(e) => handleThumbnailError(e, activeVideo.youtube_id)}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center">
                       <PlayOverlay size="lg" />
@@ -338,6 +353,7 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                         alt=""
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
+                        onError={(e) => handleThumbnailError(e, video.youtube_id)}
                       />
                       {/* Play indicator overlay */}
                       <div
