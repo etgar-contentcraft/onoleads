@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Sidebar } from "@/components/admin/sidebar";
 import { Header } from "@/components/admin/header";
@@ -22,6 +23,8 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<UserInfo | null>(null);
+  const pathname = usePathname();
+  const isBuilder = pathname?.includes("/builder");
 
   useEffect(() => {
     const supabase = createClient();
@@ -63,11 +66,18 @@ export default function DashboardLayout({
           onMenuClick={() => setSidebarOpen(true)}
         />
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+        {isBuilder ? (
+          /* Builder needs a full-height container without padding */
+          <main className="flex-1 min-h-0 overflow-hidden flex flex-col">
             {children}
-          </div>
-        </main>
+          </main>
+        ) : (
+          <main className="flex-1 overflow-y-auto">
+            <div className="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
+              {children}
+            </div>
+          </main>
+        )}
       </div>
     </div>
   );

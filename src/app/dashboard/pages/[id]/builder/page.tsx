@@ -1835,7 +1835,7 @@ export default function PageBuilderPage() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[#F3F4F6]" dir="rtl">
+    <div className="flex flex-col h-full overflow-hidden bg-[#F3F4F6]" dir="rtl">
 
       {/* ── Toast ── */}
       {toast && (

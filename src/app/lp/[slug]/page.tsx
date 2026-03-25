@@ -177,6 +177,16 @@ export default async function LandingPage({ params }: PageProps) {
           href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Heebo:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        {/* Force Rubik as the heading font — belt-and-suspenders since LP pages bypass root layout */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          :root, html {
+            --font-heading: 'Rubik', sans-serif;
+            --font-heebo: 'Heebo', sans-serif;
+          }
+          .font-heading, h1.font-heading, h2.font-heading, h3.font-heading {
+            font-family: 'Rubik', sans-serif !important;
+          }
+        ` }} />
 
         {/* JSON-LD Schemas */}
         {schemas.map((schema, i) => (

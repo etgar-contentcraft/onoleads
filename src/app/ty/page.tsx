@@ -106,6 +106,7 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
           href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Heebo:wght@300;400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        <style dangerouslySetInnerHTML={{ __html: `:root,html{--font-heading:'Rubik',sans-serif;--font-heebo:'Heebo',sans-serif}.font-heading{font-family:'Rubik',sans-serif!important}` }} />
       </head>
       <body className="antialiased">
         <ThankYouPage
