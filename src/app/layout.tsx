@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Heebo, Rubik } from "next/font/google";
+import { Heebo, Noto_Sans_Hebrew } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
 const heebo = Heebo({
   subsets: ["hebrew", "latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-heebo",
   display: "swap",
 });
 
-const rubik = Rubik({
-  subsets: ["hebrew", "latin"],
-  weight: ["500", "600", "700", "800"],
-  variable: "--font-rubik",
+// Noto Sans Hebrew renders beautifully for Hebrew headings — crisp, modern, premium
+const notoSansHebrew = Noto_Sans_Hebrew({
+  subsets: ["hebrew"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-heading",
   display: "swap",
 });
 
@@ -40,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="he" dir="rtl" className={cn(heebo.variable, rubik.variable)}>
+    <html lang="he" dir="rtl" className={cn(heebo.variable, notoSansHebrew.variable)}>
       <body
         className={cn(
           "min-h-screen bg-background antialiased",

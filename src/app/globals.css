@@ -9,7 +9,7 @@
 }
 
 @theme inline {
-  --font-heading: var(--font-rubik);
+  --font-heading: var(--font-heading);
   --font-heebo: var(--font-heebo);
   --font-sans: var(--font-heebo);
   --color-background: var(--background);
@@ -211,7 +211,7 @@
    Landing Page Typography
    ============================================================================ */
 .font-heading {
-  font-family: var(--font-rubik), var(--font-heebo), sans-serif;
+  font-family: var(--font-heading), var(--font-heebo), sans-serif;
 }
 
 .font-heebo {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ProgramWithFaculty } from "@/lib/types/database";
+import type { HomepageEventPage } from "@/app/page";
 
 // ============================================================================
 // Types
@@ -9,6 +10,8 @@ import type { ProgramWithFaculty } from "@/lib/types/database";
 
 interface HomepageClientProps {
   programs: ProgramWithFaculty[];
+  /** Upcoming published event pages to show in the events section */
+  events: HomepageEventPage[];
 }
 
 interface QuizCategory {
@@ -147,6 +150,78 @@ const TESTIMONIALS = [
   },
 ];
 
+/** Hebrew month names for date formatting */
+const HEBREW_MONTHS = [
+  "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
+  "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר",
+];
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/**
+ * Formats a date string into Hebrew short format (e.g. "15 אפריל")
+ * @param dateStr - ISO date string or null
+ * @returns Formatted Hebrew date string, or empty string if invalid
+ */
+function formatHebrewDate(dateStr: string | null): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  return `${d.getDate()} ${HEBREW_MONTHS[d.getMonth()]}`;
+}
+
+/**
+ * Extracts the event time string (HH:MM) from the event's custom_styles config.
+ * @param customStyles - custom_styles JSON field from the pages table
+ * @returns Formatted time string e.g. "17:00", or empty string if unavailable
+ */
+function getEventTime(customStyles: Record<string, unknown> | null): string {
+  if (!customStyles) return "";
+  const dateStr = customStyles.event_date;
+  if (typeof dateStr !== "string") return "";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", hour12: false });
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Determines whether an event is a Zoom (online) event based on its event_type in custom_styles.
+ * @param title - Page title in Hebrew (fallback for legacy pages)
+ * @param customStyles - custom_styles JSON field from the pages table
+ * @returns true if the event type is "event_zoom" or the title suggests online
+ */
+function isZoomEvent(title: string | null, customStyles: Record<string, unknown> | null): boolean {
+  if (customStyles?.event_type === "event_zoom") return true;
+  const titleLower = (title ?? "").toLowerCase();
+  return titleLower.includes("זום") || titleLower.includes("zoom") || titleLower.includes("אונליין");
+}
+
+/**
+ * Builds the correct URL for an event landing page under /lp/events/[slug].
+ * @param slug - Page slug
+ * @returns URL path string
+ */
+function getEventUrl(slug: string): string {
+  return `/lp/events/${slug}`;
+}
+
+/**
+ * Returns the featured landing page URL for a program.
+ * Uses featured_page_slug if available, otherwise falls back to the program slug.
+ * @param program - Program with optional featured_page_slug
+ * @returns URL path string
+ */
+function getProgramUrl(program: ProgramWithFaculty & { featured_page_slug?: string | null }): string {
+  const slug = program.featured_page_slug ?? program.slug;
+  return `/lp/${slug}`;
+}
+
 // ============================================================================
 // Hooks
 // ============================================================================
@@ -169,6 +244,13 @@ function useInView(threshold = 0.15) {
   return { ref, inView };
 }
 
+/**
+ * Animates a counter from 0 to a target value when triggered
+ * @param target - Final number to animate to
+ * @param inView - Whether the element is in the viewport
+ * @param duration - Animation duration in ms
+ * @returns Current animated value
+ */
 function useAnimatedCounter(target: number, inView: boolean, duration = 1800) {
   const [value, setValue] = useState(0);
   const animated = useRef(false);
@@ -213,11 +295,82 @@ function AnimatedStatCard({ stat, inView, index }: { stat: typeof STATS[0]; inVi
   );
 }
 
+/**
+ * Renders a single event card for the upcoming events section.
+ * Reads event date/time from custom_styles.event_date (ISO string).
+ */
+function EventCard({ event, index }: { event: HomepageEventPage; index: number }) {
+  const dateStr = typeof event.custom_styles?.event_date === "string"
+    ? event.custom_styles.event_date as string
+    : null;
+
+  const formattedDate = formatHebrewDate(dateStr);
+  const eventTime = getEventTime(event.custom_styles);
+  const isOnline = isZoomEvent(event.title_he, event.custom_styles);
+  const url = getEventUrl(event.slug);
+
+  return (
+    <a
+      href={url}
+      className="group flex-shrink-0 w-72 md:w-auto bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.1)] transition-all duration-300 hover:-translate-y-1 flex flex-col"
+      style={{ animationDelay: `${index * 0.1}s` }}
+    >
+      {/* Green date header strip */}
+      <div className="bg-[#B8D900] px-5 py-4 flex items-center justify-between">
+        {formattedDate ? (
+          <span className="font-heading font-extrabold text-[#2a2628] text-xl leading-none">
+            {formattedDate}
+          </span>
+        ) : (
+          <span className="font-heading font-bold text-[#2a2628] text-sm">בקרוב</span>
+        )}
+        {eventTime && (
+          <span className="font-heading font-bold text-[#2a2628] text-sm bg-[#2a2628]/10 px-3 py-1 rounded-full">
+            {eventTime}
+          </span>
+        )}
+      </div>
+
+      {/* Card body */}
+      <div className="p-5 flex flex-col flex-1">
+        {/* Online / Physical badge */}
+        <div className="mb-3">
+          {isOnline ? (
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100">
+              💻 זום
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-100">
+              📍 פיזי
+            </span>
+          )}
+        </div>
+
+        {/* Event title */}
+        <h3 className="font-heading font-bold text-[#2a2628] text-base leading-snug mb-4 group-hover:text-[#716C70] transition-colors flex-1">
+          {event.title_he ?? event.slug}
+        </h3>
+
+        {/* CTA */}
+        <button className="w-full mt-auto py-3 rounded-xl bg-[#2a2628] text-white font-heading font-bold text-sm transition-all duration-300 group-hover:bg-[#B8D900] group-hover:text-[#2a2628]">
+          הרשמה לאירוע
+        </button>
+      </div>
+    </a>
+  );
+}
+
 // ============================================================================
 // Main Component
 // ============================================================================
 
-export function HomepageClient({ programs }: HomepageClientProps) {
+/**
+ * HomepageClient - Main homepage component.
+ * Renders hero, program finder, stats, benefits, testimonials, events, and lead form.
+ * @param programs - Active programs with faculty data
+ * @param events - Published event pages to show in the upcoming events section
+ */
+export function HomepageClient({ programs, events }: HomepageClientProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [formData, setFormData] = useState({ full_name: "", phone: "", email: "", program_interest: "" });
@@ -230,12 +383,13 @@ export function HomepageClient({ programs }: HomepageClientProps) {
   const statsRef = useInView(0.2);
   const benefitsRef = useInView(0.1);
   const testimonialsRef = useInView(0.1);
+  const eventsRef = useInView(0.1);
 
   useEffect(() => {
     setHeroVisible(true);
   }, []);
 
-  // Filter programs
+  // Filter programs based on selected category and level
   const filteredPrograms = programs.filter((p) => {
     if (!selectedCategory) return false;
     const cat = QUIZ_CATEGORIES.find((c) => c.id === selectedCategory);
@@ -481,50 +635,56 @@ export function HomepageClient({ programs }: HomepageClientProps) {
                     נמצאו <span className="text-[#B8D900] font-bold">{filteredPrograms.length}</span> תוכניות
                   </p>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {filteredPrograms.map((program, index) => (
-                      <a
-                        key={program.id}
-                        href={`/lp/${program.slug}`}
-                        className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.1)] transition-all duration-300 hover:-translate-y-1"
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
-                        {/* Image */}
-                        <div className="relative h-40 overflow-hidden bg-gray-100">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={program.hero_image_url || PROGRAM_IMAGES[selectedCategory] || STUDENTS_IMAGE}
-                            alt={program.name_he}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            loading="lazy"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                          {/* Degree badge */}
-                          <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-[#B8D900] text-[#2a2628] text-xs font-bold">
-                            {program.degree_type}
+                    {filteredPrograms.map((program, index) => {
+                      // Use featured_page_slug if available, otherwise fall back to program slug
+                      const programWithFeatured = program as ProgramWithFaculty & { featured_page_slug?: string | null };
+                      const programUrl = getProgramUrl(programWithFeatured);
+
+                      return (
+                        <a
+                          key={program.id}
+                          href={programUrl}
+                          className="group bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_40px_rgba(0,0,0,0.1)] transition-all duration-300 hover:-translate-y-1"
+                          style={{ animationDelay: `${index * 0.1}s` }}
+                        >
+                          {/* Image */}
+                          <div className="relative h-40 overflow-hidden bg-gray-100">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={program.hero_image_url || PROGRAM_IMAGES[selectedCategory] || STUDENTS_IMAGE}
+                              alt={program.name_he}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                            {/* Degree badge */}
+                            <div className="absolute bottom-3 right-3 px-3 py-1 rounded-full bg-[#B8D900] text-[#2a2628] text-xs font-bold">
+                              {program.degree_type}
+                            </div>
                           </div>
-                        </div>
-                        {/* Content */}
-                        <div className="p-5">
-                          {program.faculty && (
-                            <span className="text-xs text-[#716C70] font-medium">{program.faculty.name_he}</span>
-                          )}
-                          <h3 className="font-heading font-bold text-lg text-[#2a2628] mt-1 mb-2 group-hover:text-[#B8D900] transition-colors">
-                            {program.name_he}
-                          </h3>
-                          {program.description_he && (
-                            <p className="text-sm text-[#716C70] line-clamp-2 mb-4">
-                              {program.description_he}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-2 text-[#B8D900] font-heading font-bold text-sm">
-                            <span>למידע נוסף</span>
-                            <svg className="w-4 h-4 rtl:rotate-180 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                            </svg>
+                          {/* Content */}
+                          <div className="p-5">
+                            {program.faculty && (
+                              <span className="text-xs text-[#716C70] font-medium">{program.faculty.name_he}</span>
+                            )}
+                            <h3 className="font-heading font-bold text-lg text-[#2a2628] mt-1 mb-2 group-hover:text-[#B8D900] transition-colors">
+                              {program.name_he}
+                            </h3>
+                            {program.description_he && (
+                              <p className="text-sm text-[#716C70] line-clamp-2 mb-4">
+                                {program.description_he}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 text-[#B8D900] font-heading font-bold text-sm">
+                              <span>למידע נוסף</span>
+                              <svg className="w-4 h-4 rtl:rotate-180 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                              </svg>
+                            </div>
                           </div>
-                        </div>
-                      </a>
-                    ))}
+                        </a>
+                      );
+                    })}
                   </div>
                 </>
               ) : (
@@ -644,6 +804,74 @@ export function HomepageClient({ programs }: HomepageClientProps) {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ================================================================
+          UPCOMING EVENTS SECTION
+          Only rendered when there are published event pages
+          ================================================================ */}
+      <section
+        id="events"
+        className="py-20 md:py-28 bg-white"
+        ref={eventsRef.ref}
+      >
+        <div className="max-w-6xl mx-auto px-5 md:px-8">
+          {/* Section header */}
+          <div className="text-center mb-12">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+              הצטרפו אלינו
+            </span>
+            <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628]">
+              <span className="text-gradient-green">אירועים קרובים</span> - ימי פתוח
+            </h2>
+            <p className="text-lg text-[#716C70] max-w-xl mx-auto mt-4">
+              הכירו את הקמפוס, פגשו את הסגל, ומצאו את התוכנית המתאימה לכם
+            </p>
+          </div>
+
+          {events.length > 0 ? (
+            <>
+              {/* Cards: horizontal scroll on mobile, grid on desktop */}
+              <div className="flex gap-5 overflow-x-auto pb-4 md:overflow-x-visible md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6 snap-x snap-mandatory md:snap-none scrollbar-hide">
+                {events.map((event, index) => (
+                  <div key={event.id} className="snap-start opacity-0"
+                    style={{
+                      animation: eventsRef.inView ? `fade-in-up 0.6s ease-out ${index * 0.12}s forwards` : "none",
+                      minWidth: "288px",
+                    }}
+                  >
+                    <EventCard event={event} index={index} />
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA under events */}
+              <div className="text-center mt-10">
+                <button
+                  onClick={() => scrollTo("lead-form")}
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl border-2 border-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#B8D900] hover:shadow-[0_0_30px_rgba(184,217,0,0.3)]"
+                >
+                  לא מצאתם? השאירו פרטים ויועץ יחזור אליכם
+                </button>
+              </div>
+            </>
+          ) : (
+            /* Empty state */
+            <div className="text-center py-14 rounded-3xl border border-dashed border-gray-200 bg-gray-50">
+              <div className="text-4xl mb-4">📅</div>
+              <p className="font-heading font-bold text-[#2a2628] text-xl mb-2">אין אירועים קרובים כרגע</p>
+              <p className="text-[#716C70] text-base mb-6">
+                השאירו פרטים ונעדכן אתכם על האירוע הבא
+              </p>
+              <button
+                onClick={() => scrollTo("lead-form")}
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all hover:bg-[#c8e920]"
+              >
+                עדכנו אותי על האירוע הבא
+              </button>
+            </div>
+          )}
         </div>
       </section>
 

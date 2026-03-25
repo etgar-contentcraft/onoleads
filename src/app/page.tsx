@@ -1,3 +1,8 @@
+/**
+ * Homepage server component.
+ * Fetches programs and upcoming published event pages from Supabase,
+ * then passes both to the client component for rendering.
+ */
 import { createClient } from "@/lib/supabase/server";
 import { HomepageClient } from "@/components/homepage/homepage-client";
 import type { ProgramWithFaculty } from "@/lib/types/database";
@@ -29,10 +34,22 @@ export const metadata: Metadata = {
 
 export const revalidate = 3600;
 
+/**
+ * Minimal shape of an event page row used on the homepage events section.
+ * custom_styles holds the EventMeta config (event_type, event_date, etc.).
+ */
+export interface HomepageEventPage {
+  id: string;
+  slug: string;
+  title_he: string | null;
+  custom_styles: Record<string, unknown> | null;
+}
+
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const { data: programs, error } = await supabase
+  // Fetch active programs with their faculty for the program finder section
+  const { data: programs, error: programsError } = await supabase
     .from("programs")
     .select(
       `
@@ -44,12 +61,24 @@ export default async function HomePage() {
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
 
-  if (error) {
-    console.error("Failed to fetch programs:", error);
+  if (programsError) {
+    console.error("Failed to fetch programs:", programsError);
   }
 
-  const safePrograms: ProgramWithFaculty[] =
-    (programs as ProgramWithFaculty[]) || [];
+  // Fetch published event pages for the "אירועים קרובים" section
+  const { data: eventPages, error: eventsError } = await supabase
+    .from("pages")
+    .select("id, slug, title_he, custom_styles")
+    .eq("page_type", "event")
+    .eq("status", "published")
+    .order("created_at", { ascending: true });
 
-  return <HomepageClient programs={safePrograms} />;
+  if (eventsError) {
+    console.error("Failed to fetch event pages:", eventsError);
+  }
+
+  const safePrograms: ProgramWithFaculty[] = (programs as ProgramWithFaculty[]) || [];
+  const safeEvents: HomepageEventPage[] = (eventPages as HomepageEventPage[]) || [];
+
+  return <HomepageClient programs={safePrograms} events={safeEvents} />;
 }

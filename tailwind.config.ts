@@ -14,7 +14,7 @@ const config: Config = {
       },
       fontFamily: {
         heebo: ["var(--font-heebo)", "sans-serif"],
-        heading: ["var(--font-rubik)", "var(--font-heebo)", "sans-serif"],
+        heading: ["var(--font-heading)", "var(--font-heebo)", "sans-serif"],
         sans: ["var(--font-heebo)", "sans-serif"],
       },
     },

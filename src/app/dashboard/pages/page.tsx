@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+// Pages management admin list - supports grid/list view, filtering, duplicate with sections, and toast notifications
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   Card,
@@ -43,12 +44,16 @@ import {
   Pencil,
   Copy,
   Trash2,
-  Globe,
   Clock,
-  ExternalLink,
   Rocket,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface LandingPage {
   id: string;
@@ -64,6 +69,25 @@ interface LandingPage {
   updated_at: string;
   program?: { name_he: string } | null;
 }
+
+interface PageSection {
+  section_type: string;
+  sort_order: number;
+  is_visible: boolean;
+  content: Record<string, unknown> | null;
+  styles: Record<string, unknown> | null;
+}
+
+/** Simple in-page toast notification */
+interface Toast {
+  id: number;
+  type: "success" | "error";
+  message: string;
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   draft: { label: "טיוטה", className: "bg-gray-100 text-gray-600 border-0" },
@@ -84,21 +108,93 @@ const LANGUAGE_LABELS: Record<string, string> = {
   ar: "عربي",
 };
 
+// ---------------------------------------------------------------------------
+// Toast Component
+// ---------------------------------------------------------------------------
+
+/**
+ * Renders stacked toast notifications anchored to the bottom-left corner.
+ * Each toast has a dismiss button and is auto-dismissed by the caller.
+ */
+function ToastContainer({
+  toasts,
+  onDismiss,
+}: {
+  toasts: Toast[];
+  onDismiss: (id: number) => void;
+}) {
+  if (toasts.length === 0) return null;
+
+  return (
+    <div className="fixed bottom-5 left-5 z-50 flex flex-col gap-2" dir="rtl">
+      {toasts.map((toast) => (
+        <div
+          key={toast.id}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium ${
+            toast.type === "success"
+              ? "bg-white border-green-200 text-green-800"
+              : "bg-white border-red-200 text-red-700"
+          }`}
+        >
+          {toast.type === "success" ? (
+            <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+          ) : (
+            <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+          )}
+          <span>{toast.message}</span>
+          <button
+            onClick={() => onDismiss(toast.id)}
+            className="mr-2 text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main Page Component
+// ---------------------------------------------------------------------------
+
 export default function PagesManagementPage() {
   const [pages, setPages] = useState<LandingPage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterLanguage, setFilterLanguage] = useState<string>("all");
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   const supabase = createClient();
+
+  /**
+   * Adds a toast notification that auto-dismisses after 4 seconds.
+   * @param type - "success" or "error"
+   * @param message - Notification text
+   */
+  const showToast = useCallback((type: Toast["type"], message: string) => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  }, []);
+
+  const dismissToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   useEffect(() => {
     fetchPages();
   }, [filterStatus, filterType, filterLanguage, searchQuery]);
 
+  /**
+   * Loads pages from Supabase with active filters applied.
+   */
   async function fetchPages() {
     setLoading(true);
     let query = supabase
@@ -127,26 +223,77 @@ export default function PagesManagementPage() {
     setLoading(false);
   }
 
+  /**
+   * Duplicates a page (status = draft) and copies all its page_sections.
+   * Shows a success or error toast upon completion.
+   * @param page - The source page to duplicate
+   */
   async function handleDuplicate(page: LandingPage) {
-    const { data, error } = await supabase
-      .from("pages")
-      .insert({
-        title_he: page.title_he ? `${page.title_he} (העתק)` : null,
-        title_en: page.title_en ? `${page.title_en} (copy)` : null,
-        slug: `${page.slug}-copy-${Date.now()}`,
-        language: page.language,
-        status: "draft" as const,
-        page_type: page.page_type,
-        program_id: (page as unknown as Record<string, unknown>).program_id ?? null,
-      })
-      .select()
-      .single();
+    setDuplicatingId(page.id);
 
-    if (!error) {
-      fetchPages();
+    try {
+      // Create the duplicate page record with a timestamped slug to avoid conflicts
+      const newSlug = `${page.slug}-copy-${Date.now()}`;
+
+      const { data: newPage, error: pageError } = await supabase
+        .from("pages")
+        .insert({
+          title_he: page.title_he ? `${page.title_he} (העתק)` : null,
+          title_en: page.title_en ? `${page.title_en} (copy)` : null,
+          slug: newSlug,
+          language: page.language,
+          status: "draft" as const,
+          page_type: page.page_type,
+          program_id: (page as unknown as Record<string, unknown>).program_id ?? null,
+        })
+        .select()
+        .single();
+
+      if (pageError || !newPage) {
+        throw pageError ?? new Error("שגיאה ביצירת עמוד חדש");
+      }
+
+      // Copy all page_sections from the original to the new page
+      const { data: sections, error: sectionsReadError } = await supabase
+        .from("page_sections")
+        .select("section_type, sort_order, is_visible, content, styles")
+        .eq("page_id", page.id)
+        .order("sort_order");
+
+      if (!sectionsReadError && sections && sections.length > 0) {
+        const sectionInserts = (sections as PageSection[]).map((s) => ({
+          page_id: (newPage as { id: string }).id,
+          section_type: s.section_type,
+          sort_order: s.sort_order,
+          is_visible: s.is_visible,
+          content: s.content,
+          styles: s.styles,
+        }));
+
+        const { error: sectionsWriteError } = await supabase
+          .from("page_sections")
+          .insert(sectionInserts);
+
+        if (sectionsWriteError) {
+          // Non-fatal — page exists, sections just didn't copy
+          console.warn("Failed to copy page sections:", sectionsWriteError);
+        }
+      }
+
+      await fetchPages();
+      showToast("success", `הדף שוכפל בהצלחה! סלאג: ${newSlug}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "שגיאה בשכפול הדף";
+      showToast("error", message);
+    } finally {
+      setDuplicatingId(null);
     }
   }
 
+  /**
+   * Prompts the user for confirmation then deletes the page.
+   * @param pageId - ID of the page to delete
+   */
   async function handleDelete(pageId: string) {
     if (!window.confirm("האם אתה בטוח שברצונך למחוק דף זה?")) return;
     const { error } = await supabase.from("pages").delete().eq("id", pageId);
@@ -155,6 +302,10 @@ export default function PagesManagementPage() {
     }
   }
 
+  /**
+   * Sets a page's status to "published" with the current timestamp.
+   * @param pageId - ID of the page to publish
+   */
   async function handlePublish(pageId: string) {
     const { error } = await supabase
       .from("pages")
@@ -165,6 +316,11 @@ export default function PagesManagementPage() {
     }
   }
 
+  /**
+   * Formats an ISO date string in Israeli locale.
+   * @param dateStr - ISO string or null
+   * @returns Formatted date string or "-"
+   */
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "-";
     return new Date(dateStr).toLocaleDateString("he-IL", {
@@ -174,12 +330,19 @@ export default function PagesManagementPage() {
     });
   };
 
+  /**
+   * Returns the best available display title for a page.
+   * @param page - LandingPage record
+   */
   const getPageTitle = (page: LandingPage) => {
     return page.title_he || page.title_en || page.slug;
   };
 
   return (
     <div className="space-y-6">
+      {/* Toast notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -305,6 +468,8 @@ export default function PagesManagementPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {pages.map((page) => {
             const statusInfo = STATUS_LABELS[page.status];
+            const isDuplicating = duplicatingId === page.id;
+
             return (
               <Card key={page.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="flex-row items-start justify-between pb-2">
@@ -317,20 +482,20 @@ export default function PagesManagementPage() {
                     </p>
                   </div>
                   <DropdownMenu>
-                    <DropdownMenuTrigger >
+                    <DropdownMenuTrigger>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
                         <MoreVertical className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem >
-                        <Link href={`/dashboard/builder?page=${page.id}`} className="gap-2">
+                      <DropdownMenuItem>
+                        <Link href={`/dashboard/builder?page=${page.id}`} className="gap-2 flex items-center w-full">
                           <Pencil className="w-4 h-4" />
                           עריכה
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem >
-                        <Link href={`/p/${page.slug}`} target="_blank" className="gap-2">
+                      <DropdownMenuItem>
+                        <Link href={`/p/${page.slug}`} target="_blank" className="gap-2 flex items-center w-full">
                           <Eye className="w-4 h-4" />
                           תצוגה מקדימה
                         </Link>
@@ -341,9 +506,13 @@ export default function PagesManagementPage() {
                           פרסום
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem onClick={() => handleDuplicate(page)} className="gap-2">
-                        <Copy className="w-4 h-4" />
-                        שכפול
+                      <DropdownMenuItem
+                        onClick={() => handleDuplicate(page)}
+                        disabled={isDuplicating}
+                        className="gap-2"
+                      >
+                        <Copy className={`w-4 h-4 ${isDuplicating ? "animate-spin" : ""}`} />
+                        {isDuplicating ? "משכפל..." : "שכפל"}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleDelete(page.id)}
@@ -402,6 +571,8 @@ export default function PagesManagementPage() {
               <TableBody>
                 {pages.map((page) => {
                   const statusInfo = STATUS_LABELS[page.status];
+                  const isDuplicating = duplicatingId === page.id;
+
                   return (
                     <TableRow key={page.id}>
                       <TableCell>
@@ -420,20 +591,20 @@ export default function PagesManagementPage() {
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
-                          <DropdownMenuTrigger >
+                          <DropdownMenuTrigger>
                             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem >
-                              <Link href={`/dashboard/builder?page=${page.id}`} className="gap-2">
+                            <DropdownMenuItem>
+                              <Link href={`/dashboard/builder?page=${page.id}`} className="gap-2 flex items-center w-full">
                                 <Pencil className="w-4 h-4" />
                                 עריכה
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem >
-                              <Link href={`/p/${page.slug}`} target="_blank" className="gap-2">
+                            <DropdownMenuItem>
+                              <Link href={`/p/${page.slug}`} target="_blank" className="gap-2 flex items-center w-full">
                                 <Eye className="w-4 h-4" />
                                 תצוגה מקדימה
                               </Link>
@@ -444,9 +615,13 @@ export default function PagesManagementPage() {
                                 פרסום
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem onClick={() => handleDuplicate(page)} className="gap-2">
-                              <Copy className="w-4 h-4" />
-                              שכפול
+                            <DropdownMenuItem
+                              onClick={() => handleDuplicate(page)}
+                              disabled={isDuplicating}
+                              className="gap-2"
+                            >
+                              <Copy className={`w-4 h-4 ${isDuplicating ? "animate-spin" : ""}`} />
+                              {isDuplicating ? "משכפל..." : "שכפל"}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDelete(page.id)}
@@ -470,7 +645,11 @@ export default function PagesManagementPage() {
   );
 }
 
-// Small inline icon component used above
+// ---------------------------------------------------------------------------
+// Inline icon components
+// ---------------------------------------------------------------------------
+
+/** Small book-open SVG icon used in page cards to indicate program association */
 function BookOpenIcon({ className }: { className?: string }) {
   return (
     <svg

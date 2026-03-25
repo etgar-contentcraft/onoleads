@@ -18,6 +18,9 @@ import { VideoSection } from "./sections/video-section";
 import { FaqSection } from "./sections/faq-section";
 import { CtaSection } from "./sections/cta-section";
 import { WhatsappSection } from "./sections/whatsapp-section";
+import { AdmissionSection } from "./sections/admission-section";
+import { GallerySection } from "./sections/gallery-section";
+import { MapSection } from "./sections/map-section";
 
 // ============================================================================
 // Constants
@@ -142,6 +145,12 @@ function renderSection(
       return <FaqSection content={content} language={language} />;
     case "cta":
       return <CtaSection content={content} language={language} />;
+    case "admission":
+      return <AdmissionSection content={content} language={language} />;
+    case "gallery":
+      return <GallerySection content={content} language={language} />;
+    case "map":
+      return <MapSection content={content} language={language} />;
     default:
       return null;
   }

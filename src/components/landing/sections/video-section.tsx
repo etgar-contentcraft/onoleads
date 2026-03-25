@@ -1,108 +1,356 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+/**
+ * Video Section - Supports YouTube playlists and single embeds.
+ * Two layout modes:
+ *   "featured" - large primary player on the right with a thumbnail playlist sidebar.
+ *   "grid"     - equal-size video cards in a responsive grid.
+ * Iframes are only rendered after the user clicks play (lazy loading).
+ * All embeds use youtube-nocookie.com for privacy-enhanced mode.
+ */
+
+import { useEffect, useRef, useState, useCallback } from "react";
 import type { Language } from "@/lib/types/database";
+
+interface VideoItem {
+  youtube_id: string;
+  title_he: string;
+  duration_he?: string;
+  thumbnail_url?: string;
+}
 
 interface VideoSectionProps {
   content: Record<string, unknown>;
   language: Language;
 }
 
-function getEmbedUrl(url: string): string | null {
-  if (!url) return null;
-  const ytMatch = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-  );
-  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?rel=0`;
-  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
-  if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-  return null;
+/**
+ * Returns the YouTube thumbnail URL for a given video ID.
+ * Falls back to hqdefault if maxresdefault is not available (handled by browser).
+ * @param youtubeId - The 11-character YouTube video ID
+ */
+function getThumbnailUrl(youtubeId: string, providedUrl?: string): string {
+  if (providedUrl) return providedUrl;
+  return `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`;
 }
 
-function getYouTubeThumbnail(url: string): string | null {
-  const ytMatch = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+/**
+ * Builds the privacy-enhanced embed URL for a YouTube video ID.
+ * @param youtubeId - The 11-character YouTube video ID
+ * @param autoplay - Whether to start the video automatically
+ */
+function buildEmbedUrl(youtubeId: string, autoplay = false): string {
+  const params = new URLSearchParams({
+    rel: "0",
+    modestbranding: "1",
+    ...(autoplay ? { autoplay: "1" } : {}),
+  });
+  return `https://www.youtube-nocookie.com/embed/${youtubeId}?${params.toString()}`;
+}
+
+/**
+ * A play-button overlay shown on top of a thumbnail before the user clicks.
+ * Pure CSS triangle — no SVG dependency.
+ */
+function PlayOverlay({ size = "lg" }: { size?: "sm" | "lg" }) {
+  const outerSize = size === "lg" ? "w-20 h-20 md:w-24 md:h-24" : "w-12 h-12";
+  const innerSize = size === "lg" ? "w-8 h-8 md:w-10 md:h-10" : "w-5 h-5";
+  const glowClass =
+    size === "lg"
+      ? "shadow-[0_0_50px_rgba(184,217,0,0.4)] group-hover:shadow-[0_0_70px_rgba(184,217,0,0.6)]"
+      : "shadow-[0_0_20px_rgba(184,217,0,0.3)] group-hover:shadow-[0_0_35px_rgba(184,217,0,0.5)]";
+
+  return (
+    <div
+      className={`${outerSize} rounded-full bg-[#B8D900] flex items-center justify-center ${glowClass} group-hover:scale-110 transition-all duration-300`}
+    >
+      <svg
+        className={`${innerSize} text-[#2a2628] ml-1`}
+        fill="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path d="M8 5v14l11-7z" />
+      </svg>
+    </div>
   );
-  if (ytMatch) return `https://img.youtube.com/vi/${ytMatch[1]}/maxresdefault.jpg`;
-  return null;
+}
+
+/**
+ * A standalone video card for the "grid" layout.
+ * Clicking the thumbnail replaces it with the iframe embed.
+ */
+function VideoCard({
+  video,
+  index,
+  inView,
+}: {
+  video: VideoItem;
+  index: number;
+  inView: boolean;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const thumbnailUrl = getThumbnailUrl(video.youtube_id, video.thumbnail_url);
+
+  return (
+    <div
+      className="flex flex-col opacity-0"
+      style={{
+        animation: inView ? `fade-in-up 0.6s ease-out ${index * 0.1}s forwards` : "none",
+      }}
+    >
+      {/* Video player area */}
+      <div className="relative rounded-xl overflow-hidden bg-[#2a2628] aspect-video shadow-[0_4px_30px_rgba(0,0,0,0.15)]">
+        {!playing ? (
+          <button
+            onClick={() => setPlaying(true)}
+            className="absolute inset-0 group cursor-pointer"
+            aria-label={`הפעל: ${video.title_he}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={thumbnailUrl}
+              alt=""
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+              <PlayOverlay size="sm" />
+            </div>
+          </button>
+        ) : (
+          <iframe
+            src={buildEmbedUrl(video.youtube_id, true)}
+            className="absolute inset-0 w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={video.title_he}
+          />
+        )}
+      </div>
+
+      {/* Card metadata */}
+      <div className="mt-3 flex items-start justify-between gap-2">
+        <h3 className="font-heading font-bold text-[#2a2628] text-sm md:text-base leading-snug line-clamp-2">
+          {video.title_he}
+        </h3>
+        {video.duration_he && (
+          <span className="shrink-0 font-heebo text-xs text-[#716C70] bg-gray-100 rounded-md px-2 py-1 mt-0.5">
+            {video.duration_he}
+          </span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function VideoSection({ content, language }: VideoSectionProps) {
   const isRtl = language === "he" || language === "ar";
-  const videoUrl = (content.video_url as string) || "";
-  const posterUrl = (content.poster_url as string) || getYouTubeThumbnail(videoUrl) || "";
-  const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "גלו עוד על התוכנית" : "Discover More");
-  const [loaded, setLoaded] = useState(false);
+
+  const heading =
+    (content[`heading_${language}`] as string) ||
+    (content.heading_he as string) ||
+    "";
+  const description =
+    (content[`description_${language}`] as string) ||
+    (content.description_he as string) ||
+    "";
+  const videos = (content.videos as VideoItem[]) || [];
+  const layout = (content.layout as "featured" | "grid") || "featured";
+
+  /* Index of the currently active video in featured mode */
+  const [activeIndex, setActiveIndex] = useState(0);
+  /* Whether the active video's iframe is loaded */
+  const [playing, setPlaying] = useState(false);
   const [inView, setInView] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
-  const embedUrl = getEmbedUrl(videoUrl);
+  /* Reset player state when the active video changes */
+  const selectVideo = useCallback((index: number) => {
+    setActiveIndex(index);
+    setPlaying(false);
+  }, []);
 
+  /* Trigger entrance animation once the section enters the viewport */
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } },
+      ([e]) => {
+        if (e.isIntersecting) {
+          setInView(true);
+          obs.disconnect();
+        }
+      },
       { threshold: 0.1 }
     );
     obs.observe(el);
     return () => obs.disconnect();
   }, []);
 
-  if (!embedUrl) return null;
+  if (videos.length === 0) return null;
+
+  const activeVideo = videos[activeIndex];
 
   return (
     <section ref={sectionRef} className="py-20 md:py-28 bg-white" dir={isRtl ? "rtl" : "ltr"}>
-      <div className="max-w-4xl mx-auto px-5">
-        {heading && (
-          <div className="text-center mb-12">
-            <span
-              className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4 opacity-0"
+      <div className="max-w-6xl mx-auto px-5">
+        {/* Section header */}
+        {(heading || description) && (
+          <div className="text-center mb-12 max-w-3xl mx-auto">
+            <div
+              className="inline-flex items-center gap-3 mb-5 opacity-0"
               style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
             >
-              {isRtl ? "צפו בסרטון" : "Watch Video"}
-            </span>
-            <h2
-              className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628] opacity-0"
-              style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
-            >
-              {heading}
-            </h2>
+              <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+              <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
+                {isRtl ? "סרטונים" : "Videos"}
+              </span>
+              <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+            </div>
+            {heading && (
+              <h2
+                className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
+                style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+              >
+                {heading}
+              </h2>
+            )}
+            {description && (
+              <p
+                className="mt-4 font-heebo text-[#716C70] text-base md:text-lg leading-relaxed opacity-0"
+                style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.2s forwards" : "none" }}
+              >
+                {description}
+              </p>
+            )}
           </div>
         )}
 
-        <div
-          className="relative rounded-2xl overflow-hidden shadow-[0_8px_60px_rgba(0,0,0,0.15)] bg-[#2a2628] aspect-video opacity-0"
-          style={{ animation: inView ? "scale-in 0.6s ease-out 0.2s forwards" : "none" }}
-        >
-          {!loaded && posterUrl && (
-            <button
-              onClick={() => setLoaded(true)}
-              className="absolute inset-0 z-10 group cursor-pointer"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={posterUrl} alt="" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent group-hover:from-black/40 transition-colors duration-300 flex items-center justify-center">
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#B8D900] flex items-center justify-center shadow-[0_0_50px_rgba(184,217,0,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_70px_rgba(184,217,0,0.5)] transition-all duration-300">
-                  <svg className="w-8 h-8 md:w-10 md:h-10 text-[#2a2628] mr-[-3px]" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </div>
+        {layout === "featured" && videos.length > 0 ? (
+          /* ---- Featured layout: big player + sidebar playlist ---- */
+          <div
+            className="flex flex-col lg:flex-row gap-6 opacity-0"
+            style={{ animation: inView ? "fade-in-up 0.7s ease-out 0.25s forwards" : "none" }}
+          >
+            {/* Primary player — occupies ~65% on desktop */}
+            <div className="flex-1 min-w-0">
+              <div className="relative rounded-2xl overflow-hidden bg-[#2a2628] aspect-video shadow-[0_8px_60px_rgba(0,0,0,0.18)]">
+                {!playing ? (
+                  <button
+                    onClick={() => setPlaying(true)}
+                    className="absolute inset-0 group cursor-pointer"
+                    aria-label={`הפעל: ${activeVideo.title_he}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getThumbnailUrl(activeVideo.youtube_id, activeVideo.thumbnail_url)}
+                      alt=""
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center">
+                      <PlayOverlay size="lg" />
+                    </div>
+                  </button>
+                ) : (
+                  <iframe
+                    src={buildEmbedUrl(activeVideo.youtube_id, true)}
+                    className="absolute inset-0 w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title={activeVideo.title_he}
+                  />
+                )}
               </div>
-            </button>
-          )}
 
-          {(loaded || !posterUrl) && (
-            <iframe
-              src={embedUrl + (content.autoplay ? "&autoplay=1" : "")}
-              className="absolute inset-0 w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              loading="lazy"
-              title="Video"
-            />
-          )}
-        </div>
+              {/* Active video title + duration below player */}
+              <div className="mt-4 flex items-start justify-between gap-3">
+                <h3 className="font-heading font-bold text-[#2a2628] text-lg md:text-xl leading-snug">
+                  {activeVideo.title_he}
+                </h3>
+                {activeVideo.duration_he && (
+                  <span className="shrink-0 font-heebo text-sm text-[#716C70] bg-gray-100 rounded-lg px-3 py-1 mt-0.5">
+                    {activeVideo.duration_he}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Playlist sidebar — visible only when there are multiple videos */}
+            {videos.length > 1 && (
+              <div className="lg:w-72 xl:w-80 shrink-0 flex flex-col gap-3 max-h-[480px] overflow-y-auto pr-1">
+                {videos.map((video, i) => (
+                  <button
+                    key={i}
+                    onClick={() => selectVideo(i)}
+                    className={`group flex items-start gap-3 p-3 rounded-xl text-start transition-all duration-200 ${
+                      i === activeIndex
+                        ? "bg-[#B8D900]/10 border border-[#B8D900]/30"
+                        : "hover:bg-gray-50 border border-transparent"
+                    }`}
+                    aria-label={`הפעל: ${video.title_he}`}
+                    aria-pressed={i === activeIndex}
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative shrink-0 w-24 h-14 rounded-lg overflow-hidden bg-[#2a2628]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={getThumbnailUrl(video.youtube_id, video.thumbnail_url)}
+                        alt=""
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                      {/* Play indicator overlay */}
+                      <div
+                        className={`absolute inset-0 bg-black/20 flex items-center justify-center transition-opacity ${
+                          i === activeIndex ? "opacity-0" : "opacity-100"
+                        }`}
+                      >
+                        <div className="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center">
+                          <svg className="w-3 h-3 text-[#2a2628] ml-0.5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Video meta */}
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`font-heading font-bold text-sm leading-snug line-clamp-2 transition-colors ${
+                          i === activeIndex ? "text-[#2a2628]" : "text-[#716C70] group-hover:text-[#2a2628]"
+                        }`}
+                      >
+                        {video.title_he}
+                      </p>
+                      {video.duration_he && (
+                        <span className="mt-1 inline-block font-heebo text-xs text-[#716C70]">
+                          {video.duration_he}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ---- Grid layout: equal-size cards ---- */
+          <div
+            className={`grid gap-6 ${
+              videos.length === 1
+                ? "max-w-2xl mx-auto"
+                : videos.length === 2
+                ? "md:grid-cols-2"
+                : "md:grid-cols-2 lg:grid-cols-3"
+            }`}
+          >
+            {videos.map((video, i) => (
+              <VideoCard key={i} video={video} index={i} inView={inView} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

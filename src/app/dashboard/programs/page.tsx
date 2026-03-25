@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+// Programs admin list page - allows managing programs and their featured landing pages
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { Faculty, ProgramWithFaculty, ProgramLevel } from "@/lib/types/database";
@@ -36,7 +37,26 @@ import {
   Loader2,
   BookOpen,
   Filter,
+  Star,
 } from "lucide-react";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+/** Slim page info used for the featured page dropdown */
+interface PageOption {
+  id: string;
+  slug: string;
+  title_he: string | null;
+  status: string;
+}
+
+/** Program row extended with pages belonging to it */
+interface ProgramWithPages extends ProgramWithFaculty {
+  /** All pages linked to this program */
+  pages?: PageOption[];
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -49,8 +69,110 @@ const LEVEL_LABELS: Record<ProgramLevel, string> = {
   continuing_ed: "לימודי המשך",
 };
 
+/**
+ * Returns a human-readable label for a program level
+ * @param level - ProgramLevel enum value
+ * @returns Hebrew label string
+ */
 function getLevelLabel(level: ProgramLevel): string {
   return LEVEL_LABELS[level] ?? level;
+}
+
+// ---------------------------------------------------------------------------
+// FeaturedPageCell component
+// ---------------------------------------------------------------------------
+
+interface FeaturedPageCellProps {
+  program: ProgramWithPages;
+  onSaved: (programId: string, slug: string | null) => void;
+}
+
+/**
+ * Renders the featured page selector cell for a program row.
+ * Shows a dropdown of the program's pages and saves the selected slug.
+ */
+function FeaturedPageCell({ program, onSaved }: FeaturedPageCellProps) {
+  const supabase = createClient();
+  const [saving, setSaving] = useState(false);
+
+  // Current value: the featured slug or a sentinel for "none"
+  const NO_PAGE_VALUE = "__none__";
+  const currentValue = program.featured_page_slug ?? NO_PAGE_VALUE;
+
+  /**
+   * Handles a user selecting a featured page slug from the dropdown.
+   * Persists the choice to Supabase.
+   */
+  const handleChange = useCallback(async (value: string | null) => {
+    const newSlug = !value || value === NO_PAGE_VALUE ? null : value;
+    setSaving(true);
+    const { error } = await supabase
+      .from("programs")
+      .update({ featured_page_slug: newSlug })
+      .eq("id", program.id);
+
+    setSaving(false);
+    if (!error) {
+      onSaved(program.id, newSlug);
+    }
+  }, [supabase, program.id, onSaved, NO_PAGE_VALUE]);
+
+  const pages = program.pages ?? [];
+
+  if (pages.length === 0) {
+    // No pages yet — show a quick-create link
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">אין עמוד</span>
+        <Link href={`/dashboard/pages/new?program_id=${program.id}`}>
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+            <Plus className="w-3 h-3" />
+            הוסף עמוד
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 min-w-[200px]">
+      <Select value={currentValue} onValueChange={handleChange} disabled={saving}>
+        <SelectTrigger className="h-8 text-xs w-full">
+          {saving ? (
+            <span className="flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              שומר...
+            </span>
+          ) : (
+            <SelectValue placeholder="בחר עמוד מוצג" />
+          )}
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NO_PAGE_VALUE}>
+            <span className="text-muted-foreground">ללא עמוד מוצג</span>
+          </SelectItem>
+          {pages.map((page) => (
+            <SelectItem key={page.id} value={page.slug}>
+              <span className="flex items-center gap-1.5">
+                {page.status === "published" && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                )}
+                <span className="truncate max-w-[160px]">
+                  {page.title_he ?? page.slug}
+                </span>
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {/* Quick-add new page for this program */}
+      <Link href={`/dashboard/pages/new?program_id=${program.id}`}>
+        <Button variant="ghost" size="icon-sm" title="הוסף עמוד חדש">
+          <Plus className="w-3.5 h-3.5" />
+        </Button>
+      </Link>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -60,7 +182,7 @@ function getLevelLabel(level: ProgramLevel): string {
 export default function ProgramsListPage() {
   const supabase = createClient();
 
-  const [programs, setPrograms] = useState<ProgramWithFaculty[]>([]);
+  const [programs, setPrograms] = useState<ProgramWithPages[]>([]);
   const [faculties, setFaculties] = useState<Faculty[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,36 +193,65 @@ export default function ProgramsListPage() {
   const [degreeFilter, setDegreeFilter] = useState<string>("__all__");
   const [levelFilter, setLevelFilter] = useState<string>("__all__");
 
-  // Load data
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError(null);
+  /**
+   * Loads all programs, their faculties, and the pages belonging to each program.
+   * Pages are grouped by program_id client-side to avoid N+1 queries.
+   */
+  async function load() {
+    setLoading(true);
+    setError(null);
 
-      try {
-        const [programsRes, facultiesRes] = await Promise.all([
-          supabase
-            .from("programs")
-            .select("*, faculty:faculties(*)")
-            .order("sort_order"),
-          supabase.from("faculties").select("*").order("sort_order"),
-        ]);
+    try {
+      const [programsRes, facultiesRes, pagesRes] = await Promise.all([
+        supabase
+          .from("programs")
+          .select("*, faculty:faculties(*)")
+          .order("sort_order"),
+        supabase.from("faculties").select("*").order("sort_order"),
+        // Fetch all pages that belong to any program (non-null program_id)
+        supabase
+          .from("pages")
+          .select("id, slug, title_he, status, program_id")
+          .not("program_id", "is", null)
+          .order("updated_at", { ascending: false }),
+      ]);
 
-        if (programsRes.error) throw programsRes.error;
-        if (facultiesRes.error) throw facultiesRes.error;
+      if (programsRes.error) throw programsRes.error;
+      if (facultiesRes.error) throw facultiesRes.error;
+      // Pages error is non-fatal — we just show empty pages
+      const allPages = (pagesRes.data ?? []) as (PageOption & { program_id: string })[];
 
-        setPrograms(programsRes.data as ProgramWithFaculty[]);
-        setFaculties(facultiesRes.data as Faculty[]);
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "שגיאה בטעינת הנתונים";
-        setError(message);
-      } finally {
-        setLoading(false);
+      // Group pages by program_id
+      const pagesByProgram = new Map<string, PageOption[]>();
+      for (const page of allPages) {
+        const existing = pagesByProgram.get(page.program_id) ?? [];
+        existing.push({ id: page.id, slug: page.slug, title_he: page.title_he, status: page.status });
+        pagesByProgram.set(page.program_id, existing);
       }
+
+      // Merge pages into programs
+      const programsWithPages: ProgramWithPages[] = (programsRes.data as ProgramWithFaculty[]).map(
+        (p) => ({
+          ...p,
+          pages: pagesByProgram.get(p.id) ?? [],
+        })
+      );
+
+      setPrograms(programsWithPages);
+      setFaculties(facultiesRes.data as Faculty[]);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "שגיאה בטעינת הנתונים";
+      setError(message);
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
     load();
-  }, [supabase]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Unique degree types from data
   const degreeTypes = useMemo(() => {
@@ -138,6 +289,19 @@ export default function ProgramsListPage() {
     setDegreeFilter("__all__");
     setLevelFilter("__all__");
   }
+
+  /**
+   * Optimistically updates the featured_page_slug for a program after saving.
+   * @param programId - The program whose featured slug changed
+   * @param slug - The new featured slug (null = no featured page)
+   */
+  const handleFeaturedSaved = useCallback((programId: string, slug: string | null) => {
+    setPrograms((prev) =>
+      prev.map((p) =>
+        p.id === programId ? { ...p, featured_page_slug: slug } : p
+      )
+    );
+  }, []);
 
   const hasActiveFilters =
     search !== "" ||
@@ -268,13 +432,19 @@ export default function ProgramsListPage() {
                   <TableHead>פקולטה</TableHead>
                   <TableHead>רמה</TableHead>
                   <TableHead>סטטוס</TableHead>
+                  <TableHead>
+                    <span className="flex items-center gap-1.5">
+                      <Star className="w-3.5 h-3.5 text-[#B8D900]" />
+                      עמוד מוצג
+                    </span>
+                  </TableHead>
                   <TableHead>פעולות</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10">
+                    <TableCell colSpan={7} className="text-center py-10">
                       <p className="text-muted-foreground">
                         {hasActiveFilters
                           ? "לא נמצאו תוכניות התואמות לסינון"
@@ -330,6 +500,13 @@ export default function ProgramsListPage() {
                         ) : (
                           <Badge variant="destructive">לא פעיל</Badge>
                         )}
+                      </TableCell>
+                      {/* Featured Page Column */}
+                      <TableCell>
+                        <FeaturedPageCell
+                          program={program}
+                          onSaved={handleFeaturedSaved}
+                        />
                       </TableCell>
                       <TableCell>
                         <Link href={`/dashboard/programs/${program.id}`}>

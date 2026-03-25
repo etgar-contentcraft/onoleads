@@ -927,6 +927,51 @@ function buildCtaSection(program: ProgramRow): SectionData {
 }
 
 /**
+ * Builds admission content from scraped admission data
+ */
+function buildAdmissionContent(scraped: ScrapedProgram): Record<string, unknown> {
+  const adm = scraped.admission;
+  if (!adm) return {};
+
+  // Multi-track: if admission has 'direct' + 'conditional' or multiple keys
+  if (typeof adm === "object" && !Array.isArray(adm)) {
+    const admObj = adm as Record<string, unknown>;
+    const tracks = [];
+
+    if (admObj.direct) {
+      const reqs = Array.isArray(admObj.direct) ? admObj.direct as string[] : [String(admObj.direct)];
+      tracks.push({ title_he: "קבלה ישירה", icon: "star", badge_he: "מומלץ", requirements: reqs });
+    }
+    if (admObj.conditional) {
+      const reqs = Array.isArray(admObj.conditional) ? admObj.conditional as string[] : [String(admObj.conditional)];
+      tracks.push({ title_he: "קבלה מותנית", icon: "check", requirements: reqs });
+    }
+    if (admObj.weighted) {
+      const reqs = Array.isArray(admObj.weighted) ? admObj.weighted as string[] : [String(admObj.weighted)];
+      tracks.push({ title_he: "מסלול נוסף", icon: "shield", requirements: reqs });
+    }
+    if (admObj.other) {
+      const reqs = Array.isArray(admObj.other) ? admObj.other as string[] : [String(admObj.other)];
+      tracks.push({ title_he: "מסלולים נוספים", icon: "award", requirements: reqs });
+    }
+
+    if (tracks.length > 1) {
+      return { heading_he: "תנאי קבלה", tracks };
+    }
+    if (tracks.length === 1) {
+      return { heading_he: "תנאי קבלה", requirements: tracks[0].requirements };
+    }
+  }
+
+  // Simple array
+  if (Array.isArray(adm)) {
+    return { heading_he: "תנאי קבלה", requirements: adm as string[] };
+  }
+
+  return { heading_he: "תנאי קבלה", requirements: [String(adm)] };
+}
+
+/**
  * Builds the WhatsApp floating button section (sort_order: 10)
  */
 function buildWhatsappSection(program: ProgramRow): SectionData {
@@ -1091,7 +1136,11 @@ async function main() {
       continue;
     }
 
-    // Build all 11 sections
+    // Build all sections — gallery added when scraped data has 3+ real images
+    const galleryImages = scraped?.images && scraped.images.length >= 3
+      ? scraped.images.slice(0, 8).map((url: string) => ({ url, alt_he: program.name_he }))
+      : null;
+
     const sections: SectionData[] = [
       buildHeroSection(program, scraped),
       buildProgramInfoBar(program, scraped),
@@ -1101,6 +1150,26 @@ async function main() {
       buildCareerSection(program, scraped),
       buildTestimonialsSection(program, scraped),
       buildFacultySection(program, scraped),
+      // Gallery section (only for programs with real scraped images)
+      ...(galleryImages ? [{
+        section_type: "gallery",
+        sort_order: 8,
+        is_visible: true,
+        content: {
+          heading_he: "תמונות מהתוכנית",
+          images: galleryImages,
+          layout: "grid",
+        },
+        styles: {},
+      } as SectionData] : []),
+      // Admission section — injected from scraped admission data
+      ...(scraped?.admission ? [{
+        section_type: "admission",
+        sort_order: 9,
+        is_visible: true,
+        content: buildAdmissionContent(scraped),
+        styles: {},
+      } as SectionData] : []),
       buildFaqSection(program, scraped),
       buildCtaSection(program),
       buildWhatsappSection(program),

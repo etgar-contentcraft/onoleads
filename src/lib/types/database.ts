@@ -86,6 +86,8 @@ export interface Program {
   hero_stat_label_en: string | null;
   career_outcomes: CareerOutcome[] | null;
   meta: ProgramMeta | null;
+  /** Slug of the featured landing page for this program, linked from the homepage finder. Null = use program slug. */
+  featured_page_slug: string | null;
   sort_order: number;
   created_at?: string;
   updated_at?: string;
