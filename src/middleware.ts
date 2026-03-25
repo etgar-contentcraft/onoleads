@@ -16,9 +16,12 @@ const CSP_DIRECTIVES = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "img-src 'self' data: blob: https://www.ono.ac.il https://*.supabase.co",
+  // YouTube thumbnails (i.ytimg.com = YouTube's image CDN) + Supabase storage
+  "img-src 'self' data: blob: https://www.ono.ac.il https://*.supabase.co https://i.ytimg.com https://img.youtube.com",
   "font-src 'self' https://fonts.gstatic.com",
   "connect-src 'self' https://*.supabase.co https://fonts.googleapis.com",
+  // Allow YouTube embeds (privacy-enhanced domain) inside iframes
+  "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
