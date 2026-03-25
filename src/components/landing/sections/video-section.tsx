@@ -29,22 +29,27 @@ interface VideoSectionProps {
  * Uses hqdefault (always available) rather than maxresdefault (HD-only).
  * @param youtubeIdOrUrl - The 11-character YouTube video ID or any YouTube URL
  */
-function getThumbnailUrl(youtubeIdOrUrl: string, providedUrl?: string): string {
+/**
+ * Returns a thumbnail URL or null when no valid YouTube ID can be extracted.
+ * Returning null prevents rendering a broken <img> element.
+ */
+function getThumbnailUrl(youtubeIdOrUrl: string, providedUrl?: string): string | null {
   if (providedUrl) return providedUrl;
   const id = extractYoutubeId(youtubeIdOrUrl);
+  if (!id || id.length < 5) return null; // No valid ID — caller will skip the <img>
   return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
 }
 
-/** Fallback chain: if hqdefault fails, try mqdefault then a solid dark placeholder */
+/** Fallback chain: hqdefault → mqdefault → hide img (dark bg shows through) */
 function handleThumbnailError(e: React.SyntheticEvent<HTMLImageElement>, youtubeIdOrUrl: string) {
   const img = e.currentTarget;
   const id = extractYoutubeId(youtubeIdOrUrl);
   const current = img.src;
   if (current.includes("hqdefault")) {
     img.src = `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
-  } else if (current.includes("mqdefault")) {
-    // Final fallback: hide broken img, dark bg shows through
-    img.style.opacity = "0";
+  } else {
+    // All thumbnail URLs failed — hide the broken image, dark bg shows through
+    img.style.display = "none";
   }
 }
 
@@ -150,14 +155,16 @@ function VideoCard({
             className="absolute inset-0 group cursor-pointer"
             aria-label={`הפעל: ${video.title_he}`}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={thumbnailUrl}
-              alt=""
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
-              onError={(e) => handleThumbnailError(e, video.youtube_id)}
-            />
+            {thumbnailUrl && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={thumbnailUrl}
+                alt=""
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
+                onError={(e) => handleThumbnailError(e, video.youtube_id)}
+              />
+            )}
             <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
               <PlayOverlay size="sm" />
             </div>
@@ -294,14 +301,16 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                     className="absolute inset-0 group cursor-pointer"
                     aria-label={`הפעל: ${activeVideo.title_he}`}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={getThumbnailUrl(activeVideo.youtube_id, activeVideo.thumbnail_url)}
-                      alt=""
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                      onError={(e) => handleThumbnailError(e, activeVideo.youtube_id)}
-                    />
+                    {getThumbnailUrl(activeVideo.youtube_id, activeVideo.thumbnail_url) && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={getThumbnailUrl(activeVideo.youtube_id, activeVideo.thumbnail_url)!}
+                        alt=""
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
+                        onError={(e) => handleThumbnailError(e, activeVideo.youtube_id)}
+                      />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center">
                       <PlayOverlay size="lg" />
                     </div>
