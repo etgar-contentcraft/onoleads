@@ -29,23 +29,53 @@ interface VideoSectionProps {
  * Falls back to hqdefault if maxresdefault is not available (handled by browser).
  * @param youtubeId - The 11-character YouTube video ID
  */
-function getThumbnailUrl(youtubeId: string, providedUrl?: string): string {
+function getThumbnailUrl(youtubeIdOrUrl: string, providedUrl?: string): string {
   if (providedUrl) return providedUrl;
-  return `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`;
+  const id = extractYoutubeId(youtubeIdOrUrl);
+  return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
 }
 
 /**
- * Builds the privacy-enhanced embed URL for a YouTube video ID.
- * @param youtubeId - The 11-character YouTube video ID
+ * Extracts an 11-character YouTube video ID from any of these formats:
+ *   - Raw ID:                "dQw4w9WgXcQ"
+ *   - youtube.com/watch?v=  "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+ *   - youtu.be short link:  "https://youtu.be/dQw4w9WgXcQ"
+ *   - embed URL:            "https://www.youtube.com/embed/dQw4w9WgXcQ"
+ * Returns the raw input unchanged when it doesn't look like a URL.
+ */
+function extractYoutubeId(input: string): string {
+  if (!input) return "";
+  // Already an 11-char ID (no slashes/dots)
+  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
+  try {
+    const url = new URL(input);
+    // youtu.be/<id>
+    if (url.hostname === "youtu.be") return url.pathname.slice(1).split("?")[0];
+    // /embed/<id> or /v/<id>
+    const pathMatch = url.pathname.match(/\/(?:embed|v)\/([A-Za-z0-9_-]{11})/);
+    if (pathMatch) return pathMatch[1];
+    // ?v=<id>
+    const v = url.searchParams.get("v");
+    if (v) return v;
+  } catch {
+    // Not a URL — return as-is and let YouTube handle any error
+  }
+  return input;
+}
+
+/**
+ * Builds the privacy-enhanced embed URL for a YouTube video ID or URL.
+ * @param youtubeIdOrUrl - An 11-char ID or any YouTube URL format
  * @param autoplay - Whether to start the video automatically
  */
-function buildEmbedUrl(youtubeId: string, autoplay = false): string {
+function buildEmbedUrl(youtubeIdOrUrl: string, autoplay = false): string {
+  const id = extractYoutubeId(youtubeIdOrUrl);
   const params = new URLSearchParams({
     rel: "0",
     modestbranding: "1",
     ...(autoplay ? { autoplay: "1" } : {}),
   });
-  return `https://www.youtube-nocookie.com/embed/${youtubeId}?${params.toString()}`;
+  return `https://www.youtube-nocookie.com/embed/${id}?${params.toString()}`;
 }
 
 /**
@@ -155,7 +185,15 @@ export function VideoSection({ content, language }: VideoSectionProps) {
     (content[`description_${language}`] as string) ||
     (content.description_he as string) ||
     "";
-  const videos = (content.videos as VideoItem[]) || [];
+  // Support both a `videos` array and a legacy single `video_url` / `youtube_id` field
+  const rawVideos = (content.videos as VideoItem[]) || [];
+  const singleId = (content.youtube_id as string) || (content.video_url as string) || "";
+  const videos: VideoItem[] =
+    rawVideos.length > 0
+      ? rawVideos
+      : singleId
+        ? [{ youtube_id: singleId, title_he: (content.heading_he as string) || "" }]
+        : [];
   const layout = (content.layout as "featured" | "grid") || "featured";
 
   /* Index of the currently active video in featured mode */
