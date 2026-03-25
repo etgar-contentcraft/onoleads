@@ -50,6 +50,12 @@ async function getPageData(slug: string) {
     google_analytics_id: pageOverrides.google_analytics_id || globalMap.google_analytics_id,
     facebook_pixel_id: pageOverrides.facebook_pixel_id || globalMap.facebook_pixel_id,
     exit_intent_enabled: pageOverrides.exit_intent_enabled === "true",
+    exit_intent_sensitivity: (pageOverrides.exit_intent_sensitivity as "subtle" | "medium" | "aggressive") || "medium",
+    exit_intent_bg_color: pageOverrides.exit_intent_bg_color || globalMap.exit_intent_bg_color,
+    exit_intent_accent_color: pageOverrides.exit_intent_accent_color || globalMap.exit_intent_accent_color,
+    exit_intent_title_he: pageOverrides.exit_intent_title_he || globalMap.exit_intent_title_he,
+    exit_intent_body_he: pageOverrides.exit_intent_body_he || globalMap.exit_intent_body_he,
+    exit_intent_cta_he: pageOverrides.exit_intent_cta_he || globalMap.exit_intent_cta_he,
     social_proof_enabled: pageOverrides.social_proof_enabled === "true",
     social_proof_days: pageOverrides.social_proof_days ? parseInt(pageOverrides.social_proof_days, 10) : 7,
   };

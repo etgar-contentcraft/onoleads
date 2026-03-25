@@ -17,6 +17,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Globe, Plus, Pencil, Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { SectionContentEditor } from "@/components/admin/section-content-editor";
 
 interface SharedSection {
   id: string;
@@ -262,7 +263,7 @@ export default function SharedSectionsPage() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-lg" dir="rtl">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>{editTarget ? "עריכת סקציה גלובלית" : "סקציה גלובלית חדשה"}</DialogTitle>
           </DialogHeader>
@@ -300,23 +301,20 @@ export default function SharedSectionsPage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm font-medium">תוכן (JSON)</Label>
-              <textarea
-                value={formContentJson}
-                onChange={(e) => { setFormContentJson(e.target.value); setJsonError(""); }}
-                className="w-full h-48 font-mono text-xs p-3 rounded-lg border border-input bg-[#FAFAFA] resize-y focus:outline-none focus:ring-1 focus:ring-[#B8D900]"
-                dir="ltr"
-                spellCheck={false}
+              <Label className="text-sm font-medium">תוכן הסקציה</Label>
+              <SectionContentEditor
+                sectionType={formType}
+                content={(() => {
+                  try { return JSON.parse(formContentJson); } catch { return {}; }
+                })()}
+                onChange={(c) => { setFormContentJson(JSON.stringify(c)); setJsonError(""); }}
               />
               {jsonError && (
-                <p className="text-xs text-red-500 flex items-center gap-1">
+                <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
                   <AlertTriangle className="w-3 h-3" />
                   {jsonError}
                 </p>
               )}
-              <p className="text-xs text-[#9A969A]">
-                השתמשו בכותרות כגון heading_he, description_he וכו׳ בהתאם לסוג הסקציה
-              </p>
             </div>
           </div>
           <DialogFooter className="gap-2">

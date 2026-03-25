@@ -48,6 +48,7 @@ import {
   Rocket,
   CheckCircle2,
   XCircle,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -495,6 +496,12 @@ export default function PagesManagementPage() {
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem>
+                        <Link href={`/dashboard/pages/${page.id}/settings`} className="gap-2 flex items-center w-full">
+                          <Settings className="w-4 h-4" />
+                          הגדרות עמוד
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
                         <Link href={`/lp/${page.slug}`} target="_blank" className="gap-2 flex items-center w-full">
                           <Eye className="w-4 h-4" />
                           תצוגה מקדימה
@@ -601,6 +608,12 @@ export default function PagesManagementPage() {
                               <Link href={`/dashboard/pages/${page.id}/builder`} className="gap-2 flex items-center w-full">
                                 <Pencil className="w-4 h-4" />
                                 עריכה
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Link href={`/dashboard/pages/${page.id}/settings`} className="gap-2 flex items-center w-full">
+                                <Settings className="w-4 h-4" />
+                                הגדרות עמוד
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>

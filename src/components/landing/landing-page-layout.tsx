@@ -47,6 +47,18 @@ export interface PageSettings {
   facebook_pixel_id?: string;
   /** When true, shows the exit-intent popup (off by default — must be enabled per page) */
   exit_intent_enabled?: boolean;
+  /** "subtle" = desktop mouse-leave only; "medium" = default; "aggressive" = also fires on mobile scroll + timed */
+  exit_intent_sensitivity?: "subtle" | "medium" | "aggressive";
+  /** Card background color, default #ffffff */
+  exit_intent_bg_color?: string;
+  /** Accent color (bar + CTA button), default #B8D900 */
+  exit_intent_accent_color?: string;
+  /** Override popup title */
+  exit_intent_title_he?: string;
+  /** Override popup body text */
+  exit_intent_body_he?: string;
+  /** Override CTA button text */
+  exit_intent_cta_he?: string;
   /** When true, shows the social proof toast */
   social_proof_enabled?: boolean;
   /** Days window for social proof count (default: 7) */
@@ -140,63 +152,78 @@ function StickyHeader({
 // On mobile, fires after the visitor scrolls down 50%+ and then scrolls up fast.
 // ============================================================================
 
+interface ExitIntentProps {
+  programName?: string;
+  language: Language;
+  sensitivity?: "subtle" | "medium" | "aggressive";
+  bgColor?: string;
+  accentColor?: string;
+  titleHe?: string;
+  bodyHe?: string;
+  ctaHe?: string;
+}
+
 function ExitIntentPopup({
   programName,
   language,
-}: {
-  programName?: string;
-  language: Language;
-}) {
+  sensitivity = "medium",
+  bgColor = "#ffffff",
+  accentColor = "#B8D900",
+  titleHe,
+  bodyHe,
+  ctaHe,
+}: ExitIntentProps) {
   const { open, isOpen } = useCtaModal();
   const [shown, setShown] = useState(false);
   const [visible, setVisible] = useState(false);
   const isRtl = language === "he" || language === "ar";
 
-  // Don't show if modal is already open or was already shown this session
+  const trigger = () => {
+    if (shown || isOpen) return;
+    setShown(true);
+    setVisible(true);
+    sessionStorage.setItem("exit_intent_shown", "1");
+  };
+
   useEffect(() => {
     if (typeof sessionStorage === "undefined") return;
     if (sessionStorage.getItem("exit_intent_shown")) setShown(true);
   }, []);
 
-  // Desktop: mouseleave toward top of viewport
+  // Desktop: mouseleave toward top of viewport (all sensitivity levels)
   useEffect(() => {
     if (shown || isOpen) return;
-    const handleMouseLeave = (e: MouseEvent) => {
-      if (e.clientY <= 0 && !shown && !isOpen) {
-        setShown(true);
-        setVisible(true);
-        sessionStorage.setItem("exit_intent_shown", "1");
-      }
-    };
-    document.addEventListener("mouseleave", handleMouseLeave);
-    return () => document.removeEventListener("mouseleave", handleMouseLeave);
+    const handle = (e: MouseEvent) => { if (e.clientY <= 0) trigger(); };
+    document.addEventListener("mouseleave", handle);
+    return () => document.removeEventListener("mouseleave", handle);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shown, isOpen]);
 
-  // Mobile: fast scroll-up after 50%+ scroll depth
+  // Mobile: scroll-up trigger (medium + aggressive only)
   useEffect(() => {
-    if (shown || isOpen) return;
+    if (sensitivity === "subtle" || shown || isOpen) return;
     let lastY = 0;
-    let triggered = false;
-    const handleScroll = () => {
-      const current = window.scrollY;
-      const maxScroll = document.body.scrollHeight - window.innerHeight;
-      const depth = maxScroll > 0 ? current / maxScroll : 0;
-      if (!triggered && depth > 0.5 && current < lastY - 80) {
-        triggered = true;
-        setShown(true);
-        setVisible(true);
-        sessionStorage.setItem("exit_intent_shown", "1");
-      }
-      lastY = current;
+    let trig = false;
+    const depthThreshold = sensitivity === "aggressive" ? 0.3 : 0.5;
+    const handle = () => {
+      const cur = window.scrollY;
+      const max = document.body.scrollHeight - window.innerHeight;
+      const depth = max > 0 ? cur / max : 0;
+      if (!trig && depth > depthThreshold && cur < lastY - 80) { trig = true; trigger(); }
+      lastY = cur;
     };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [shown, isOpen]);
+    window.addEventListener("scroll", handle, { passive: true });
+    return () => window.removeEventListener("scroll", handle);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sensitivity, shown, isOpen]);
 
-  const handleCta = () => {
-    setVisible(false);
-    open();
-  };
+  // Aggressive: timed trigger after 20s on page
+  useEffect(() => {
+    if (sensitivity !== "aggressive" || shown || isOpen) return;
+    const t = setTimeout(() => trigger(), 20000);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sensitivity, shown, isOpen]);
 
   if (!visible) return null;
 
@@ -204,25 +231,25 @@ function ExitIntentPopup({
     ? isRtl ? `ל${programName}` : `for ${programName}`
     : "";
 
+  const defaultBody = isRtl
+    ? `השאירו פרטים ${programLabel} ויועץ לימודים יחזור אליכם בהקדם — ללא התחייבות.`
+    : `Leave your details ${programLabel} and an advisor will contact you soon — no commitment.`;
+
   return (
     <div
       className="fixed inset-0 z-[90] flex items-center justify-center p-4"
       dir={isRtl ? "rtl" : "ltr"}
       role="dialog"
       aria-modal="true"
-      aria-label={isRtl ? "רגע לפני שתלכו..." : "Before you go..."}
     >
-      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setVisible(false)} />
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={() => setVisible(false)}
-      />
-      {/* Card */}
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full p-7 text-center animate-[fade-in-up_0.3s_ease-out]">
-        {/* Close button */}
+        className="relative rounded-2xl shadow-2xl max-w-md w-full p-7 text-center animate-[fade-in-up_0.3s_ease-out]"
+        style={{ backgroundColor: bgColor }}
+      >
         <button
           onClick={() => setVisible(false)}
-          className="absolute top-3 left-3 w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute top-3 left-3 w-7 h-7 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
           aria-label="סגור"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -230,23 +257,21 @@ function ExitIntentPopup({
           </svg>
         </button>
 
-        {/* Accent line */}
-        <div className="w-12 h-1 bg-[#B8D900] rounded-full mx-auto mb-4" />
+        <div className="w-12 h-1 rounded-full mx-auto mb-4" style={{ backgroundColor: accentColor }} />
 
-        <h2 className="font-heading text-xl font-extrabold text-[#2a2628] mb-2" dir={isRtl ? "rtl" : "ltr"}>
-          {isRtl ? "רגע לפני שתלכו..." : "Wait — before you go!"}
+        <h2 className="font-heading text-xl font-extrabold text-[#2a2628] mb-2">
+          {titleHe || (isRtl ? "רגע לפני שתלכו..." : "Wait — before you go!")}
         </h2>
-        <p className="font-heebo text-[#716C70] text-sm mb-5 leading-relaxed" dir={isRtl ? "rtl" : "ltr"}>
-          {isRtl
-            ? `השאירו פרטים ${programLabel} ויועץ לימודים יחזור אליכם בהקדם — ללא התחייבות.`
-            : `Leave your details ${programLabel} and an advisor will contact you soon — no commitment.`}
+        <p className="font-heebo text-[#716C70] text-sm mb-5 leading-relaxed">
+          {bodyHe || defaultBody}
         </p>
 
         <button
-          onClick={handleCta}
-          className="w-full py-3 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base hover:bg-[#c8e920] hover:shadow-[0_0_25px_rgba(184,217,0,0.35)] transition-all duration-300 active:scale-[0.98] mb-3"
+          onClick={() => { setVisible(false); open(); }}
+          className="w-full py-3 rounded-xl font-heading font-bold text-base transition-all duration-300 active:scale-[0.98] mb-3"
+          style={{ backgroundColor: accentColor, color: "#2a2628" }}
         >
-          {isRtl ? "השאירו פרטים עכשיו →" : "Get Info Now →"}
+          {ctaHe || (isRtl ? "השאירו פרטים עכשיו →" : "Get Info Now →")}
         </button>
         <button
           onClick={() => setVisible(false)}
@@ -563,7 +588,16 @@ function InnerLayout({
 
       {/* Exit Intent Popup — only when explicitly enabled per-page */}
       {settings?.exit_intent_enabled && (
-        <ExitIntentPopup programName={pageTitle || program?.name_he} language={language} />
+        <ExitIntentPopup
+          programName={pageTitle || program?.name_he}
+          language={language}
+          sensitivity={settings.exit_intent_sensitivity}
+          bgColor={settings.exit_intent_bg_color}
+          accentColor={settings.exit_intent_accent_color}
+          titleHe={settings.exit_intent_title_he}
+          bodyHe={settings.exit_intent_body_he}
+          ctaHe={settings.exit_intent_cta_he}
+        />
       )}
 
       {/* Social Proof Toast — only when explicitly enabled per-page */}
