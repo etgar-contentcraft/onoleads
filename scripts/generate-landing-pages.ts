@@ -961,11 +961,38 @@ function buildAdmissionContent(scraped: ScrapedProgram): Record<string, unknown>
     if (tracks.length === 1) {
       return { heading_he: "תנאי קבלה", requirements: tracks[0].requirements };
     }
+
+    // Object with unknown keys — flatten all string values found in the object
+    const flatReqs: string[] = [];
+    for (const val of Object.values(admObj)) {
+      if (typeof val === "string" && val.trim()) {
+        flatReqs.push(val);
+      } else if (Array.isArray(val)) {
+        for (const item of val) {
+          if (typeof item === "string" && item.trim()) flatReqs.push(item);
+          else if (item && typeof item === "object") {
+            const str = Object.values(item as Record<string, unknown>).filter((v) => typeof v === "string").join(" ");
+            if (str.trim()) flatReqs.push(str);
+          }
+        }
+      }
+    }
+    if (flatReqs.length > 0) {
+      return { heading_he: "תנאי קבלה", requirements: flatReqs };
+    }
   }
 
   // Simple array
   if (Array.isArray(adm)) {
-    return { heading_he: "תנאי קבלה", requirements: adm as string[] };
+    const normalized = (adm as unknown[]).map((item) => {
+      if (typeof item === "string") return item;
+      if (item && typeof item === "object") {
+        const obj = item as Record<string, unknown>;
+        return String(obj.text || obj.title_he || obj.description || Object.values(obj).filter((v) => typeof v === "string")[0] || JSON.stringify(item));
+      }
+      return String(item);
+    }).filter(Boolean) as string[];
+    return { heading_he: "תנאי קבלה", requirements: normalized };
   }
 
   return { heading_he: "תנאי קבלה", requirements: [String(adm)] };

@@ -153,7 +153,22 @@ export function AdmissionSection({ content, language }: AdmissionSectionProps) {
     (isRtl ? "תנאי קבלה" : "Admission Requirements");
 
   const tracks = (content.tracks as AdmissionTrack[]) || null;
-  const singleRequirements = (content.requirements as string[]) || [];
+
+  // Normalize requirements: convert any non-string items (e.g. stored objects) to strings
+  const rawReqs = (content.requirements as unknown[]) || [];
+  const singleRequirements: string[] = rawReqs
+    .map((r) => {
+      if (typeof r === "string") return r;
+      if (r && typeof r === "object") {
+        // Try common text keys first
+        const obj = r as Record<string, unknown>;
+        const val = obj.text || obj.title_he || obj.description || obj.name || obj.value;
+        if (typeof val === "string" && val.trim()) return val;
+        return Object.values(obj).filter((v) => typeof v === "string").join(" ") || JSON.stringify(r);
+      }
+      return String(r);
+    })
+    .filter(Boolean);
   const ctaText =
     (content[`cta_text_${language}`] as string) ||
     (content.cta_text_he as string) ||
