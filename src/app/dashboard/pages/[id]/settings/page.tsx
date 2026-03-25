@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Loader2, Save, ExternalLink } from "lucide-react";
+import { ArrowRight, Loader2, Save, ExternalLink, Info } from "lucide-react";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 
@@ -41,6 +41,9 @@ interface PageOverrides {
   default_cta_text?: string;
   google_analytics_id?: string;
   facebook_pixel_id?: string;
+  brand_color_primary?: string;
+  brand_color_dark?: string;
+  brand_color_gray?: string;
   exit_intent_enabled?: string;
   exit_intent_sensitivity?: string;
   exit_intent_bg_color?: string;
@@ -274,7 +277,55 @@ export default function PageSettingsPage() {
                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
               </div>
             )}
-            <OverrideField label="טקסט CTA" fieldKey="default_cta_text" globalValue={globalSettings.default_cta_text} dir="rtl" hint="טקסט על כפתורי ההרשמה בעמוד זה" overrides={overrides} onChange={set} />
+            <OverrideField label="טקסט CTA" fieldKey="default_cta_text" globalValue={globalSettings.default_cta_text} dir="rtl" hint="טקסט על כפתורי ההרשמה בעמוד זה. תומך בטקסט דינמי: {{utm_source}}, {{utm_campaign}}, {{utm_source|Google}}" overrides={overrides} onChange={set} />
+          </CardContent>
+        </Card>
+
+        {/* Brand Colors */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base text-[#2a2628]">צבעוניות מותג</CardTitle>
+            <CardDescription>דורסים את צבעי הברירת מחדל לעמוד זה בלבד. ריק = ממשיכים את הצבעים הגלובליים.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {([
+              { key: "brand_color_primary" as const, label: "צבע ראשי", placeholder: "#B8D900" },
+              { key: "brand_color_dark" as const, label: "צבע כהה", placeholder: "#2a2628" },
+              { key: "brand_color_gray" as const, label: "צבע אפור", placeholder: "#716C70" },
+            ] as { key: keyof PageOverrides; label: string; placeholder: string }[]).map(({ key, label, placeholder }) => (
+              <div key={key}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Label className="text-sm font-medium text-[#2a2628]">{label}</Label>
+                  {overrides[key] ? (
+                    <Badge className="text-[10px] bg-[#B8D900]/15 text-[#5a7000] border-0 px-1.5 py-0">ידני</Badge>
+                  ) : (
+                    <Badge className="text-[10px] bg-[#f3f4f6] text-[#9A969A] border-0 px-1.5 py-0">גלובלי</Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-lg border-2 border-[#e5e7eb] cursor-pointer relative overflow-hidden shrink-0"
+                    style={{ backgroundColor: overrides[key] || placeholder }}>
+                    <input type="color" value={overrides[key] || placeholder}
+                      onChange={(e) => set(key, e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                  </div>
+                  <Input value={overrides[key] ?? ""} onChange={(e) => set(key, e.target.value)}
+                    placeholder={`ברירת מחדל: ${placeholder}`} className="h-9 font-mono text-sm" dir="ltr" />
+                  {overrides[key] && (
+                    <button type="button" onClick={() => set(key, "")} className="text-[11px] text-red-400 hover:text-red-600 whitespace-nowrap shrink-0">נקה</button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {/* Preview */}
+            {(overrides.brand_color_primary || overrides.brand_color_dark || overrides.brand_color_gray) && (
+              <div className="flex items-center gap-2 pt-1">
+                <div className="h-7 flex-1 rounded-lg" style={{ backgroundColor: overrides.brand_color_primary || "#B8D900" }} />
+                <div className="h-7 flex-1 rounded-lg" style={{ backgroundColor: overrides.brand_color_dark || "#2a2628" }} />
+                <div className="h-7 flex-1 rounded-lg" style={{ backgroundColor: overrides.brand_color_gray || "#716C70" }} />
+                <span className="text-xs text-[#9A969A]">תצוגה מקדימה</span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -429,6 +480,15 @@ export default function PageSettingsPage() {
                 <Input value={overrides.exit_intent_cta_he || ""} onChange={(e) => set("exit_intent_cta_he", e.target.value)}
                   placeholder="השאירו פרטים עכשיו →" className="mt-1.5 h-9" dir="rtl" />
               </div>
+            </div>
+            <div className="flex items-start gap-1.5 text-[11px] text-[#9A969A] bg-[#f9fafb] rounded-lg px-3 py-2">
+              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-blue-400" />
+              <span>
+                <strong className="text-[#716C70]">טקסט דינמי:</strong>{" "}
+                ניתן להשתמש ב-<code className="font-mono bg-white px-1 rounded">{"{{utm_source}}"}</code> ו-<code className="font-mono bg-white px-1 rounded">{"{{utm_campaign}}"}</code>{" "}
+                בכל שדה טקסט. להוסיף ערך ברירת מחדל:{" "}
+                <code className="font-mono bg-white px-1 rounded">{"{{utm_source|Google}}"}</code>
+              </span>
             </div>
           </CardContent>
         )}

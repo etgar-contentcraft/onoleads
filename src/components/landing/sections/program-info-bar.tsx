@@ -54,12 +54,15 @@ export function ProgramInfoBar({ content, language }: ProgramInfoBarProps) {
   useEffect(() => {
     const el = barRef.current;
     if (!el) return;
+    // Fallback: always show after 300ms even if IntersectionObserver doesn't fire
+    // (happens when bar is at top of page with no hero above it)
+    const fallback = setTimeout(() => setInView(true), 300);
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } },
-      { threshold: 0.3 }
+      { threshold: 0.1 }
     );
     obs.observe(el);
-    return () => obs.disconnect();
+    return () => { obs.disconnect(); clearTimeout(fallback); };
   }, []);
 
   const items: InfoItem[] = (content.items as InfoItem[]) || [];
