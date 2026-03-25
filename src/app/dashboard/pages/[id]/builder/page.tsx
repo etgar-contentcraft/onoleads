@@ -80,6 +80,8 @@ interface PageOverrideSettings {
   default_cta_text?: string;
   google_analytics_id?: string;
   facebook_pixel_id?: string;
+  /** "true" to enable exit-intent popup on this page (off by default) */
+  exit_intent_enabled?: string;
 }
 
 interface PageData {
@@ -1513,8 +1515,10 @@ function SettingField({ label, fieldKey, placeholder, hint, dir = "ltr", setting
 /**
  * Per-page settings override dialog.
  * Empty fields fall back to the global settings configured in הגדרות.
+ * Visual style matches the global settings page: card-style sections with icons.
  */
 function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onTyChange, onSave, saving }: PageSettingsDialogProps) {
+  const exitEnabled = settings.exit_intent_enabled === "true";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -1534,77 +1538,82 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
         </DialogHeader>
 
         <ScrollArea className="flex-1">
-          <div className="px-6 py-5 space-y-5">
-            {/* Integrations */}
-            <div>
-              <h3 className="text-xs font-bold text-[#9A969A] uppercase tracking-wider mb-3">אינטגרציות</h3>
-              <div className="space-y-3">
-                <SettingField
-                  label="כתובת Webhook"
-                  fieldKey="webhook_url"
-                  placeholder="https://hooks.zapier.com/... (מהגדרות הכלליות)"
-                  hint="לשליחת לידים מעמוד זה ל-CRM ספציפי"
-                  settings={settings}
-                  onChange={onChange}
-                />
-                <SettingField
-                  label="מספר WhatsApp"
-                  fieldKey="whatsapp_number"
-                  placeholder="972501234567 (מהגדרות הכלליות)"
-                  hint="מספר בפורמט בינלאומי ללא מקף"
-                  settings={settings}
-                  onChange={onChange}
-                />
-                <SettingField
-                  label="מספר טלפון לתצוגה"
-                  fieldKey="phone_number"
-                  placeholder="*2899 (מהגדרות הכלליות)"
-                  hint="יוצג בכותרת ובתחתית העמוד"
-                  settings={settings}
-                  onChange={onChange}
-                />
+          <div className="px-6 py-5 space-y-4">
+
+            {/* ─── Integrations ─────────────────────────── */}
+            <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
+              <div className="flex items-center gap-2.5 px-4 py-3 bg-[#FAFAFA] border-b border-[#F0F0F0]">
+                <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-[#2A2628]">אינטגרציות</p>
+                  <p className="text-[10px] text-[#9A969A]">Webhook, WhatsApp ומספר טלפון</p>
+                </div>
+              </div>
+              <div className="px-4 py-3 space-y-3">
+                <SettingField label="כתובת Webhook" fieldKey="webhook_url" placeholder="https://hooks.zapier.com/... (מהגדרות הכלליות)" hint="לשליחת לידים מעמוד זה ל-CRM ספציפי" settings={settings} onChange={onChange} />
+                <SettingField label="מספר WhatsApp" fieldKey="whatsapp_number" placeholder="972501234567 (מהגדרות הכלליות)" hint="מספר בפורמט בינלאומי ללא מקף" settings={settings} onChange={onChange} />
+                <SettingField label="מספר טלפון לתצוגה" fieldKey="phone_number" placeholder="*2899 (מהגדרות הכלליות)" hint="יוצג בכותרת ובתחתית העמוד" settings={settings} onChange={onChange} />
               </div>
             </div>
 
-            <div className="border-t border-[#F0F0F0]" />
-
-            {/* Content */}
-            <div>
-              <h3 className="text-xs font-bold text-[#9A969A] uppercase tracking-wider mb-3">תוכן</h3>
-              <div className="space-y-3">
-                <SettingField
-                  label="טקסט קריאה לפעולה (CTA)"
-                  fieldKey="default_cta_text"
-                  placeholder="השאירו פרטים ונחזור אליכם (מהגדרות הכלליות)"
-                  dir="rtl"
-                  hint="הטקסט על כפתורי הרשמה בעמוד"
-                  settings={settings}
-                  onChange={onChange}
-                />
-                <SettingField
-                  label="לוגו מותאם (URL)"
-                  fieldKey="logo_url"
-                  placeholder="https://... (לוגו אונו כברירת מחדל)"
-                  hint="להחלפת הלוגו בעמוד זה בלבד"
-                  settings={settings}
-                  onChange={onChange}
-                />
+            {/* ─── Conversion Features ──────────────────── */}
+            <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
+              <div className="flex items-center gap-2.5 px-4 py-3 bg-[#FAFAFA] border-b border-[#F0F0F0]">
+                <div className="w-7 h-7 rounded-lg bg-[#B8D900]/15 flex items-center justify-center shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8aac00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-[#2A2628]">המרות</p>
+                  <p className="text-[10px] text-[#9A969A]">כלים להגדלת המרות בעמוד זה</p>
+                </div>
+              </div>
+              <div className="px-4 py-3 space-y-3">
+                {/* Exit Intent Toggle */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Label className="text-xs font-semibold text-[#2A2628] block">פופאפ עזיבה (Exit Intent)</Label>
+                    <p className="text-[11px] text-[#9A969A] mt-0.5 leading-relaxed">מוצג פעם אחת כשהמבקר מנסה לעזוב — מעלה המרות ~7%. <span className="text-amber-600 font-medium">כבוי כברירת מחדל.</span></p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onChange("exit_intent_enabled", exitEnabled ? "false" : "true")}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors mt-0.5 ${exitEnabled ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}
+                    role="switch"
+                    aria-checked={exitEnabled}
+                  >
+                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${exitEnabled ? "translate-x-4" : "translate-x-0"}`} />
+                  </button>
+                </div>
+                <SettingField label="טקסט קריאה לפעולה (CTA)" fieldKey="default_cta_text" placeholder="השאירו פרטים ונחזור אליכם (מהגדרות הכלליות)" dir="rtl" hint="הטקסט על כפתורי הרשמה בעמוד" settings={settings} onChange={onChange} />
+                <SettingField label="לוגו מותאם (URL)" fieldKey="logo_url" placeholder="https://... (לוגו אונו כברירת מחדל)" hint="להחלפת הלוגו בעמוד זה בלבד" settings={settings} onChange={onChange} />
               </div>
             </div>
 
-            <div className="border-t border-[#F0F0F0]" />
-
-            {/* Thank You Page */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-[#9A969A] uppercase tracking-wider">עמוד תודה</h3>
-                <a href="/ty" target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#B8D900] hover:underline flex items-center gap-1">
+            {/* ─── Thank You Page ───────────────────────── */}
+            <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 bg-[#FAFAFA] border-b border-[#F0F0F0]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[#2A2628]">עמוד תודה</p>
+                    <p className="text-[10px] text-[#9A969A]">מה יראה המבקר אחרי הגשת הטופס</p>
+                  </div>
+                </div>
+                <a href="/ty" target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#B8D900] hover:underline flex items-center gap-1 shrink-0">
                   תצוגה מקדימה ↗
                 </a>
               </div>
-              <div className="space-y-3">
-
-                {/* Core message */}
+              <div className="px-4 py-3 space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-[#2A2628]">כותרת</Label>
                   <Input value={tySettings.heading_he || ""} onChange={(e) => onTyChange("heading_he", e.target.value)} placeholder="תודה! קיבלנו את פרטיך" dir="rtl" className="h-9 text-sm" />
@@ -1614,7 +1623,6 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                   <Label className="text-xs font-semibold text-[#2A2628]">כותרת משנה</Label>
                   <Input value={tySettings.subheading_he || ""} onChange={(e) => onTyChange("subheading_he", e.target.value)} placeholder="יועץ לימודים ייצור איתך קשר תוך 24 שעות" dir="rtl" className="h-9 text-sm" />
                 </div>
-
                 {/* WhatsApp */}
                 <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
                   <div className="flex items-center justify-between">
@@ -1630,8 +1638,7 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                     </>
                   )}
                 </div>
-
-                {/* Social media */}
+                {/* Social */}
                 <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold text-[#2A2628]">עקבו בסושיאל מדיה</Label>
@@ -1656,7 +1663,6 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                     </div>
                   )}
                 </div>
-
                 {/* Referral */}
                 <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
                   <div className="flex items-center justify-between">
@@ -1669,7 +1675,6 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                     <Input value={tySettings.referral_cta_he || ""} onChange={(e) => onTyChange("referral_cta_he", e.target.value)} placeholder="שתפו עם חבר שמחפש תואר" dir="rtl" className="h-8 text-xs" />
                   )}
                 </div>
-
                 {/* Calendar */}
                 <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
                   <div className="flex items-center justify-between">
@@ -1685,7 +1690,6 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                     </>
                   )}
                 </div>
-
                 {/* Video */}
                 <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
                   <div className="flex items-center justify-between">
@@ -1698,7 +1702,6 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                     <Input value={tySettings.video_url || ""} onChange={(e) => onTyChange("video_url", e.target.value)} placeholder="https://youtube.com/watch?v=..." dir="ltr" className="h-8 text-xs" />
                   )}
                 </div>
-
                 {/* Custom redirect */}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-[#2A2628]">הפניה מיוחדת (מדלג על /ty)</Label>
@@ -1708,30 +1711,25 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
               </div>
             </div>
 
-            <div className="border-t border-[#F0F0F0]" />
-
-            {/* Tracking */}
-            <div>
-              <h3 className="text-xs font-bold text-[#9A969A] uppercase tracking-wider mb-3">מעקב ואנליטיקס</h3>
-              <div className="space-y-3">
-                <SettingField
-                  label="Google Analytics ID"
-                  fieldKey="google_analytics_id"
-                  placeholder="G-XXXXXXXXXX (מהגדרות הכלליות)"
-                  hint="לעקוב אחר קמפיינים ספציפיים"
-                  settings={settings}
-                  onChange={onChange}
-                />
-                <SettingField
-                  label="Facebook Pixel ID"
-                  fieldKey="facebook_pixel_id"
-                  placeholder="123456789 (מהגדרות הכלליות)"
-                  hint="לפיקסל ספציפי לקמפיין"
-                  settings={settings}
-                  onChange={onChange}
-                />
+            {/* ─── Tracking ─────────────────────────────── */}
+            <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
+              <div className="flex items-center gap-2.5 px-4 py-3 bg-[#FAFAFA] border-b border-[#F0F0F0]">
+                <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-[#2A2628]">מעקב ואנליטיקס</p>
+                  <p className="text-[10px] text-[#9A969A]">Google Analytics ו-Facebook Pixel</p>
+                </div>
+              </div>
+              <div className="px-4 py-3 space-y-3">
+                <SettingField label="Google Analytics ID" fieldKey="google_analytics_id" placeholder="G-XXXXXXXXXX (מהגדרות הכלליות)" hint="לעקוב אחר קמפיינים ספציפיים" settings={settings} onChange={onChange} />
+                <SettingField label="Facebook Pixel ID" fieldKey="facebook_pixel_id" placeholder="123456789 (מהגדרות הכלליות)" hint="לפיקסל ספציפי לקמפיין" settings={settings} onChange={onChange} />
               </div>
             </div>
+
           </div>
         </ScrollArea>
 

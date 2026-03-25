@@ -173,12 +173,13 @@ export function AccessibilityWidget() {
             aria-hidden="true"
           />
 
-          {/* Panel */}
+          {/* Panel — font-size isolated in px so it's unaffected by the root fontSize override */}
           <div
             id="accessibility-panel"
             role="dialog"
             aria-label="תפריט נגישות"
-            className="fixed bottom-20 left-6 z-[82] w-80 max-h-[80vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-200 animate-fade-in-up"
+            className="fixed bottom-20 left-6 z-[82] max-h-[80vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-200 animate-fade-in-up"
+            style={{ fontSize: "16px", width: "min(320px, calc(100vw - 3rem))" }}
             dir="rtl"
           >
             {/* Header */}

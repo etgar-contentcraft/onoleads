@@ -102,11 +102,11 @@ export function HeroSection({ content, language }: HeroSectionProps) {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-screen flex items-center overflow-x-hidden"
+      className="relative min-h-screen flex items-center overflow-hidden"
       dir={isRtl ? "rtl" : "ltr"}
     >
       {/* Background with parallax */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 overflow-hidden">
         {bgImage ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}

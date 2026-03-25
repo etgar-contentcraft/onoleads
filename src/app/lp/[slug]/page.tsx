@@ -45,6 +45,7 @@ async function getPageData(slug: string) {
     default_cta_text: pageOverrides.default_cta_text || globalMap.default_cta_text,
     google_analytics_id: pageOverrides.google_analytics_id || globalMap.google_analytics_id,
     facebook_pixel_id: pageOverrides.facebook_pixel_id || globalMap.facebook_pixel_id,
+    exit_intent_enabled: pageOverrides.exit_intent_enabled === "true",
   };
 
   return {

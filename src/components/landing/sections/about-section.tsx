@@ -43,7 +43,7 @@ export function AboutSection({ content, language }: AboutSectionProps) {
   if (!description && bullets.length === 0) return null;
 
   return (
-    <section ref={sectionRef} className="py-20 md:py-28 bg-white" dir={isRtl ? "rtl" : "ltr"}>
+    <section ref={sectionRef} className="py-20 md:py-28 bg-white overflow-hidden" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-6xl mx-auto px-5">
         <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
           {/* Text column (right in RTL) */}

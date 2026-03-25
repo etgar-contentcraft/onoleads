@@ -42,6 +42,8 @@ export interface PageSettings {
   default_cta_text?: string;
   google_analytics_id?: string;
   facebook_pixel_id?: string;
+  /** When true, shows the exit-intent popup (off by default — must be enabled per page) */
+  exit_intent_enabled?: boolean;
 }
 
 interface LandingPageLayoutProps {
@@ -435,7 +437,7 @@ function InnerLayout({
   });
 
   return (
-    <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-white font-heebo">
+    <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-white font-heebo overflow-x-hidden">
       {/* Sticky Header */}
       <StickyHeader
         programName={pageTitle || program?.name_he}
@@ -549,8 +551,10 @@ function InnerLayout({
         ctaText={settings?.default_cta_text}
       />
 
-      {/* Exit Intent Popup — fires once per session when visitor tries to leave */}
-      <ExitIntentPopup programName={pageTitle || program?.name_he} language={language} />
+      {/* Exit Intent Popup — only when explicitly enabled per-page */}
+      {settings?.exit_intent_enabled && (
+        <ExitIntentPopup programName={pageTitle || program?.name_he} language={language} />
+      )}
 
       {/* Compliance widgets */}
       <CookieConsent />
