@@ -33,9 +33,10 @@ interface SharedSection {
   usage_count?: number;
 }
 
-/** Human-readable section type names */
+/** Human-readable section type names — must match all types in renderSection() */
 const SECTION_TYPE_LABELS: Record<string, string> = {
   hero: "Hero — כותרת ראשית",
+  program_info_bar: "סרגל מידע על התוכנית",
   about: "אודות",
   benefits: "יתרונות",
   stats: "סטטיסטיקות",
@@ -49,6 +50,9 @@ const SECTION_TYPE_LABELS: Record<string, string> = {
   gallery: "גלריה",
   countdown: "ספירה לאחור",
   map: "מפה",
+  admission: "תנאי קבלה",
+  whatsapp: "WhatsApp צף",
+  event: "אירוע / יום פתוח",
 };
 
 const SECTION_TYPES = Object.keys(SECTION_TYPE_LABELS);
