@@ -32,6 +32,18 @@ const ONO_LOGO = "https://www.ono.ac.il/wp-content/uploads/2025/12/לוגו-או
 // Types
 // ============================================================================
 
+/** Merged per-page + global settings passed from the server */
+export interface PageSettings {
+  webhook_url?: string;
+  whatsapp_number?: string;
+  phone_number?: string;
+  logo_url?: string;
+  default_cta_text?: string;
+  google_analytics_id?: string;
+  facebook_pixel_id?: string;
+  thank_you_message?: string;
+}
+
 interface LandingPageLayoutProps {
   sections: PageSection[];
   language: Language;
@@ -39,6 +51,7 @@ interface LandingPageLayoutProps {
   programId?: string;
   pageTitle?: string;
   program?: Program | null;
+  settings?: PageSettings;
 }
 
 // ============================================================================
@@ -48,12 +61,15 @@ interface LandingPageLayoutProps {
 function StickyHeader({
   programName,
   language,
+  phone,
 }: {
   programName?: string;
   language: Language;
+  phone?: string;
 }) {
   const { open } = useCtaModal();
   const isRtl = language === "he" || language === "ar";
+  const displayPhone = phone || "*2899";
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -87,13 +103,13 @@ function StickyHeader({
               </span>
             )}
             <a
-              href="tel:*2899"
+              href={`tel:${displayPhone}`}
               className="hidden md:flex items-center gap-2 text-[#716C70] font-medium text-sm hover:text-[#B8D900] transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
-              *2899
+              {displayPhone}
             </a>
           </div>
           <button
@@ -254,6 +270,7 @@ function InnerLayout({
   programId,
   pageTitle,
   program,
+  settings,
 }: LandingPageLayoutProps) {
   const isRtl = language === "he" || language === "ar";
 
@@ -294,6 +311,7 @@ function InnerLayout({
       <StickyHeader
         programName={pageTitle || program?.name_he}
         language={language}
+        phone={settings?.phone_number}
       />
 
       {/* Main Content */}
@@ -363,7 +381,7 @@ function InnerLayout({
             </div>
 
             <div className="flex items-center gap-6 text-white/50 text-sm font-heebo">
-              <a href="tel:*2899" className="hover:text-[#B8D900] transition-colors">*2899</a>
+              <a href={`tel:${settings?.phone_number || "*2899"}`} className="hover:text-[#B8D900] transition-colors">{settings?.phone_number || "*2899"}</a>
               <a href="https://www.ono.ac.il" target="_blank" rel="noopener noreferrer" className="hover:text-[#B8D900] transition-colors">
                 ono.ac.il
               </a>
@@ -385,15 +403,21 @@ function InnerLayout({
       {/* Floating elements */}
       {whatsappSection && (
         <WhatsappSection
-          content={(whatsappSection.content || {}) as Record<string, unknown>}
+          content={{
+            ...(whatsappSection.content || {}) as Record<string, unknown>,
+            // Override phone number from page settings if set
+            ...(settings?.whatsapp_number ? { phone: settings.whatsapp_number } : {}),
+          }}
           language={language}
         />
       )}
-      <FloatingCtaButton />
+      <FloatingCtaButton ctaText={settings?.default_cta_text} />
       <CtaModal
         pageId={pageId}
         programId={programId}
         programName={pageTitle || program?.name_he}
+        thankYouMessage={settings?.thank_you_message}
+        ctaText={settings?.default_cta_text}
       />
 
       {/* Compliance widgets */}

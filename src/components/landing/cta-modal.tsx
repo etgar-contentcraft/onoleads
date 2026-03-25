@@ -52,13 +52,17 @@ interface CtaModalProps {
   pageId?: string;
   programId?: string;
   programName?: string;
+  /** Override the thank-you message shown after form submission */
+  thankYouMessage?: string;
+  /** Override the CTA button text */
+  ctaText?: string;
 }
 
 /**
  * Lead capture modal with form validation, CSRF protection, and honeypot field.
  * Displayed as a bottom sheet on mobile and centered modal on desktop.
  */
-export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
+export function CtaModal({ pageId, programId, programName, thankYouMessage, ctaText }: CtaModalProps) {
   const { isOpen, close } = useCtaModal();
   const [formData, setFormData] = useState({ full_name: "", phone: "", email: "" });
   const [honeypot, setHoneypot] = useState("");
@@ -245,7 +249,7 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
                   תודה רבה!
                 </h3>
                 <p className="text-white/60 text-base mb-1">
-                  יועץ לימודים יחזור אליכם בהקדם
+                  {thankYouMessage || "יועץ לימודים יחזור אליכם בהקדם"}
                 </p>
                 <p className="text-white/30 text-sm">
                   הקריה האקדמית אונו
@@ -381,7 +385,7 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
                         שולח...
                       </span>
                     ) : (
-                      "שלחו לי מידע"
+                      ctaText || "שלחו לי מידע"
                     )}
                   </button>
                 </form>
@@ -417,8 +421,9 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
 
 /**
  * Floating "leave details" button that appears after scrolling.
+ * @param ctaText - Optional override for the button label
  */
-export function FloatingCtaButton() {
+export function FloatingCtaButton({ ctaText }: { ctaText?: string }) {
   const { open } = useCtaModal();
   const [visible, setVisible] = useState(false);
 
@@ -438,9 +443,9 @@ export function FloatingCtaButton() {
           ? "translate-y-0 opacity-100"
           : "translate-y-20 opacity-0 pointer-events-none"
       }`}
-      aria-label="השאירו פרטים"
+      aria-label={ctaText || "השאירו פרטים"}
     >
-      <span>השאירו פרטים</span>
+      <span>{ctaText || "השאירו פרטים"}</span>
       <svg className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M10 6l6 6-6 6" />
       </svg>

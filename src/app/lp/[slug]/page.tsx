@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Page, PageSection, Language, Program } from "@/lib/types/database";
-import { LandingPageLayout } from "@/components/landing/landing-page-layout";
+import { LandingPageLayout, type PageSettings } from "@/components/landing/landing-page-layout";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -11,36 +11,48 @@ interface PageProps {
 async function getPageData(slug: string) {
   const supabase = await createClient();
 
-  const { data: page } = await supabase
-    .from("pages")
-    .select("*")
-    .eq("slug", slug)
-    .eq("status", "published")
-    .single();
+  const [pageRes, globalSettingsRes] = await Promise.all([
+    supabase.from("pages").select("*").eq("slug", slug).eq("status", "published").single(),
+    supabase.from("settings").select("key, value"),
+  ]);
 
-  if (!page) return null;
+  if (!pageRes.data) return null;
+  const page = pageRes.data;
 
-  const { data: sections } = await supabase
-    .from("page_sections")
-    .select("*")
-    .eq("page_id", page.id)
-    .order("sort_order", { ascending: true });
+  const [sectionsRes, programRes] = await Promise.all([
+    supabase.from("page_sections").select("*").eq("page_id", page.id).order("sort_order", { ascending: true }),
+    page.program_id
+      ? supabase.from("programs").select("*").eq("id", page.program_id).single()
+      : Promise.resolve({ data: null }),
+  ]);
 
-  // Fetch program data if linked
-  let program: Program | null = null;
-  if (page.program_id) {
-    const { data: programData } = await supabase
-      .from("programs")
-      .select("*")
-      .eq("id", page.program_id)
-      .single();
-    program = programData as Program | null;
+  // Build global settings map from key-value rows
+  const globalMap: Record<string, string> = {};
+  for (const row of globalSettingsRes.data || []) {
+    if (row.value) globalMap[row.key] = row.value;
   }
+
+  // Extract page-specific overrides from custom_styles.page_settings
+  const customStyles = (page.custom_styles || {}) as Record<string, unknown>;
+  const pageOverrides = (customStyles.page_settings || {}) as Record<string, string>;
+
+  // Merge: page overrides win over global defaults when non-empty
+  const settings: PageSettings = {
+    webhook_url: pageOverrides.webhook_url || globalMap.webhook_url,
+    whatsapp_number: pageOverrides.whatsapp_number || globalMap.whatsapp_number,
+    phone_number: pageOverrides.phone_number || globalMap.phone_number,
+    logo_url: pageOverrides.logo_url || globalMap.logo_url,
+    default_cta_text: pageOverrides.default_cta_text || globalMap.default_cta_text,
+    google_analytics_id: pageOverrides.google_analytics_id || globalMap.google_analytics_id,
+    facebook_pixel_id: pageOverrides.facebook_pixel_id || globalMap.facebook_pixel_id,
+    thank_you_message: pageOverrides.thank_you_message || globalMap.thank_you_message,
+  };
 
   return {
     page: page as Page,
-    sections: (sections || []) as PageSection[],
-    program,
+    sections: (sectionsRes.data || []) as PageSection[],
+    program: (programRes.data as Program | null),
+    settings,
   };
 }
 
@@ -98,7 +110,7 @@ export default async function LandingPage({ params }: PageProps) {
 
   if (!data) notFound();
 
-  const { page, sections, program } = data;
+  const { page, sections, program, settings } = data;
   const language = (page.language || "he") as Language;
   const isRtl = language === "he" || language === "ar";
 
@@ -170,6 +182,7 @@ export default async function LandingPage({ params }: PageProps) {
           programId={page.program_id || undefined}
           pageTitle={page.title_he}
           program={program}
+          settings={settings}
         />
       </body>
     </html>

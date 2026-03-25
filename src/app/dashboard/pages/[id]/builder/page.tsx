@@ -62,17 +62,31 @@ import {
   Layers,
   X,
   AlertTriangle,
+  Settings2,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
+/** Per-page settings that override the global settings defaults */
+interface PageOverrideSettings {
+  webhook_url?: string;
+  whatsapp_number?: string;
+  phone_number?: string;
+  logo_url?: string;
+  default_cta_text?: string;
+  google_analytics_id?: string;
+  facebook_pixel_id?: string;
+  thank_you_message?: string;
+}
+
 interface PageData {
   id: string;
   title_he: string | null;
   slug: string;
   status: string;
+  custom_styles?: Record<string, unknown> | null;
 }
 
 interface SectionLibraryItem {
@@ -969,6 +983,166 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
 }
 
 // ---------------------------------------------------------------------------
+// Page Settings Dialog
+// ---------------------------------------------------------------------------
+
+interface PageSettingsDialogProps {
+  open: boolean;
+  onClose: () => void;
+  settings: PageOverrideSettings;
+  onChange: (key: keyof PageOverrideSettings, value: string) => void;
+  onSave: () => Promise<void>;
+  saving: boolean;
+}
+
+/**
+ * Per-page settings override dialog.
+ * Empty fields fall back to the global settings configured in הגדרות.
+ */
+function PageSettingsDialog({ open, onClose, settings, onChange, onSave, saving }: PageSettingsDialogProps) {
+  /** A labeled input field with placeholder showing the fallback */
+  const SettingField = ({
+    label,
+    fieldKey,
+    placeholder,
+    hint,
+    dir = "ltr",
+  }: {
+    label: string;
+    fieldKey: keyof PageOverrideSettings;
+    placeholder?: string;
+    hint?: string;
+    dir?: "rtl" | "ltr";
+  }) => (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-semibold text-[#2A2628]">{label}</Label>
+      <Input
+        value={settings[fieldKey] || ""}
+        onChange={(e) => onChange(fieldKey, e.target.value)}
+        placeholder={placeholder || "כברירת מחדל מהגדרות הכלליות"}
+        dir={dir}
+        className="h-9 text-sm"
+      />
+      {hint && <p className="text-[11px] text-[#9A969A]">{hint}</p>}
+    </div>
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden" dir="rtl">
+        <DialogHeader className="px-6 py-4 border-b border-[#F0F0F0] shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#B8D900]/15 flex items-center justify-center shrink-0">
+              <Settings2 className="w-4 h-4 text-[#8aac00]" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-bold text-[#2A2628]">הגדרות עמוד</DialogTitle>
+              <DialogDescription className="text-xs text-[#9A969A] mt-0.5">
+                שדות ריקים יורשו מ<a href="/dashboard/settings" target="_blank" className="text-[#B8D900] hover:underline">הגדרות הכלליות</a>
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <ScrollArea className="flex-1">
+          <div className="px-6 py-5 space-y-5">
+            {/* Integrations */}
+            <div>
+              <h3 className="text-xs font-bold text-[#9A969A] uppercase tracking-wider mb-3">אינטגרציות</h3>
+              <div className="space-y-3">
+                <SettingField
+                  label="כתובת Webhook"
+                  fieldKey="webhook_url"
+                  placeholder="https://hooks.zapier.com/... (מהגדרות הכלליות)"
+                  hint="לשליחת לידים מעמוד זה ל-CRM ספציפי"
+                />
+                <SettingField
+                  label="מספר WhatsApp"
+                  fieldKey="whatsapp_number"
+                  placeholder="972501234567 (מהגדרות הכלליות)"
+                  hint="מספר בפורמט בינלאומי ללא מקף"
+                />
+                <SettingField
+                  label="מספר טלפון לתצוגה"
+                  fieldKey="phone_number"
+                  placeholder="*2899 (מהגדרות הכלליות)"
+                  hint="יוצג בכותרת ובתחתית העמוד"
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-[#F0F0F0]" />
+
+            {/* Content */}
+            <div>
+              <h3 className="text-xs font-bold text-[#9A969A] uppercase tracking-wider mb-3">תוכן</h3>
+              <div className="space-y-3">
+                <SettingField
+                  label="טקסט קריאה לפעולה (CTA)"
+                  fieldKey="default_cta_text"
+                  placeholder="השאירו פרטים ונחזור אליכם (מהגדרות הכלליות)"
+                  dir="rtl"
+                  hint="הטקסט על כפתורי הרשמה בעמוד"
+                />
+                <SettingField
+                  label="הודעת תודה לאחר הרשמה"
+                  fieldKey="thank_you_message"
+                  placeholder="תודה! פנייתך התקבלה. ניצור איתך קשר בהקדם. (מהגדרות הכלליות)"
+                  dir="rtl"
+                  hint="הטקסט שיוצג לאחר שליחת הטופס"
+                />
+                <SettingField
+                  label="לוגו מותאם (URL)"
+                  fieldKey="logo_url"
+                  placeholder="https://... (לוגו אונו כברירת מחדל)"
+                  hint="להחלפת הלוגו בעמוד זה בלבד"
+                />
+              </div>
+            </div>
+
+            <div className="border-t border-[#F0F0F0]" />
+
+            {/* Tracking */}
+            <div>
+              <h3 className="text-xs font-bold text-[#9A969A] uppercase tracking-wider mb-3">מעקב ואנליטיקס</h3>
+              <div className="space-y-3">
+                <SettingField
+                  label="Google Analytics ID"
+                  fieldKey="google_analytics_id"
+                  placeholder="G-XXXXXXXXXX (מהגדרות הכלליות)"
+                  hint="לעקוב אחר קמפיינים ספציפיים"
+                />
+                <SettingField
+                  label="Facebook Pixel ID"
+                  fieldKey="facebook_pixel_id"
+                  placeholder="123456789 (מהגדרות הכלליות)"
+                  hint="לפיקסל ספציפי לקמפיין"
+                />
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+
+        <div className="px-6 py-4 border-t border-[#F0F0F0] flex items-center justify-between gap-3 shrink-0">
+          <p className="text-[11px] text-[#9A969A]">שדות ריקים = ברירת מחדל מההגדרות הכלליות</p>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={onClose} className="h-9">ביטול</Button>
+            <Button
+              onClick={onSave}
+              disabled={saving}
+              className="h-9 bg-[#B8D900] text-[#2A2628] hover:bg-[#A8C400] gap-2"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              שמור הגדרות
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Delete confirmation dialog
 // ---------------------------------------------------------------------------
 
@@ -1032,6 +1206,9 @@ export default function PageBuilderPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [addingType, setAddingType] = useState<string | null>(null);
+  const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
+  const [pageSettings, setPageSettings] = useState<PageOverrideSettings>({});
+  const [pageSettingsSaving, setPageSettingsSaving] = useState(false);
 
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -1051,10 +1228,16 @@ export default function PageBuilderPage() {
     async function load() {
       setLoading(true);
       const [pageRes, sectionsRes] = await Promise.all([
-        supabase.from("pages").select("id, title_he, slug, status").eq("id", pageId).single(),
+        supabase.from("pages").select("id, title_he, slug, status, custom_styles").eq("id", pageId).single(),
         supabase.from("page_sections").select("*").eq("page_id", pageId).order("sort_order"),
       ]);
-      if (pageRes.data) setPage(pageRes.data as PageData);
+      if (pageRes.data) {
+        setPage(pageRes.data as PageData);
+        // Extract per-page settings stored under custom_styles.page_settings
+        const customStyles = pageRes.data.custom_styles as Record<string, unknown> | null;
+        const saved = (customStyles?.page_settings as PageOverrideSettings) || {};
+        setPageSettings(saved);
+      }
       if (sectionsRes.data) setSections(sectionsRes.data as PageSection[]);
       setLoading(false);
     }
@@ -1251,6 +1434,36 @@ export default function PageBuilderPage() {
     setSaving(false);
   };
 
+  // ---- Page settings ----
+
+  const updatePageSetting = useCallback((key: keyof PageOverrideSettings, value: string) => {
+    setPageSettings((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  /** Saves per-page override settings to pages.custom_styles.page_settings */
+  const savePageSettings = useCallback(async () => {
+    setPageSettingsSaving(true);
+    // Strip empty strings so fallback to global works correctly
+    const cleaned: PageOverrideSettings = Object.fromEntries(
+      Object.entries(pageSettings).filter(([, v]) => v && String(v).trim() !== "")
+    ) as PageOverrideSettings;
+
+    const existingCustomStyles = (page?.custom_styles as Record<string, unknown>) || {};
+    const { error } = await supabase
+      .from("pages")
+      .update({ custom_styles: { ...existingCustomStyles, page_settings: cleaned } })
+      .eq("id", pageId);
+
+    if (!error) {
+      setPageSettings(cleaned);
+      setPageSettingsOpen(false);
+      showToast("הגדרות העמוד נשמרו");
+    } else {
+      showToast("שגיאה בשמירת הגדרות", "error");
+    }
+    setPageSettingsSaving(false);
+  }, [page, pageId, pageSettings, supabase, showToast]);
+
   // ---------------------------------------------------------------------------
   // Loading / 404 states
   // ---------------------------------------------------------------------------
@@ -1354,6 +1567,16 @@ export default function PageBuilderPage() {
               נשמר
             </span>
           )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPageSettingsOpen(true)}
+            className="h-9 gap-2 border-[#E5E5E5] text-[#4A4648] hover:border-[#B8D900]"
+          >
+            <Settings2 className="w-3.5 h-3.5" />
+            הגדרות עמוד
+          </Button>
 
           <Button
             variant="outline"
@@ -1555,6 +1778,16 @@ export default function PageBuilderPage() {
         open={!!deleteTargetId}
         onCancel={() => setDeleteTargetId(null)}
         onConfirm={() => deleteTargetId && deleteSection(deleteTargetId)}
+      />
+
+      {/* ── Page Settings Dialog ── */}
+      <PageSettingsDialog
+        open={pageSettingsOpen}
+        onClose={() => setPageSettingsOpen(false)}
+        settings={pageSettings}
+        onChange={updatePageSetting}
+        onSave={savePageSettings}
+        saving={pageSettingsSaving}
       />
     </div>
   );
