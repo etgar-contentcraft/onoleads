@@ -940,7 +940,7 @@ function buildAdmissionContent(scraped: ScrapedProgram): Record<string, unknown>
 
     if (admObj.direct) {
       const reqs = Array.isArray(admObj.direct) ? admObj.direct as string[] : [String(admObj.direct)];
-      tracks.push({ title_he: "קבלה ישירה", icon: "star", badge_he: "מומלץ", requirements: reqs });
+      tracks.push({ title_he: "קבלה ישירה", icon: "star", requirements: reqs });
     }
     if (admObj.conditional) {
       const reqs = Array.isArray(admObj.conditional) ? admObj.conditional as string[] : [String(admObj.conditional)];

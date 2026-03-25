@@ -531,19 +531,90 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
     </div>
   );
 
-  /** Helper — image URL field with preview */
-  const ImageField = ({ label, fieldKey }: { label: string; fieldKey: string }) => {
+  /** Helper — image field with URL input + file upload to Supabase Storage */
+  const ImageField = ({
+    label,
+    fieldKey,
+    recommendedSize,
+  }: {
+    label: string;
+    fieldKey: string;
+    recommendedSize?: string;
+  }) => {
     const url = (draft[fieldKey] as string) || "";
+    const [uploading, setUploading] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setUploading(true);
+      try {
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `sections/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const supabaseClient = createClient();
+        const { error } = await supabaseClient.storage.from("media").upload(path, file, { upsert: false });
+        if (error) throw error;
+        const { data: urlData } = supabaseClient.storage.from("media").getPublicUrl(path);
+        set(fieldKey, urlData.publicUrl);
+      } catch (err) {
+        console.error("Upload failed:", err);
+      }
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    };
+
     return (
       <div className="space-y-1.5">
-        <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
+          {recommendedSize && (
+            <span className="text-[10px] text-[#9A969A] bg-[#F3F4F6] rounded px-1.5 py-0.5">
+              {recommendedSize}
+            </span>
+          )}
+        </div>
+        {/* URL input */}
         <Input
           value={url}
           onChange={(e) => set(fieldKey, e.target.value)}
-          placeholder="https://..."
+          placeholder="https://... או העלה תמונה"
           dir="ltr"
           className="h-9 text-sm font-mono"
         />
+        {/* Upload button */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[#C8C4C8] bg-[#F8F8F8] text-xs text-[#716C70] hover:border-[#B8D900] hover:text-[#2A2628] hover:bg-[#B8D900]/5 transition-all disabled:opacity-50"
+          >
+            {uploading ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <ImageIcon className="w-3 h-3" />
+            )}
+            {uploading ? "מעלה..." : "העלה תמונה"}
+          </button>
+          {url && (
+            <button
+              type="button"
+              onClick={() => set(fieldKey, "")}
+              className="text-[10px] text-[#9A969A] hover:text-red-500 transition-colors"
+            >
+              הסר
+            </button>
+          )}
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+        </div>
+        {/* Preview */}
         {url && (
           <div className="rounded-lg overflow-hidden border border-[#E5E5E5] h-28 bg-[#F3F4F6]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -613,6 +684,70 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
     );
   };
 
+  /** Inline image field used inside ObjectListField rows — supports URL + file upload */
+  const ObjectImageField = ({
+    label,
+    value,
+    onChange,
+  }: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+  }) => {
+    const [uploading, setUploading] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setUploading(true);
+      try {
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `sections/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const supabaseClient = createClient();
+        const { error } = await supabaseClient.storage.from("media").upload(path, file, { upsert: false });
+        if (error) throw error;
+        const { data: urlData } = supabaseClient.storage.from("media").getPublicUrl(path);
+        onChange(urlData.publicUrl);
+      } catch (err) {
+        console.error("Upload failed:", err);
+      }
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    };
+
+    return (
+      <div className="space-y-1">
+        <Label className="text-[11px] text-[#9A969A]">{label} <span className="text-[#C8C4C8]">400×400px</span></Label>
+        <div className="flex items-center gap-2">
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="https://..."
+            dir="ltr"
+            className="h-8 text-sm flex-1"
+          />
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            className="shrink-0 flex items-center gap-1 px-2 py-1 rounded border border-dashed border-[#C8C4C8] text-[10px] text-[#9A969A] hover:border-[#B8D900] hover:text-[#2A2628] transition-all disabled:opacity-50"
+          >
+            {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ImageIcon className="w-3 h-3" />}
+            {uploading ? "..." : "העלה"}
+          </button>
+          <input ref={inputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+        </div>
+        {value && (
+          <div className="h-16 rounded overflow-hidden border border-[#E5E5E5]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={value} alt="" className="w-full h-full object-cover" />
+          </div>
+        )}
+      </div>
+    );
+  };
+
   /** Helper — manage a list of objects with name+description */
   const ObjectListField = ({
     label,
@@ -678,22 +813,12 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
                     />
                   </div>
                 ) : f.type === "image" ? (
-                  <div key={f.key} className="space-y-1">
-                    <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
-                    <Input
-                      value={item[f.key] || ""}
-                      onChange={(e) => updateField(i, f.key, e.target.value)}
-                      placeholder="https://..."
-                      dir="ltr"
-                      className="h-8 text-sm"
-                    />
-                    {item[f.key] && (
-                      <div className="h-16 rounded overflow-hidden border border-[#E5E5E5]">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item[f.key]} alt="" className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                  </div>
+                  <ObjectImageField
+                    key={f.key}
+                    label={f.label}
+                    value={item[f.key] || ""}
+                    onChange={(v) => updateField(i, f.key, v)}
+                  />
                 ) : (
                   <div key={f.key} className="space-y-1">
                     <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
@@ -726,7 +851,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
               <Field label="ערך נתון (למשל 50,000+)" fieldKey="stat_value" placeholder="50,000+" dir="ltr" />
               <Field label="תווית נתון" fieldKey="stat_label_he" placeholder="בוגרים" />
             </div>
-            <ImageField label="תמונת רקע (URL)" fieldKey="background_image_url" />
+            <ImageField label="תמונת רקע" fieldKey="background_image_url" recommendedSize="1920×1080px" />
           </div>
         );
 
@@ -745,7 +870,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
           <div className="space-y-4">
             <Field label="כותרת" fieldKey="heading_he" placeholder="אודות התוכנית" />
             <TextareaField label="תיאור" fieldKey="description_he" rows={4} placeholder="פסקת תיאור..." />
-            <ImageField label="תמונה (URL)" fieldKey="image_url" />
+            <ImageField label="תמונה" fieldKey="image_url" recommendedSize="800×600px" />
             <StringListField label="נקודות מפתח" fieldKey="bullets" placeholder="נקודה מפתח..." />
           </div>
         );
@@ -881,13 +1006,103 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
           </div>
         );
 
-      case "admission":
+      case "admission": {
+        // Detect multi-track vs single-track and render appropriate editor
+        const hasTracks = Array.isArray(draft.tracks) && (draft.tracks as unknown[]).length > 0;
+        const tracks = (draft.tracks as Array<Record<string, unknown>>) || [];
+
+        const updateTrack = (ti: number, key: string, value: unknown) => {
+          const updated = tracks.map((t, idx) => idx === ti ? { ...t, [key]: value } : t);
+          set("tracks", updated);
+        };
+        const updateTrackReqs = (ti: number, reqs: string[]) => updateTrack(ti, "requirements", reqs);
+        const addTrack = () => set("tracks", [...tracks, { title_he: "מסלול חדש", icon: "check", requirements: [] }]);
+        const removeTrack = (ti: number) => set("tracks", tracks.filter((_, idx) => idx !== ti));
+
         return (
           <div className="space-y-4">
             <Field label="כותרת" fieldKey="heading_he" placeholder="תנאי קבלה" />
-            <StringListField label="דרישות" fieldKey="requirements" placeholder="תעודת בגרות..." />
+
+            {/* Toggle between single/multi track */}
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#F3F4F6] border border-[#E5E5E5]">
+              <button
+                type="button"
+                onClick={() => { set("tracks", undefined); }}
+                className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${!hasTracks ? "bg-white shadow text-[#2A2628]" : "text-[#9A969A] hover:text-[#4A4648]"}`}
+              >
+                מסלול אחד
+              </button>
+              <button
+                type="button"
+                onClick={() => { if (!hasTracks) set("tracks", [{ title_he: "קבלה ישירה", icon: "check", requirements: [] }]); }}
+                className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${hasTracks ? "bg-white shadow text-[#2A2628]" : "text-[#9A969A] hover:text-[#4A4648]"}`}
+              >
+                מספר מסלולים
+              </button>
+            </div>
+
+            {hasTracks ? (
+              /* Multi-track editor */
+              <div className="space-y-3">
+                {tracks.map((track, ti) => (
+                  <div key={ti} className="border border-[#E5E5E5] rounded-xl p-3 space-y-2 bg-[#FAFAFA]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#9A969A]">מסלול {ti + 1}</span>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => removeTrack(ti)} className="h-6 w-6 p-0 text-red-400 hover:text-red-600">
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-[#9A969A]">שם המסלול</Label>
+                      <Input value={(track.title_he as string) || ""} onChange={(e) => updateTrack(ti, "title_he", e.target.value)} dir="rtl" className="h-8 text-sm" placeholder="קבלה ישירה..." />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[11px] text-[#9A969A]">דרישות המסלול</Label>
+                        <Button type="button" variant="ghost" size="sm"
+                          onClick={() => updateTrackReqs(ti, [...((track.requirements as string[]) || []), ""])}
+                          className="h-5 gap-1 text-[10px] text-[#B8D900] hover:text-[#9AB800] px-1"
+                        >
+                          <Plus className="w-2.5 h-2.5" /> הוסף דרישה
+                        </Button>
+                      </div>
+                      <div className="space-y-1.5">
+                        {((track.requirements as string[]) || []).map((req, ri) => (
+                          <div key={ri} className="flex items-center gap-1.5">
+                            <Input
+                              value={req}
+                              onChange={(e) => {
+                                const reqs = [...((track.requirements as string[]) || [])];
+                                reqs[ri] = e.target.value;
+                                updateTrackReqs(ti, reqs);
+                              }}
+                              dir="rtl"
+                              className="h-7 text-sm flex-1"
+                              placeholder="תעודת בגרות..."
+                            />
+                            <Button type="button" variant="ghost" size="sm"
+                              onClick={() => updateTrackReqs(ti, ((track.requirements as string[]) || []).filter((_, idx) => idx !== ri))}
+                              className="h-7 w-7 p-0 text-red-400 hover:text-red-600 shrink-0"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={addTrack} className="w-full h-8 gap-1.5 text-xs border-dashed">
+                  <Plus className="w-3 h-3" /> הוסף מסלול
+                </Button>
+              </div>
+            ) : (
+              /* Single-track: flat requirements list */
+              <StringListField label="דרישות קבלה" fieldKey="requirements" placeholder="תעודת בגרות..." />
+            )}
           </div>
         );
+      }
 
       case "map":
         return (
@@ -1619,16 +1834,23 @@ export default function PageBuilderPage() {
           </div>
 
           {/* Section type cards */}
-          <ScrollArea className="flex-1">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="p-3 space-y-1.5">
               {SECTION_LIBRARY.map((item) => {
                 const isAdding = addingType === item.type;
+                // Count how many times this section type is already on the page
+                const usedCount = sections.filter((s) => s.section_type === item.type).length;
+                const isUsed = usedCount > 0;
                 return (
                   <button
                     key={item.type}
                     onClick={() => addSection(item.type)}
                     disabled={isAdding}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.06] hover:border-[#B8D900]/30 transition-all duration-150 text-right group"
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all duration-150 text-right group ${
+                      isUsed
+                        ? "bg-[#B8D900]/10 border-[#B8D900]/30 hover:bg-[#B8D900]/18"
+                        : "bg-white/[0.04] border-white/[0.06] hover:bg-white/[0.09] hover:border-[#B8D900]/30"
+                    }`}
                   >
                     {/* Colored icon */}
                     <div
@@ -1654,9 +1876,18 @@ export default function PageBuilderPage() {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white/90 leading-tight group-hover:text-white transition-colors">
-                        {item.nameHe}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-white/90 leading-tight group-hover:text-white transition-colors">
+                          {item.nameHe}
+                        </p>
+                        {/* "In use" badge */}
+                        {isUsed && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#B8D900]/25 text-[#B8D900] text-[10px] font-bold leading-none shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#B8D900] inline-block" />
+                            {usedCount > 1 ? `×${usedCount}` : "בשימוש"}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[11px] text-white/35 leading-tight mt-0.5 truncate">
                         {item.descriptionHe}
                       </p>
@@ -1670,7 +1901,7 @@ export default function PageBuilderPage() {
                 );
               })}
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Bottom hint */}
           <div className="px-4 py-3 border-t border-white/10">
@@ -1702,7 +1933,7 @@ export default function PageBuilderPage() {
           </div>
 
           {/* Scrollable section list */}
-          <ScrollArea className="flex-1 bg-[#F8F9FA]">
+          <div className="flex-1 min-h-0 overflow-y-auto bg-[#F8F9FA]">
             <div className="p-6">
               {sections.length === 0 ? (
                 /* Empty state */
@@ -1761,7 +1992,7 @@ export default function PageBuilderPage() {
                 </DndContext>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </main>
       </div>
 
