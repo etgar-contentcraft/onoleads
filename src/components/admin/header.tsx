@@ -71,8 +71,9 @@ export function Header({ user, onMenuClick }: HeaderProps) {
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
+    // Use replace (not push) so the user can't navigate back to dashboard after logout.
+    // Do NOT call router.refresh() after push — it can crash if the component is unmounting.
+    router.replace("/login");
   };
 
   const getBreadcrumbs = () => {
