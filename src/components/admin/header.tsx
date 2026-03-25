@@ -17,6 +17,7 @@ import {
 import {
   Menu,
   ChevronLeft,
+  ChevronRight,
   LogOut,
   User,
   Settings,
@@ -24,6 +25,8 @@ import {
   Search,
   Home,
 } from "lucide-react";
+import { useAdminLanguage } from "@/contexts/admin-language-context";
+import type { AdminLang } from "@/lib/i18n/admin-translations";
 
 interface HeaderProps {
   user: {
@@ -33,23 +36,37 @@ interface HeaderProps {
   onMenuClick: () => void;
 }
 
-const breadcrumbMap: Record<string, string> = {
-  "/dashboard": "לוח בקרה",
-  "/dashboard/programs": "תוכניות לימוד",
-  "/dashboard/pages": "דפי נחיתה",
-  "/dashboard/builder": "בונה דפים",
-  "/dashboard/leads": "לידים",
-  "/dashboard/events": "אירועים",
-  "/dashboard/media": "ספריית מדיה",
-  "/dashboard/analytics": "אנליטיקס",
-  "/dashboard/seo": "SEO",
-  "/dashboard/settings": "הגדרות",
+/** Maps URL path segments to breadcrumb translation keys */
+const BC_KEY_MAP: Record<string, string> = {
+  "/dashboard": "bc_dashboard",
+  "/dashboard/programs": "bc_programs",
+  "/dashboard/pages": "bc_pages",
+  "/dashboard/builder": "bc_builder",
+  "/dashboard/leads": "bc_leads",
+  "/dashboard/events": "bc_events",
+  "/dashboard/media": "bc_media",
+  "/dashboard/analytics": "bc_analytics",
+  "/dashboard/seo": "bc_seo",
+  "/dashboard/settings": "bc_settings",
+  "/dashboard/templates": "bc_templates",
+  "/dashboard/faculty": "bc_faculty",
+  "/dashboard/shared-sections": "bc_shared_sections",
+  "/dashboard/audit": "bc_audit",
+  "/dashboard/help": "bc_help",
+  "/dashboard/users": "bc_users",
 };
+
+const LANG_LABELS: { lang: AdminLang; label: string }[] = [
+  { lang: "he", label: "עב" },
+  { lang: "en", label: "EN" },
+  { lang: "ar", label: "عر" },
+];
 
 export function Header({ user, onMenuClick }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
+  const { lang, setLang, t, isRtl } = useAdminLanguage();
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -65,9 +82,10 @@ export function Header({ user, onMenuClick }: HeaderProps) {
     let currentPath = "";
     for (const segment of segments) {
       currentPath += `/${segment}`;
-      const label = breadcrumbMap[currentPath];
-      if (label) {
-        crumbs.push({ label, href: currentPath });
+      const key = BC_KEY_MAP[currentPath];
+      if (key) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        crumbs.push({ label: t(key as any), href: currentPath });
       }
     }
 
@@ -80,12 +98,15 @@ export function Header({ user, onMenuClick }: HeaderProps) {
     : user?.email
       ? user.email.substring(0, 2).toUpperCase()
       : "??";
-  const displayName = user?.name || user?.email || "משתמש";
+  const displayName = user?.name || user?.email || t("role_admin");
+
+  // Chevron direction follows reading direction
+  const BreadcrumbChevron = isRtl ? ChevronLeft : ChevronRight;
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-[#e5e7eb]/60">
       <div className="flex items-center justify-between h-16 px-4 md:px-6">
-        {/* Right Side: Menu + Breadcrumbs */}
+        {/* Leading side: Menu + Breadcrumbs */}
         <div className="flex items-center gap-3">
           {/* Mobile menu button */}
           <Button
@@ -102,7 +123,7 @@ export function Header({ user, onMenuClick }: HeaderProps) {
             <Home className="w-3.5 h-3.5 text-[#9A969A]" />
             {breadcrumbs.map((crumb, index) => (
               <div key={crumb.href} className="flex items-center gap-1.5">
-                <ChevronLeft className="w-3.5 h-3.5 text-[#d1d5db]" />
+                <BreadcrumbChevron className="w-3.5 h-3.5 text-[#d1d5db]" />
                 <span
                   className={
                     index === breadcrumbs.length - 1
@@ -117,14 +138,31 @@ export function Header({ user, onMenuClick }: HeaderProps) {
           </nav>
         </div>
 
-        {/* Left Side: Search + Notifications + User */}
+        {/* Trailing side: Language switcher + Search + Notifications + User */}
         <div className="flex items-center gap-2">
+          {/* Language switcher */}
+          <div className="hidden sm:flex items-center gap-0.5 bg-[#f3f4f6] rounded-xl p-0.5">
+            {LANG_LABELS.map(({ lang: l, label }) => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  lang === l
+                    ? "bg-white text-[#2a2628] shadow-sm"
+                    : "text-[#9A969A] hover:text-[#4A4648]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {/* Search */}
           <div className={`relative transition-all duration-300 ${searchOpen ? "w-56" : "w-0"} overflow-hidden`}>
             <Input
-              placeholder="חיפוש מהיר..."
+              placeholder={t("search_placeholder")}
               className="h-9 bg-[#f3f4f6] border-0 rounded-xl pr-9 text-sm"
-              dir="rtl"
+              dir={isRtl ? "rtl" : "ltr"}
             />
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#9A969A]" />
           </div>
@@ -168,7 +206,7 @@ export function Header({ user, onMenuClick }: HeaderProps) {
                 <span className="text-sm font-medium text-[#2a2628] max-w-[120px] truncate leading-tight">
                   {displayName}
                 </span>
-                <span className="text-[10px] text-[#9A969A] leading-tight">מנהל</span>
+                <span className="text-[10px] text-[#9A969A] leading-tight">{t("role_admin")}</span>
               </div>
               <ChevronLeft className="w-3.5 h-3.5 text-[#9A969A] rotate-[-90deg] hidden md:block" />
             </DropdownMenuTrigger>
@@ -182,11 +220,11 @@ export function Header({ user, onMenuClick }: HeaderProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem className="gap-2.5 cursor-pointer rounded-lg">
                 <User className="w-4 h-4 text-[#716C70]" />
-                <span>פרופיל</span>
+                <span>{t("menu_profile")}</span>
               </DropdownMenuItem>
               <DropdownMenuItem className="gap-2.5 cursor-pointer rounded-lg">
                 <Settings className="w-4 h-4 text-[#716C70]" />
-                <span>הגדרות</span>
+                <span>{t("menu_settings")}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -194,7 +232,7 @@ export function Header({ user, onMenuClick }: HeaderProps) {
                 onClick={handleLogout}
               >
                 <LogOut className="w-4 h-4" />
-                <span>התנתקות</span>
+                <span>{t("menu_logout")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

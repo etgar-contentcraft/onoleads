@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Sidebar } from "@/components/admin/sidebar";
 import { Header } from "@/components/admin/header";
+import { AdminLanguageProvider, useAdminLanguage } from "@/contexts/admin-language-context";
 import {
   Sheet,
   SheetContent,
@@ -16,15 +17,12 @@ interface UserInfo {
   name?: string;
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function DashboardShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<UserInfo | null>(null);
   const pathname = usePathname();
   const isBuilder = pathname?.includes("/builder");
+  const { isRtl } = useAdminLanguage();
 
   useEffect(() => {
     const supabase = createClient();
@@ -39,7 +37,7 @@ export default function DashboardLayout({
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f3f4f6]" dir="rtl">
+    <div className="flex h-screen overflow-hidden bg-[#f3f4f6]" dir={isRtl ? "rtl" : "ltr"}>
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:w-[260px] lg:shrink-0">
         <div className="w-full shadow-xl shadow-black/10">
@@ -54,7 +52,7 @@ export default function DashboardLayout({
           showCloseButton={false}
           className="p-0 w-[280px] border-0 shadow-2xl"
         >
-          <SheetTitle className="sr-only">תפריט ניווט</SheetTitle>
+          <SheetTitle className="sr-only">תפריט ניווט / Navigation</SheetTitle>
           <Sidebar onNavigate={() => setSidebarOpen(false)} />
         </SheetContent>
       </Sheet>
@@ -80,5 +78,13 @@ export default function DashboardLayout({
         )}
       </div>
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AdminLanguageProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </AdminLanguageProvider>
   );
 }

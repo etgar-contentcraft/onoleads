@@ -21,78 +21,25 @@ import {
   LayoutTemplate,
   Users2,
 } from "lucide-react";
+import { useAdminLanguage } from "@/contexts/admin-language-context";
+import type { TranslationKey } from "@/lib/i18n/admin-translations";
 
-const navItems = [
-  {
-    label: "לוח בקרה",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "תוכניות לימוד",
-    href: "/dashboard/programs",
-    icon: BookOpen,
-  },
-  {
-    label: "דפי נחיתה",
-    href: "/dashboard/pages",
-    icon: FileText,
-  },
-  {
-    label: "לידים",
-    href: "/dashboard/leads",
-    icon: Users,
-  },
-  {
-    label: "ספריית מדיה",
-    href: "/dashboard/media",
-    icon: ImageIcon,
-  },
-  {
-    label: "אנליטיקס",
-    href: "/dashboard/analytics",
-    icon: BarChart3,
-  },
-  {
-    label: "SEO",
-    href: "/dashboard/seo",
-    icon: Search,
-  },
-  {
-    label: "הגדרות",
-    href: "/dashboard/settings",
-    icon: Settings,
-  },
-  {
-    label: "תבניות",
-    href: "/dashboard/templates",
-    icon: LayoutTemplate,
-  },
-  {
-    label: "מאגר מרצים",
-    href: "/dashboard/faculty",
-    icon: GraduationCap,
-  },
-  {
-    label: "סקציות גלובליות",
-    href: "/dashboard/shared-sections",
-    icon: Globe,
-  },
-  {
-    label: "יומן ביקורת",
-    href: "/dashboard/audit",
-    icon: ShieldCheck,
-  },
-  {
-    label: "מרכז עזרה",
-    href: "/dashboard/help",
-    icon: HelpCircle,
-  },
-  {
-    label: "משתמשים",
-    href: "/dashboard/users",
-    icon: Users2,
-  },
+/** Each nav item maps to a translation key for its label */
+const navItems: { labelKey: TranslationKey; href: string; icon: React.ElementType }[] = [
+  { labelKey: "nav_dashboard",       href: "/dashboard",                icon: LayoutDashboard },
+  { labelKey: "nav_programs",        href: "/dashboard/programs",       icon: BookOpen },
+  { labelKey: "nav_pages",           href: "/dashboard/pages",          icon: FileText },
+  { labelKey: "nav_leads",           href: "/dashboard/leads",          icon: Users },
+  { labelKey: "nav_media",           href: "/dashboard/media",          icon: ImageIcon },
+  { labelKey: "nav_analytics",       href: "/dashboard/analytics",      icon: BarChart3 },
+  { labelKey: "nav_seo",             href: "/dashboard/seo",            icon: Search },
+  { labelKey: "nav_settings",        href: "/dashboard/settings",       icon: Settings },
+  { labelKey: "nav_templates",       href: "/dashboard/templates",      icon: LayoutTemplate },
+  { labelKey: "nav_faculty",         href: "/dashboard/faculty",        icon: GraduationCap },
+  { labelKey: "nav_shared_sections", href: "/dashboard/shared-sections",icon: Globe },
+  { labelKey: "nav_audit",           href: "/dashboard/audit",          icon: ShieldCheck },
+  { labelKey: "nav_help",            href: "/dashboard/help",           icon: HelpCircle },
+  { labelKey: "nav_users",           href: "/dashboard/users",          icon: Users2 },
 ];
 
 interface SidebarProps {
@@ -103,6 +50,7 @@ interface SidebarProps {
 
 export function Sidebar({ onNavigate, collapsed = false, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
+  const { t } = useAdminLanguage();
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -135,7 +83,7 @@ export function Sidebar({ onNavigate, collapsed = false, onToggleCollapse }: Sid
               OnoLeads
             </h2>
             <p className="text-[10px] text-white/35 leading-tight truncate">
-              ניהול לידים ודפי נחיתה
+              {t("sidebar_tagline")}
             </p>
           </div>
         )}
@@ -171,7 +119,7 @@ export function Sidebar({ onNavigate, collapsed = false, onToggleCollapse }: Sid
                   : "text-white/55 hover:bg-white/[0.04] hover:text-white/90"
               )}
             >
-              {/* Active indicator - green left border */}
+              {/* Active indicator */}
               {active && (
                 <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-[#B8D900] shadow-[0_0_8px_rgba(184,217,0,0.4)]" />
               )}
@@ -185,7 +133,7 @@ export function Sidebar({ onNavigate, collapsed = false, onToggleCollapse }: Sid
                 )}
               />
               {!collapsed && (
-                <span className="transition-colors duration-200">{item.label}</span>
+                <span className="transition-colors duration-200">{t(item.labelKey)}</span>
               )}
               {active && !collapsed && (
                 <div className="mr-auto w-1.5 h-1.5 rounded-full bg-[#B8D900] shadow-[0_0_6px_rgba(184,217,0,0.5)]" />
@@ -204,7 +152,7 @@ export function Sidebar({ onNavigate, collapsed = false, onToggleCollapse }: Sid
               גרסה 1.0.0
             </p>
             <p className="text-[10px] text-white/35 leading-relaxed text-center mt-1">
-              Powered by{" "}
+              {t("sidebar_powered_by")}{" "}
               <span className="text-[#B8D900]/60 font-medium">OnoLeads</span>
             </p>
           </div>
