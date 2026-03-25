@@ -216,6 +216,13 @@ const SECTION_LIBRARY: SectionLibraryItem[] = [
     color: "bg-green-100 text-green-700",
     iconPath: "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z M11.999 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.944-1.376A9.956 9.956 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z",
   },
+  {
+    type: "event",
+    nameHe: "אירוע / יום פתוח",
+    descriptionHe: "הגדרות לדף אירוע (תאריך, מיקום, לוז, דוברים)",
+    color: "bg-purple-100 text-purple-600",
+    iconPath: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z",
+  },
 ];
 
 /** Default content per section type */
@@ -260,6 +267,22 @@ function getDefaultContent(type: string): Record<string, unknown> {
       return { heading_he: "מוכנים להתחיל?", description_he: "", button_text_he: "להרשמה", phone: "" };
     case "whatsapp":
       return { phone: "", message_he: "היי, אשמח לקבל פרטים" };
+    case "event":
+      return {
+        heading_he: "יום פתוח",
+        description_he: "",
+        event_type: "event_physical",
+        event_date: "",
+        event_time: "",
+        venue: "",
+        google_maps_url: "",
+        zoom_link: "",
+        parking_info: "",
+        programs_featured: [],
+        schedule: [],
+        speakers: [],
+        faq: [],
+      };
     default:
       return {};
   }
@@ -283,6 +306,7 @@ const SECTION_LABELS: Record<string, string> = {
   map: "מפה ומיקום",
   cta: "קריאה לפעולה",
   whatsapp: "וואטסאפ",
+  event: "אירוע / יום פתוח",
 };
 
 // ---------------------------------------------------------------------------
@@ -457,6 +481,367 @@ function SortableSectionRow({
 }
 
 // ---------------------------------------------------------------------------
+// File-scope field helper components for the Section Edit Modal.
+// Defined here (not inside SectionEditModal) to prevent React from treating
+// them as new component types on every render, which would cause inputs to
+// unmount/remount and lose focus on every keystroke.
+// ---------------------------------------------------------------------------
+
+/** Props shared by simple field helpers */
+interface FieldProps {
+  label: string;
+  fieldKey: string;
+  placeholder?: string;
+  dir?: "rtl" | "ltr";
+  draft: Record<string, unknown>;
+  set: (key: string, value: unknown) => void;
+}
+
+/** Renders a labeled text input bound to draft[fieldKey] */
+function Field({ label, fieldKey, placeholder = "", dir = "rtl", draft, set }: FieldProps) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
+      <Input
+        value={(draft[fieldKey] as string) || ""}
+        onChange={(e) => set(fieldKey, e.target.value)}
+        placeholder={placeholder}
+        dir={dir}
+        className="h-9 text-sm"
+      />
+    </div>
+  );
+}
+
+interface TextareaFieldProps extends FieldProps {
+  rows?: number;
+}
+
+/** Renders a labeled textarea bound to draft[fieldKey] */
+function TextareaField({ label, fieldKey, placeholder = "", rows = 3, dir = "rtl", draft, set }: TextareaFieldProps) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
+      <Textarea
+        value={(draft[fieldKey] as string) || ""}
+        onChange={(e) => set(fieldKey, e.target.value)}
+        placeholder={placeholder}
+        dir={dir}
+        rows={rows}
+        className="text-sm resize-none"
+      />
+    </div>
+  );
+}
+
+interface ImageFieldProps {
+  label: string;
+  fieldKey: string;
+  recommendedSize?: string;
+  draft: Record<string, unknown>;
+  set: (key: string, value: unknown) => void;
+}
+
+/** Image field with URL input + file upload to Supabase Storage */
+function ImageField({ label, fieldKey, recommendedSize, draft, set }: ImageFieldProps) {
+  const url = (draft[fieldKey] as string) || "";
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `sections/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const supabaseClient = createClient();
+      const { error } = await supabaseClient.storage.from("media").upload(path, file, { upsert: false });
+      if (error) throw error;
+      const { data: urlData } = supabaseClient.storage.from("media").getPublicUrl(path);
+      set(fieldKey, urlData.publicUrl);
+    } catch (err) {
+      console.error("Upload failed:", err);
+    }
+    setUploading(false);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
+        {recommendedSize && (
+          <span className="text-[10px] text-[#9A969A] bg-[#F3F4F6] rounded px-1.5 py-0.5">
+            {recommendedSize}
+          </span>
+        )}
+      </div>
+      {/* URL input */}
+      <Input
+        value={url}
+        onChange={(e) => set(fieldKey, e.target.value)}
+        placeholder="https://... או העלה תמונה"
+        dir="ltr"
+        className="h-9 text-sm font-mono"
+      />
+      {/* Upload button */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[#C8C4C8] bg-[#F8F8F8] text-xs text-[#716C70] hover:border-[#B8D900] hover:text-[#2A2628] hover:bg-[#B8D900]/5 transition-all disabled:opacity-50"
+        >
+          {uploading ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <ImageIcon className="w-3 h-3" />
+          )}
+          {uploading ? "מעלה..." : "העלה תמונה"}
+        </button>
+        {url && (
+          <button
+            type="button"
+            onClick={() => set(fieldKey, "")}
+            className="text-[10px] text-[#9A969A] hover:text-red-500 transition-colors"
+          >
+            הסר
+          </button>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
+      </div>
+      {/* Preview */}
+      {url && (
+        <div className="rounded-lg overflow-hidden border border-[#E5E5E5] h-28 bg-[#F3F4F6]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt="preview" className="w-full h-full object-cover" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface StringListFieldProps {
+  label: string;
+  fieldKey: string;
+  placeholder?: string;
+  draft: Record<string, unknown>;
+  set: (key: string, value: unknown) => void;
+}
+
+/** Manages a simple editable list of strings */
+function StringListField({ label, fieldKey, placeholder = "", draft, set }: StringListFieldProps) {
+  const list = (draft[fieldKey] as string[]) || [];
+  const addItem = () => set(fieldKey, [...list, ""]);
+  const updateItem = (i: number, v: string) => {
+    const copy = [...list];
+    copy[i] = v;
+    set(fieldKey, copy);
+  };
+  const removeItem = (i: number) => set(fieldKey, list.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={addItem}
+          className="h-7 gap-1 text-xs text-[#B8D900] hover:text-[#9AB800]"
+        >
+          <Plus className="w-3 h-3" /> הוסף
+        </Button>
+      </div>
+      <div className="space-y-1.5">
+        {list.map((item, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Input
+              value={item}
+              onChange={(e) => updateItem(i, e.target.value)}
+              placeholder={placeholder}
+              dir="rtl"
+              className="h-8 text-sm flex-1"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => removeItem(i)}
+              className="h-8 w-8 p-0 text-red-400 hover:text-red-600 shrink-0"
+            >
+              <X className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Inline image field for use inside ObjectListField rows — supports URL + file upload */
+function ObjectImageField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `sections/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const supabaseClient = createClient();
+      const { error } = await supabaseClient.storage.from("media").upload(path, file, { upsert: false });
+      if (error) throw error;
+      const { data: urlData } = supabaseClient.storage.from("media").getPublicUrl(path);
+      onChange(urlData.publicUrl);
+    } catch (err) {
+      console.error("Upload failed:", err);
+    }
+    setUploading(false);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  return (
+    <div className="space-y-1">
+      <Label className="text-[11px] text-[#9A969A]">{label} <span className="text-[#C8C4C8]">400×400px</span></Label>
+      <div className="flex items-center gap-2">
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://..."
+          dir="ltr"
+          className="h-8 text-sm flex-1"
+        />
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="shrink-0 flex items-center gap-1 px-2 py-1 rounded border border-dashed border-[#C8C4C8] text-[10px] text-[#9A969A] hover:border-[#B8D900] hover:text-[#2A2628] transition-all disabled:opacity-50"
+        >
+          {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ImageIcon className="w-3 h-3" />}
+          {uploading ? "..." : "העלה"}
+        </button>
+        <input ref={inputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+      </div>
+      {value && (
+        <div className="h-16 rounded overflow-hidden border border-[#E5E5E5]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={value} alt="" className="w-full h-full object-cover" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ObjectListFieldProps {
+  label: string;
+  fieldKey: string;
+  fields: Array<{ key: string; label: string; type?: "text" | "textarea" | "image" }>;
+  draft: Record<string, unknown>;
+  set: (key: string, value: unknown) => void;
+}
+
+/** Manages a list of objects, each with the given fields schema */
+function ObjectListField({ label, fieldKey, fields, draft, set }: ObjectListFieldProps) {
+  const list = (draft[fieldKey] as Record<string, string>[]) || [];
+  const emptyItem = Object.fromEntries(fields.map((f) => [f.key, ""]));
+  const addItem = () => set(fieldKey, [...list, { ...emptyItem }]);
+  const updateField = (i: number, k: string, v: string) => {
+    const copy = list.map((item) => ({ ...item }));
+    copy[i][k] = v;
+    set(fieldKey, copy);
+  };
+  const removeItem = (i: number) => set(fieldKey, list.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={addItem}
+          className="h-7 gap-1 text-xs text-[#B8D900] hover:text-[#9AB800]"
+        >
+          <Plus className="w-3 h-3" /> הוסף
+        </Button>
+      </div>
+      <div className="space-y-3">
+        {list.map((item, i) => (
+          <div
+            key={i}
+            className="border border-[#E5E5E5] rounded-xl p-3 space-y-2 bg-[#FAFAFA]"
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-[#9A969A]">פריט {i + 1}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => removeItem(i)}
+                className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+            {fields.map((f) =>
+              f.type === "textarea" ? (
+                <div key={f.key} className="space-y-1">
+                  <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
+                  <Textarea
+                    value={item[f.key] || ""}
+                    onChange={(e) => updateField(i, f.key, e.target.value)}
+                    rows={2}
+                    dir="rtl"
+                    className="text-sm resize-none"
+                  />
+                </div>
+              ) : f.type === "image" ? (
+                <ObjectImageField
+                  key={f.key}
+                  label={f.label}
+                  value={item[f.key] || ""}
+                  onChange={(v) => updateField(i, f.key, v)}
+                />
+              ) : (
+                <div key={f.key} className="space-y-1">
+                  <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
+                  <Input
+                    value={item[f.key] || ""}
+                    onChange={(e) => updateField(i, f.key, e.target.value)}
+                    dir="rtl"
+                    className="h-8 text-sm"
+                  />
+                </div>
+              )
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Section Content Edit Modal
 // ---------------------------------------------------------------------------
 
@@ -480,405 +865,47 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
 
   const set = (key: string, value: unknown) => setDraft((prev) => ({ ...prev, [key]: value }));
 
-  /** Helper — renders a text input field */
-  const Field = ({
-    label,
-    fieldKey,
-    placeholder = "",
-    dir = "rtl",
-  }: {
-    label: string;
-    fieldKey: string;
-    placeholder?: string;
-    dir?: "rtl" | "ltr";
-  }) => (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
-      <Input
-        value={(draft[fieldKey] as string) || ""}
-        onChange={(e) => set(fieldKey, e.target.value)}
-        placeholder={placeholder}
-        dir={dir}
-        className="h-9 text-sm"
-      />
-    </div>
-  );
-
-  /** Helper — renders a textarea field */
-  const TextareaField = ({
-    label,
-    fieldKey,
-    placeholder = "",
-    rows = 3,
-    dir = "rtl",
-  }: {
-    label: string;
-    fieldKey: string;
-    placeholder?: string;
-    rows?: number;
-    dir?: "rtl" | "ltr";
-  }) => (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
-      <Textarea
-        value={(draft[fieldKey] as string) || ""}
-        onChange={(e) => set(fieldKey, e.target.value)}
-        placeholder={placeholder}
-        dir={dir}
-        rows={rows}
-        className="text-sm resize-none"
-      />
-    </div>
-  );
-
-  /** Helper — image field with URL input + file upload to Supabase Storage */
-  const ImageField = ({
-    label,
-    fieldKey,
-    recommendedSize,
-  }: {
-    label: string;
-    fieldKey: string;
-    recommendedSize?: string;
-  }) => {
-    const url = (draft[fieldKey] as string) || "";
-    const [uploading, setUploading] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      setUploading(true);
-      try {
-        const ext = file.name.split(".").pop() || "jpg";
-        const path = `sections/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const supabaseClient = createClient();
-        const { error } = await supabaseClient.storage.from("media").upload(path, file, { upsert: false });
-        if (error) throw error;
-        const { data: urlData } = supabaseClient.storage.from("media").getPublicUrl(path);
-        set(fieldKey, urlData.publicUrl);
-      } catch (err) {
-        console.error("Upload failed:", err);
-      }
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
-    };
-
-    return (
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
-          {recommendedSize && (
-            <span className="text-[10px] text-[#9A969A] bg-[#F3F4F6] rounded px-1.5 py-0.5">
-              {recommendedSize}
-            </span>
-          )}
-        </div>
-        {/* URL input */}
-        <Input
-          value={url}
-          onChange={(e) => set(fieldKey, e.target.value)}
-          placeholder="https://... או העלה תמונה"
-          dir="ltr"
-          className="h-9 text-sm font-mono"
-        />
-        {/* Upload button */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={uploading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[#C8C4C8] bg-[#F8F8F8] text-xs text-[#716C70] hover:border-[#B8D900] hover:text-[#2A2628] hover:bg-[#B8D900]/5 transition-all disabled:opacity-50"
-          >
-            {uploading ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <ImageIcon className="w-3 h-3" />
-            )}
-            {uploading ? "מעלה..." : "העלה תמונה"}
-          </button>
-          {url && (
-            <button
-              type="button"
-              onClick={() => set(fieldKey, "")}
-              className="text-[10px] text-[#9A969A] hover:text-red-500 transition-colors"
-            >
-              הסר
-            </button>
-          )}
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-        </div>
-        {/* Preview */}
-        {url && (
-          <div className="rounded-lg overflow-hidden border border-[#E5E5E5] h-28 bg-[#F3F4F6]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt="preview" className="w-full h-full object-cover" />
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  /** Helper — manage a simple string list */
-  const StringListField = ({
-    label,
-    fieldKey,
-    placeholder = "",
-  }: {
-    label: string;
-    fieldKey: string;
-    placeholder?: string;
-  }) => {
-    const list = (draft[fieldKey] as string[]) || [];
-    const addItem = () => set(fieldKey, [...list, ""]);
-    const updateItem = (i: number, v: string) => {
-      const copy = [...list];
-      copy[i] = v;
-      set(fieldKey, copy);
-    };
-    const removeItem = (i: number) => set(fieldKey, list.filter((_, idx) => idx !== i));
-
-    return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={addItem}
-            className="h-7 gap-1 text-xs text-[#B8D900] hover:text-[#9AB800]"
-          >
-            <Plus className="w-3 h-3" /> הוסף
-          </Button>
-        </div>
-        <div className="space-y-1.5">
-          {list.map((item, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <Input
-                value={item}
-                onChange={(e) => updateItem(i, e.target.value)}
-                placeholder={placeholder}
-                dir="rtl"
-                className="h-8 text-sm flex-1"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => removeItem(i)}
-                className="h-8 w-8 p-0 text-red-400 hover:text-red-600 shrink-0"
-              >
-                <X className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  /** Inline image field used inside ObjectListField rows — supports URL + file upload */
-  const ObjectImageField = ({
-    label,
-    value,
-    onChange,
-  }: {
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-  }) => {
-    const [uploading, setUploading] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
-
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      setUploading(true);
-      try {
-        const ext = file.name.split(".").pop() || "jpg";
-        const path = `sections/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const supabaseClient = createClient();
-        const { error } = await supabaseClient.storage.from("media").upload(path, file, { upsert: false });
-        if (error) throw error;
-        const { data: urlData } = supabaseClient.storage.from("media").getPublicUrl(path);
-        onChange(urlData.publicUrl);
-      } catch (err) {
-        console.error("Upload failed:", err);
-      }
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
-    };
-
-    return (
-      <div className="space-y-1">
-        <Label className="text-[11px] text-[#9A969A]">{label} <span className="text-[#C8C4C8]">400×400px</span></Label>
-        <div className="flex items-center gap-2">
-          <Input
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="https://..."
-            dir="ltr"
-            className="h-8 text-sm flex-1"
-          />
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={uploading}
-            className="shrink-0 flex items-center gap-1 px-2 py-1 rounded border border-dashed border-[#C8C4C8] text-[10px] text-[#9A969A] hover:border-[#B8D900] hover:text-[#2A2628] transition-all disabled:opacity-50"
-          >
-            {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ImageIcon className="w-3 h-3" />}
-            {uploading ? "..." : "העלה"}
-          </button>
-          <input ref={inputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
-        </div>
-        {value && (
-          <div className="h-16 rounded overflow-hidden border border-[#E5E5E5]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={value} alt="" className="w-full h-full object-cover" />
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  /** Helper — manage a list of objects with name+description */
-  const ObjectListField = ({
-    label,
-    fieldKey,
-    fields,
-  }: {
-    label: string;
-    fieldKey: string;
-    fields: Array<{ key: string; label: string; type?: "text" | "textarea" | "image" }>;
-  }) => {
-    const list = (draft[fieldKey] as Record<string, string>[]) || [];
-    const emptyItem = Object.fromEntries(fields.map((f) => [f.key, ""]));
-    const addItem = () => set(fieldKey, [...list, { ...emptyItem }]);
-    const updateField = (i: number, k: string, v: string) => {
-      const copy = list.map((item) => ({ ...item }));
-      copy[i][k] = v;
-      set(fieldKey, copy);
-    };
-    const removeItem = (i: number) => set(fieldKey, list.filter((_, idx) => idx !== i));
-
-    return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-medium text-[#716C70]">{label}</Label>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={addItem}
-            className="h-7 gap-1 text-xs text-[#B8D900] hover:text-[#9AB800]"
-          >
-            <Plus className="w-3 h-3" /> הוסף
-          </Button>
-        </div>
-        <div className="space-y-3">
-          {list.map((item, i) => (
-            <div
-              key={i}
-              className="border border-[#E5E5E5] rounded-xl p-3 space-y-2 bg-[#FAFAFA]"
-            >
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-semibold text-[#9A969A]">פריט {i + 1}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeItem(i)}
-                  className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-              {fields.map((f) =>
-                f.type === "textarea" ? (
-                  <div key={f.key} className="space-y-1">
-                    <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
-                    <Textarea
-                      value={item[f.key] || ""}
-                      onChange={(e) => updateField(i, f.key, e.target.value)}
-                      rows={2}
-                      dir="rtl"
-                      className="text-sm resize-none"
-                    />
-                  </div>
-                ) : f.type === "image" ? (
-                  <ObjectImageField
-                    key={f.key}
-                    label={f.label}
-                    value={item[f.key] || ""}
-                    onChange={(v) => updateField(i, f.key, v)}
-                  />
-                ) : (
-                  <div key={f.key} className="space-y-1">
-                    <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
-                    <Input
-                      value={item[f.key] || ""}
-                      onChange={(e) => updateField(i, f.key, e.target.value)}
-                      dir="rtl"
-                      className="h-8 text-sm"
-                    />
-                  </div>
-                )
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   /** Render the appropriate editor form per section type */
   const renderForm = () => {
     switch (section.section_type) {
       case "hero":
         return (
           <div className="space-y-4">
-            <Field label="כותרת ראשית" fieldKey="heading_he" placeholder="כותרת ראשית..." />
-            <TextareaField label="כותרת משנה" fieldKey="subheading_he" placeholder="פרטים נוספים..." />
-            <Field label="טקסט כפתור" fieldKey="cta_text_he" placeholder="השאירו פרטים" />
+            <Field label="כותרת ראשית" fieldKey="heading_he" placeholder="כותרת ראשית..." draft={draft} set={set} />
+            <TextareaField label="כותרת משנה" fieldKey="subheading_he" placeholder="פרטים נוספים..." draft={draft} set={set} />
+            <Field label="טקסט כפתור" fieldKey="cta_text_he" placeholder="השאירו פרטים" draft={draft} set={set} />
             <div className="grid grid-cols-2 gap-3">
-              <Field label="ערך נתון (למשל 50,000+)" fieldKey="stat_value" placeholder="50,000+" dir="ltr" />
-              <Field label="תווית נתון" fieldKey="stat_label_he" placeholder="בוגרים" />
+              <Field label="ערך נתון (למשל 50,000+)" fieldKey="stat_value" placeholder="50,000+" dir="ltr" draft={draft} set={set} />
+              <Field label="תווית נתון" fieldKey="stat_label_he" placeholder="בוגרים" draft={draft} set={set} />
             </div>
-            <ImageField label="תמונת רקע" fieldKey="background_image_url" recommendedSize="1920×1080px" />
+            <ImageField label="תמונת רקע" fieldKey="background_image_url" recommendedSize="1920×1080px" draft={draft} set={set} />
           </div>
         );
 
       case "program_info_bar":
         return (
           <div className="space-y-4">
-            <Field label="משך התוכנית" fieldKey="duration" placeholder="3 שנים" />
-            <Field label="קמפוס" fieldKey="campus" placeholder="קריית אונו, תל אביב..." />
-            <Field label="מסגרת לימודים" fieldKey="format" placeholder="יום / ערב / שבת" />
-            <Field label="תואר" fieldKey="degree" placeholder="B.A., M.A., LL.B..." />
+            <Field label="משך התוכנית" fieldKey="duration" placeholder="3 שנים" draft={draft} set={set} />
+            <Field label="קמפוס" fieldKey="campus" placeholder="קריית אונו, תל אביב..." draft={draft} set={set} />
+            <Field label="מסגרת לימודים" fieldKey="format" placeholder="יום / ערב / שבת" draft={draft} set={set} />
+            <Field label="תואר" fieldKey="degree" placeholder="B.A., M.A., LL.B..." draft={draft} set={set} />
           </div>
         );
 
       case "about":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="אודות התוכנית" />
-            <TextareaField label="תיאור" fieldKey="description_he" rows={4} placeholder="פסקת תיאור..." />
-            <ImageField label="תמונה" fieldKey="image_url" recommendedSize="800×600px" />
-            <StringListField label="נקודות מפתח" fieldKey="bullets" placeholder="נקודה מפתח..." />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="אודות התוכנית" draft={draft} set={set} />
+            <TextareaField label="תיאור" fieldKey="description_he" rows={4} placeholder="פסקת תיאור..." draft={draft} set={set} />
+            <ImageField label="תמונה" fieldKey="image_url" recommendedSize="800×600px" draft={draft} set={set} />
+            <StringListField label="נקודות מפתח" fieldKey="bullets" placeholder="נקודה מפתח..." draft={draft} set={set} />
           </div>
         );
 
       case "benefits":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="למה ללמוד אצלנו" />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="למה ללמוד אצלנו" draft={draft} set={set} />
             <ObjectListField
               label="יתרונות"
               fieldKey="items"
@@ -886,6 +913,8 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
                 { key: "title_he", label: "כותרת יתרון" },
                 { key: "description_he", label: "תיאור", type: "textarea" },
               ]}
+              draft={draft}
+              set={set}
             />
           </div>
         );
@@ -893,7 +922,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "curriculum":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="תוכנית הלימודים" />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="תוכנית הלימודים" draft={draft} set={set} />
             <ObjectListField
               label="שנים / סמסטרים"
               fieldKey="years"
@@ -901,6 +930,8 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
                 { key: "title_he", label: "כותרת שנה / סמסטר" },
                 { key: "courses", label: "קורסים (מופרדים בפסיק)", type: "textarea" },
               ]}
+              draft={draft}
+              set={set}
             />
           </div>
         );
@@ -908,15 +939,15 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "career":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="אפשרויות קריירה" />
-            <StringListField label="תפקידים ומשרות" fieldKey="items" placeholder="יועץ משפטי..." />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="אפשרויות קריירה" draft={draft} set={set} />
+            <StringListField label="תפקידים ומשרות" fieldKey="items" placeholder="יועץ משפטי..." draft={draft} set={set} />
           </div>
         );
 
       case "testimonials":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="מה אומרים הסטודנטים" />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="מה אומרים הסטודנטים" draft={draft} set={set} />
             <ObjectListField
               label="המלצות"
               fieldKey="items"
@@ -926,6 +957,8 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
                 { key: "quote", label: "ציטוט", type: "textarea" },
                 { key: "image_url", label: "תמונה (URL)", type: "image" },
               ]}
+              draft={draft}
+              set={set}
             />
           </div>
         );
@@ -933,7 +966,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "faculty":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="הסגל האקדמי" />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="הסגל האקדמי" draft={draft} set={set} />
             <ObjectListField
               label="חברי סגל"
               fieldKey="members"
@@ -942,6 +975,8 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
                 { key: "role", label: "תפקיד / תואר" },
                 { key: "image_url", label: "תמונה (URL)", type: "image" },
               ]}
+              draft={draft}
+              set={set}
             />
           </div>
         );
@@ -949,7 +984,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "stats":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="אנו במספרים" />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="אנו במספרים" draft={draft} set={set} />
             <ObjectListField
               label="נתונים"
               fieldKey="stats"
@@ -957,6 +992,8 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
                 { key: "value", label: "ערך (למשל 50,000+)" },
                 { key: "label_he", label: "תווית" },
               ]}
+              draft={draft}
+              set={set}
             />
           </div>
         );
@@ -964,7 +1001,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "faq":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="שאלות נפוצות" />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="שאלות נפוצות" draft={draft} set={set} />
             <ObjectListField
               label="שאלות ותשובות"
               fieldKey="items"
@@ -972,6 +1009,8 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
                 { key: "question_he", label: "שאלה" },
                 { key: "answer_he", label: "תשובה", type: "textarea" },
               ]}
+              draft={draft}
+              set={set}
             />
           </div>
         );
@@ -979,7 +1018,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "video":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="צפו בסרטון" />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="צפו בסרטון" draft={draft} set={set} />
             <ObjectListField
               label="סרטונים"
               fieldKey="videos"
@@ -987,6 +1026,8 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
                 { key: "youtube_id", label: "מזהה YouTube (ID)" },
                 { key: "title_he", label: "כותרת סרטון" },
               ]}
+              draft={draft}
+              set={set}
             />
           </div>
         );
@@ -994,7 +1035,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "gallery":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="גלריה" />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="גלריה" draft={draft} set={set} />
             <ObjectListField
               label="תמונות"
               fieldKey="images"
@@ -1002,6 +1043,8 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
                 { key: "url", label: "URL תמונה", type: "image" },
                 { key: "caption_he", label: "כיתוב" },
               ]}
+              draft={draft}
+              set={set}
             />
           </div>
         );
@@ -1021,7 +1064,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
 
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="תנאי קבלה" />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="תנאי קבלה" draft={draft} set={set} />
 
             {/* Toggle between single/multi track */}
             <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#F3F4F6] border border-[#E5E5E5]">
@@ -1098,7 +1141,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
               </div>
             ) : (
               /* Single-track: flat requirements list */
-              <StringListField label="דרישות קבלה" fieldKey="requirements" placeholder="תעודת בגרות..." />
+              <StringListField label="דרישות קבלה" fieldKey="requirements" placeholder="תעודת בגרות..." draft={draft} set={set} />
             )}
           </div>
         );
@@ -1107,27 +1150,96 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "map":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="מיקום האירוע" />
-            <Field label="כתובת" fieldKey="address" placeholder="רחוב האוניברסיטה 1, קריית אונו" />
-            <Field label="קישור Google Maps" fieldKey="map_url" placeholder="https://maps.google.com/..." dir="ltr" />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="מיקום האירוע" draft={draft} set={set} />
+            <Field label="כתובת" fieldKey="address" placeholder="רחוב האוניברסיטה 1, קריית אונו" draft={draft} set={set} />
+            <Field label="קישור Google Maps" fieldKey="map_url" placeholder="https://maps.google.com/..." dir="ltr" draft={draft} set={set} />
           </div>
         );
 
       case "cta":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="מוכנים להתחיל?" />
-            <TextareaField label="תיאור" fieldKey="description_he" rows={2} placeholder="הצטרפו לאלפי סטודנטים..." />
-            <Field label="טקסט כפתור" fieldKey="button_text_he" placeholder="להרשמה" />
-            <Field label="מספר טלפון" fieldKey="phone" placeholder="03-123-4567" dir="ltr" />
+            <Field label="כותרת" fieldKey="heading_he" placeholder="מוכנים להתחיל?" draft={draft} set={set} />
+            <TextareaField label="תיאור" fieldKey="description_he" rows={2} placeholder="הצטרפו לאלפי סטודנטים..." draft={draft} set={set} />
+            <Field label="טקסט כפתור" fieldKey="button_text_he" placeholder="להרשמה" draft={draft} set={set} />
+            <Field label="מספר טלפון" fieldKey="phone" placeholder="03-123-4567" dir="ltr" draft={draft} set={set} />
           </div>
         );
 
       case "whatsapp":
         return (
           <div className="space-y-4">
-            <Field label="מספר וואטסאפ" fieldKey="phone" placeholder="972501234567" dir="ltr" />
-            <Field label="הודעה ראשונית" fieldKey="message_he" placeholder="היי, אשמח לקבל פרטים" />
+            <Field label="מספר וואטסאפ" fieldKey="phone" placeholder="972501234567" dir="ltr" draft={draft} set={set} />
+            <Field label="הודעה ראשונית" fieldKey="message_he" placeholder="היי, אשמח לקבל פרטים" draft={draft} set={set} />
+          </div>
+        );
+
+      case "event":
+        /* Editor for event pages — data stored in custom_styles on the page,
+           but exposed here when the section_type is "event". */
+        return (
+          <div className="space-y-4">
+            <Field label="כותרת האירוע" fieldKey="heading_he" placeholder="יום פתוח" draft={draft} set={set} />
+            <TextareaField label="תיאור" fieldKey="description_he" placeholder="פרטים על האירוע..." draft={draft} set={set} />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="תאריך (ISO)" fieldKey="event_date" placeholder="2026-04-15T17:00:00" dir="ltr" draft={draft} set={set} />
+              <Field label="שעה לתצוגה" fieldKey="event_time" placeholder="17:00" dir="ltr" draft={draft} set={set} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">סוג אירוע</Label>
+              <div className="flex gap-2">
+                {(["event_physical", "event_zoom"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => set("event_type", t)}
+                    className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                      (draft.event_type || "event_physical") === t
+                        ? "bg-[#B8D900]/20 border-[#B8D900] text-[#2A2628]"
+                        : "border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900]/50"
+                    }`}
+                  >
+                    {t === "event_physical" ? "פיזי - קמפוס" : "זום - אונליין"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Field label="כתובת מקום (לאירוע פיזי)" fieldKey="venue" placeholder="רחוב האוניברסיטה 2, קריית אונו" draft={draft} set={set} />
+            <Field label="קישור Google Maps" fieldKey="google_maps_url" placeholder="https://maps.google.com/..." dir="ltr" draft={draft} set={set} />
+            <Field label="קישור Zoom (לאירוע מקוון)" fieldKey="zoom_link" placeholder="https://zoom.us/j/..." dir="ltr" draft={draft} set={set} />
+            <Field label="מידע חניה" fieldKey="parking_info" placeholder="חניה חינם בחניון הקמפוס" draft={draft} set={set} />
+            <StringListField label="תוכניות מוצגות" fieldKey="programs_featured" placeholder="משפטים, מנהל עסקים..." draft={draft} set={set} />
+            <ObjectListField
+              label="לוח זמנים"
+              fieldKey="schedule"
+              fields={[
+                { key: "time", label: "שעה (למשל 17:00)" },
+                { key: "title", label: "שם הסשן" },
+              ]}
+              draft={draft}
+              set={set}
+            />
+            <ObjectListField
+              label="דוברים"
+              fieldKey="speakers"
+              fields={[
+                { key: "name", label: "שם" },
+                { key: "role", label: "תפקיד" },
+                { key: "image_url", label: "תמונה", type: "image" },
+              ]}
+              draft={draft}
+              set={set}
+            />
+            <ObjectListField
+              label="שאלות נפוצות"
+              fieldKey="faq"
+              fields={[
+                { key: "question", label: "שאלה" },
+                { key: "answer", label: "תשובה", type: "textarea" },
+              ]}
+              draft={draft}
+              set={set}
+            />
           </div>
         );
 
@@ -1212,25 +1324,24 @@ interface PageSettingsDialogProps {
   saving: boolean;
 }
 
-/**
- * Per-page settings override dialog.
- * Empty fields fall back to the global settings configured in הגדרות.
- */
-function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onTyChange, onSave, saving }: PageSettingsDialogProps) {
-  /** A labeled input field with placeholder showing the fallback */
-  const SettingField = ({
-    label,
-    fieldKey,
-    placeholder,
-    hint,
-    dir = "ltr",
-  }: {
-    label: string;
-    fieldKey: keyof PageOverrideSettings;
-    placeholder?: string;
-    hint?: string;
-    dir?: "rtl" | "ltr";
-  }) => (
+// ---------------------------------------------------------------------------
+// File-scope SettingField for PageSettingsDialog.
+// Defined outside the component to avoid remount-on-render focus loss.
+// ---------------------------------------------------------------------------
+
+interface SettingFieldProps {
+  label: string;
+  fieldKey: keyof PageOverrideSettings;
+  placeholder?: string;
+  hint?: string;
+  dir?: "rtl" | "ltr";
+  settings: PageOverrideSettings;
+  onChange: (key: keyof PageOverrideSettings, value: string) => void;
+}
+
+/** A labeled input bound to a PageOverrideSettings key */
+function SettingField({ label, fieldKey, placeholder, hint, dir = "ltr", settings, onChange }: SettingFieldProps) {
+  return (
     <div className="space-y-1.5">
       <Label className="text-xs font-semibold text-[#2A2628]">{label}</Label>
       <Input
@@ -1243,6 +1354,13 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
       {hint && <p className="text-[11px] text-[#9A969A]">{hint}</p>}
     </div>
   );
+}
+
+/**
+ * Per-page settings override dialog.
+ * Empty fields fall back to the global settings configured in הגדרות.
+ */
+function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onTyChange, onSave, saving }: PageSettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -1272,18 +1390,24 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                   fieldKey="webhook_url"
                   placeholder="https://hooks.zapier.com/... (מהגדרות הכלליות)"
                   hint="לשליחת לידים מעמוד זה ל-CRM ספציפי"
+                  settings={settings}
+                  onChange={onChange}
                 />
                 <SettingField
                   label="מספר WhatsApp"
                   fieldKey="whatsapp_number"
                   placeholder="972501234567 (מהגדרות הכלליות)"
                   hint="מספר בפורמט בינלאומי ללא מקף"
+                  settings={settings}
+                  onChange={onChange}
                 />
                 <SettingField
                   label="מספר טלפון לתצוגה"
                   fieldKey="phone_number"
                   placeholder="*2899 (מהגדרות הכלליות)"
                   hint="יוצג בכותרת ובתחתית העמוד"
+                  settings={settings}
+                  onChange={onChange}
                 />
               </div>
             </div>
@@ -1300,12 +1424,16 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                   placeholder="השאירו פרטים ונחזור אליכם (מהגדרות הכלליות)"
                   dir="rtl"
                   hint="הטקסט על כפתורי הרשמה בעמוד"
+                  settings={settings}
+                  onChange={onChange}
                 />
                 <SettingField
                   label="לוגו מותאם (URL)"
                   fieldKey="logo_url"
                   placeholder="https://... (לוגו אונו כברירת מחדל)"
                   hint="להחלפת הלוגו בעמוד זה בלבד"
+                  settings={settings}
+                  onChange={onChange}
                 />
               </div>
             </div>
@@ -1434,12 +1562,16 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                   fieldKey="google_analytics_id"
                   placeholder="G-XXXXXXXXXX (מהגדרות הכלליות)"
                   hint="לעקוב אחר קמפיינים ספציפיים"
+                  settings={settings}
+                  onChange={onChange}
                 />
                 <SettingField
                   label="Facebook Pixel ID"
                   fieldKey="facebook_pixel_id"
                   placeholder="123456789 (מהגדרות הכלליות)"
                   hint="לפיקסל ספציפי לקמפיין"
+                  settings={settings}
+                  onChange={onChange}
                 />
               </div>
             </div>

@@ -4,6 +4,7 @@
  * Fetches pages with page_type = 'event' and delegates to EventPageLayout.
  */
 
+import React from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Page } from "@/lib/types/database";
@@ -145,10 +146,34 @@ export default async function EventLandingPage({ params }: PageProps) {
   };
 
   return (
-    <html lang="he" dir="rtl">
+    <html
+      lang="he"
+      dir="rtl"
+      style={
+        {
+          "--font-heading": "'Rubik', sans-serif",
+          "--font-heebo": "'Heebo', sans-serif",
+        } as React.CSSProperties
+      }
+    >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Heebo:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+        {/* Force Rubik as heading font — belt-and-suspenders since event LP pages bypass root layout */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          :root, html {
+            --font-heading: 'Rubik', sans-serif;
+            --font-heebo: 'Heebo', sans-serif;
+          }
+          .font-heading, h1.font-heading, h2.font-heading, h3.font-heading {
+            font-family: 'Rubik', sans-serif !important;
+          }
+        ` }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(eventSchema) }}
