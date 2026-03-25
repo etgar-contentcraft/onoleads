@@ -169,6 +169,7 @@ export default async function LandingPage({ params }: PageProps) {
           pageId={page.id}
           programId={page.program_id || undefined}
           pageTitle={page.title_he}
+          program={program}
         />
       </body>
     </html>

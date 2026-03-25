@@ -1,13 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Language, PageSection } from "@/lib/types/database";
+import type { Language, PageSection, Program } from "@/lib/types/database";
+import { CtaModalProvider, CtaModal, FloatingCtaButton, useCtaModal } from "./cta-modal";
 import { HeroSection } from "./sections/hero-section";
-import { FormSection } from "./sections/form-section";
-import { FaqSection } from "./sections/faq-section";
+import { ProgramInfoBar } from "./sections/program-info-bar";
+import { AboutSection } from "./sections/about-section";
+import { BenefitsSection } from "./sections/benefits-section";
+import { CurriculumSection } from "./sections/curriculum-section";
+import { CareerSection } from "./sections/career-section";
+import { FacultySection as FacultySectionComponent } from "./sections/faculty-section";
 import { StatsSection } from "./sections/stats-section";
-import { VideoSection } from "./sections/video-section";
 import { TestimonialsSection } from "./sections/testimonials-section";
+import { VideoSection } from "./sections/video-section";
+import { FaqSection } from "./sections/faq-section";
 import { CtaSection } from "./sections/cta-section";
 import { WhatsappSection } from "./sections/whatsapp-section";
 
@@ -27,6 +33,7 @@ interface LandingPageLayoutProps {
   pageId?: string;
   programId?: string;
   pageTitle?: string;
+  program?: Program | null;
 }
 
 // ============================================================================
@@ -34,16 +41,14 @@ interface LandingPageLayoutProps {
 // ============================================================================
 
 function StickyHeader({
-  content,
+  programName,
   language,
 }: {
-  content: Record<string, unknown>;
+  programName?: string;
   language: Language;
 }) {
+  const { open } = useCtaModal();
   const isRtl = language === "he" || language === "ar";
-  const phone = (content.phone as string) || "*2899";
-  const buttonText = (content[`button_text_${language}`] as string) || (content.button_text_he as string) || "השאירו פרטים";
-  const buttonUrl = (content.button_url as string) || "#form";
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -57,11 +62,11 @@ function StickyHeader({
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         visible
           ? "translate-y-0 opacity-100"
-          : "-translate-y-full opacity-0"
+          : "-translate-y-full opacity-0 pointer-events-none"
       }`}
       dir={isRtl ? "rtl" : "ltr"}
     >
-      <div className="bg-white/95 backdrop-blur-xl border-b border-gray-200/50 shadow-[0_2px_20px_rgba(0,0,0,0.08)]">
+      <div className="bg-white/95 backdrop-blur-xl border-b border-gray-200/50 shadow-[0_2px_20px_rgba(0,0,0,0.06)]">
         <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -71,212 +76,30 @@ function StickyHeader({
               className="h-8 object-contain"
               loading="lazy"
             />
+            {programName && (
+              <span className="hidden md:block text-[#2a2628] font-heading font-bold text-sm truncate max-w-[240px]">
+                {programName}
+              </span>
+            )}
             <a
-              href={`tel:${phone}`}
-              className="hidden md:flex items-center gap-2 text-[#2a2628] font-bold text-sm hover:text-[#B8D900] transition-colors"
+              href="tel:*2899"
+              className="hidden md:flex items-center gap-2 text-[#716C70] font-medium text-sm hover:text-[#B8D900] transition-colors"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
-              {phone}
+              *2899
             </a>
           </div>
-          <a
-            href={buttonUrl}
+          <button
+            onClick={open}
             className="inline-flex items-center px-6 py-2.5 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm hover:bg-[#c8e920] hover:shadow-[0_0_20px_rgba(184,217,0,0.3)] transition-all duration-300 active:scale-[0.97]"
           >
-            {buttonText}
-          </a>
+            {isRtl ? "השאירו פרטים" : "Get Info"}
+          </button>
         </div>
       </div>
     </div>
-  );
-}
-
-// ============================================================================
-// Accordion Section (built-in)
-// ============================================================================
-
-function AccordionSection({
-  content,
-  language,
-}: {
-  content: Record<string, unknown>;
-  language: Language;
-}) {
-  const isRtl = language === "he" || language === "ar";
-  const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || "";
-  const items = (content.items as Array<{ title_he: string; title_en?: string; body_he: string; body_en?: string }>) || [];
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
-
-  if (items.length === 0) return null;
-
-  return (
-    <section className="py-20 md:py-24 bg-white" dir={isRtl ? "rtl" : "ltr"}>
-      <div className="max-w-3xl mx-auto px-5">
-        {heading && (
-          <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-[#2a2628] text-center mb-12">{heading}</h2>
-        )}
-        <div className="space-y-3">
-          {items.map((item, index) => {
-            const title = (item[`title_${language}` as keyof typeof item] as string) || item.title_he;
-            const body = (item[`body_${language}` as keyof typeof item] as string) || item.body_he;
-            const isOpen = openIndex === index;
-
-            return (
-              <div key={index} className="rounded-2xl border border-gray-200 overflow-hidden hover:border-[#B8D900]/40 transition-colors">
-                <button
-                  onClick={() => setOpenIndex(isOpen ? null : index)}
-                  className="w-full flex items-center justify-between p-5 md:p-6 text-start hover:bg-gray-50/50 transition-colors"
-                >
-                  <span className="font-heading font-bold text-[#2a2628]">{title}</span>
-                  <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                    isOpen ? "bg-[#B8D900] rotate-180" : "bg-gray-100"
-                  }`}>
-                    <svg className={`w-4 h-4 ${isOpen ? "text-[#2a2628]" : "text-[#716C70]"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </button>
-                <div className={`overflow-hidden transition-all duration-300 ${isOpen ? "max-h-[1000px]" : "max-h-0"}`}>
-                  <div className="px-5 md:px-6 pb-5 md:pb-6 text-[#716C70] leading-relaxed">{body}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ============================================================================
-// Gallery Section (built-in)
-// ============================================================================
-
-function GallerySection({
-  content,
-  language,
-}: {
-  content: Record<string, unknown>;
-  language: Language;
-}) {
-  const isRtl = language === "he" || language === "ar";
-  const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || "";
-  const images = (content.images as Array<{ url: string; alt_he?: string; alt_en?: string }>) || [];
-
-  if (images.length === 0) return null;
-
-  return (
-    <section className="py-20 md:py-24 bg-white" dir={isRtl ? "rtl" : "ltr"}>
-      <div className="max-w-6xl mx-auto px-5">
-        {heading && (
-          <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-[#2a2628] text-center mb-12">{heading}</h2>
-        )}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {images.map((img, index) => (
-            <div key={index} className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-gray-100 group">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img.url}
-                alt={(img[`alt_${language}` as keyof typeof img] as string) || img.alt_he || ""}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                loading="lazy"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ============================================================================
-// Curriculum Section (built-in)
-// ============================================================================
-
-function CurriculumSection({
-  content,
-  language,
-}: {
-  content: Record<string, unknown>;
-  language: Language;
-}) {
-  const isRtl = language === "he" || language === "ar";
-  const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || "";
-  const semesters = (content.semesters as Array<{
-    title_he: string;
-    title_en?: string;
-    courses: Array<{ name_he: string; name_en?: string }>;
-  }>) || [];
-
-  if (semesters.length === 0) return null;
-
-  return (
-    <section className="py-20 md:py-24 bg-gray-50" dir={isRtl ? "rtl" : "ltr"}>
-      <div className="max-w-4xl mx-auto px-5">
-        {heading && (
-          <div className="text-center mb-12">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
-              תוכנית הלימודים
-            </span>
-            <h2 className="font-heading text-2xl md:text-3xl font-extrabold text-[#2a2628]">{heading}</h2>
-          </div>
-        )}
-        <div className="space-y-6">
-          {semesters.map((sem, index) => {
-            const title = (sem[`title_${language}` as keyof typeof sem] as string) || sem.title_he;
-            return (
-              <div key={index} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-[0_2px_20px_rgba(0,0,0,0.04)]">
-                <div className="px-6 py-4 bg-[#2a2628] text-white font-heading font-bold flex items-center gap-3">
-                  <span className="w-9 h-9 rounded-full bg-[#B8D900] text-[#2a2628] flex items-center justify-center font-bold text-sm">
-                    {index + 1}
-                  </span>
-                  {title}
-                </div>
-                <div className="p-6">
-                  <div className="grid md:grid-cols-2 gap-3">
-                    {sem.courses.map((course, cIndex) => {
-                      const courseName = (course[`name_${language}` as keyof typeof course] as string) || course.name_he;
-                      return (
-                        <div
-                          key={cIndex}
-                          className="flex items-center gap-3 text-[#2a2628] text-sm py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="w-2 h-2 rounded-full bg-[#B8D900] shrink-0" />
-                          {courseName}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ============================================================================
-// Custom HTML Section
-// ============================================================================
-
-function CustomHtmlSection({ content }: { content: Record<string, unknown> }) {
-  const html = (content.html as string) || "";
-  const css = (content.css as string) || "";
-
-  if (!html) return null;
-
-  return (
-    <section className="py-8">
-      {css && <style dangerouslySetInnerHTML={{ __html: css }} />}
-      <div
-        className="max-w-6xl mx-auto px-5"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
-    </section>
   );
 }
 
@@ -295,78 +118,203 @@ function renderSection(
   switch (section.section_type) {
     case "hero":
       return <HeroSection content={content} language={language} />;
-    case "form":
-      return <FormSection content={content} language={language} pageId={pageId} programId={programId} />;
-    case "faq":
-      return <FaqSection content={content} language={language} />;
-    case "stats":
-      return <StatsSection content={content} language={language} />;
-    case "video":
-      return <VideoSection content={content} language={language} />;
-    case "testimonials":
-      return <TestimonialsSection content={content} language={language} />;
-    case "cta":
-      return <CtaSection content={content} language={language} />;
-    case "accordion":
-      return <AccordionSection content={content} language={language} />;
-    case "gallery":
-      return <GallerySection content={content} language={language} />;
+    case "program_info_bar":
+      return <ProgramInfoBar content={content} language={language} />;
+    case "about":
+      return <AboutSection content={content} language={language} />;
+    case "benefits":
+      return <BenefitsSection content={content} language={language} />;
     case "curriculum":
       return <CurriculumSection content={content} language={language} />;
-    case "custom_html":
-      return <CustomHtmlSection content={content} />;
+    case "career":
+      return <CareerSection content={content} language={language} />;
+    case "faculty":
+      return <FacultySectionComponent content={content} language={language} />;
+    case "stats":
+      return <StatsSection content={content} language={language} />;
+    case "testimonials":
+      return <TestimonialsSection content={content} language={language} />;
+    case "video":
+      return <VideoSection content={content} language={language} />;
+    case "faq":
+      return <FaqSection content={content} language={language} />;
+    case "cta":
+      return <CtaSection content={content} language={language} />;
     default:
       return null;
   }
 }
 
 // ============================================================================
-// Main Layout
+// Build auto-sections from program data
 // ============================================================================
 
-export function LandingPageLayout({
+function buildProgramSections(program: Program, language: Language): JSX.Element[] {
+  const isRtl = language === "he" || language === "ar";
+  const elements: JSX.Element[] = [];
+  const meta = (program.meta || {}) as Record<string, unknown>;
+
+  // Program info bar (always if we have data)
+  const infoParts: Record<string, string> = {};
+  if (program.duration_semesters) {
+    const years = Math.ceil(program.duration_semesters / 2);
+    infoParts.duration = isRtl ? `${years} שנים` : `${years} years`;
+  }
+  if (program.campuses && program.campuses.length > 0) {
+    infoParts.campus = program.campuses.join(", ");
+  }
+  if (program.schedule_options && program.schedule_options.length > 0) {
+    infoParts.format = program.schedule_options.join(" / ");
+  }
+  if (program.degree_type) {
+    infoParts.degree = program.degree_type;
+  }
+
+  if (Object.keys(infoParts).length > 0) {
+    elements.push(
+      <ProgramInfoBar
+        key="auto-info-bar"
+        content={infoParts}
+        language={language}
+      />
+    );
+  }
+
+  // About section (if description exists)
+  if (program.description_he || program.description_en) {
+    const aboutContent: Record<string, unknown> = {
+      heading_he: `אודות לימודי ${program.name_he}`,
+      heading_en: `About ${program.name_en || program.name_he}`,
+      description_he: program.description_he || "",
+      description_en: program.description_en || "",
+      image_url: program.hero_image_url || "",
+      bullets: (meta.usp_bullets as string[]) || [],
+    };
+    elements.push(
+      <AboutSection key="auto-about" content={aboutContent} language={language} />
+    );
+  }
+
+  // Benefits section (always show with defaults)
+  const benefitsContent: Record<string, unknown> = {
+    heading_he: "למה ללמוד באונו?",
+    heading_en: "Why Ono?",
+    items: (meta.benefits as unknown[]) || undefined,
+  };
+  elements.push(
+    <BenefitsSection key="auto-benefits" content={benefitsContent} language={language} />
+  );
+
+  // Career outcomes (if available)
+  if (program.career_outcomes && program.career_outcomes.length > 0) {
+    const careerContent: Record<string, unknown> = {
+      heading_he: "לאן תגיעו אחרי התואר?",
+      heading_en: "Career Outcomes",
+      items: program.career_outcomes,
+    };
+    elements.push(
+      <CareerSection key="auto-career" content={careerContent} language={language} />
+    );
+  }
+
+  // Faculty members (from meta)
+  if (meta.faculty_members && Array.isArray(meta.faculty_members) && (meta.faculty_members as unknown[]).length > 0) {
+    const facultyContent: Record<string, unknown> = {
+      heading_he: "הסגל האקדמי",
+      heading_en: "Faculty",
+      members: meta.faculty_members,
+    };
+    elements.push(
+      <FacultySectionComponent key="auto-faculty" content={facultyContent} language={language} />
+    );
+  }
+
+  return elements;
+}
+
+// ============================================================================
+// Inner Layout (needs CTA context)
+// ============================================================================
+
+function InnerLayout({
   sections,
   language,
   pageId,
   programId,
   pageTitle,
+  program,
 }: LandingPageLayoutProps) {
   const isRtl = language === "he" || language === "ar";
 
   const visibleSections = sections.filter((s) => s.is_visible);
-  const stickyHeader = visibleSections.find((s) => s.section_type === "sticky_header");
   const whatsappSection = visibleSections.find((s) => s.section_type === "whatsapp");
   const mainSections = visibleSections.filter(
     (s) => s.section_type !== "sticky_header" && s.section_type !== "whatsapp"
   );
 
+  // Determine which section types are already in the page sections
+  const existingSectionTypes = new Set(mainSections.map((s) => s.section_type));
+
+  // Build auto sections from program data (only for types not already in sections)
+  const autoSections = program ? buildProgramSections(program, language) : [];
+
+  // Figure out where to insert auto sections (after hero, before explicit sections)
+  const heroIndex = mainSections.findIndex((s) => s.section_type === "hero");
+  const hasHero = heroIndex >= 0;
+
+  // Section types that should come from auto-generation if not explicit
+  const autoSectionMapping: Record<string, string> = {
+    "auto-info-bar": "program_info_bar",
+    "auto-about": "about",
+    "auto-benefits": "benefits",
+    "auto-career": "career",
+    "auto-faculty": "faculty",
+  };
+
+  const filteredAutoSections = autoSections.filter((el) => {
+    const key = el.key as string;
+    const sectionType = autoSectionMapping[key];
+    return sectionType ? !existingSectionTypes.has(sectionType) : true;
+  });
+
   return (
     <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-white">
       {/* Sticky Header */}
-      {stickyHeader ? (
-        <StickyHeader
-          content={(stickyHeader.content || {}) as Record<string, unknown>}
-          language={language}
-        />
-      ) : (
-        /* Default sticky header if none configured */
-        <StickyHeader
-          content={{
-            phone: "*2899",
-            button_text_he: "השאירו פרטים",
-            button_url: "#form",
-          }}
-          language={language}
-        />
-      )}
+      <StickyHeader
+        programName={pageTitle || program?.name_he}
+        language={language}
+      />
 
-      {/* Main Sections */}
+      {/* Main Content */}
       <main>
-        {mainSections.map((section) => (
+        {/* Render explicit sections with auto-sections injected after hero */}
+        {mainSections.map((section, index) => (
           <div key={section.id}>
             {renderSection(section, language, pageId, programId)}
+            {/* After hero, inject auto-generated sections */}
+            {index === heroIndex && filteredAutoSections.length > 0 && (
+              <>{filteredAutoSections}</>
+            )}
           </div>
         ))}
+
+        {/* If no hero section, put auto sections at the top */}
+        {!hasHero && filteredAutoSections.length > 0 && (
+          <>{filteredAutoSections}</>
+        )}
+
+        {/* If no CTA section exists, add a default one */}
+        {!existingSectionTypes.has("cta") && (
+          <CtaSection
+            content={{
+              heading_he: "מוכנים להתחיל?",
+              description_he: "השאירו פרטים ויועץ לימודים יחזור אליכם",
+              button_text_he: "לפרטים נוספים",
+              phone: "*2899",
+            }}
+            language={language}
+          />
+        )}
       </main>
 
       {/* Footer */}
@@ -403,13 +351,31 @@ export function LandingPageLayout({
         </div>
       </footer>
 
-      {/* Floating WhatsApp */}
+      {/* Floating elements */}
       {whatsappSection && (
         <WhatsappSection
           content={(whatsappSection.content || {}) as Record<string, unknown>}
           language={language}
         />
       )}
+      <FloatingCtaButton />
+      <CtaModal
+        pageId={pageId}
+        programId={programId}
+        programName={pageTitle || program?.name_he}
+      />
     </div>
+  );
+}
+
+// ============================================================================
+// Main Layout (wraps with CTA provider)
+// ============================================================================
+
+export function LandingPageLayout(props: LandingPageLayoutProps) {
+  return (
+    <CtaModalProvider>
+      <InnerLayout {...props} />
+    </CtaModalProvider>
   );
 }

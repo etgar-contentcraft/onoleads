@@ -145,6 +145,48 @@
 }
 
 /* ============================================================================
+   Accessibility - Israeli Standard SI 5568 / WCAG 2.1 AA
+   ============================================================================ */
+.high-contrast {
+  filter: contrast(1.4);
+}
+.high-contrast img {
+  filter: contrast(0.8);
+}
+.reduce-motion,
+.reduce-motion * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+.highlight-links a {
+  text-decoration: underline !important;
+  outline: 2px solid #B8D900 !important;
+  outline-offset: 2px;
+}
+
+/* Skip to content link for screen readers */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 999;
+  padding: 0.5rem 1rem;
+  background: #B8D900;
+  color: #2a2628;
+  font-weight: 700;
+}
+.skip-to-content:focus {
+  left: 0;
+}
+
+/* Focus visible for keyboard navigation */
+*:focus-visible {
+  outline: 3px solid #B8D900;
+  outline-offset: 2px;
+}
+
+/* ============================================================================
    Scrollbar Styling
    ============================================================================ */
 ::-webkit-scrollbar {

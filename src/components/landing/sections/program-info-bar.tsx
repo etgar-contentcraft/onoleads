@@ -1,0 +1,94 @@
+"use client";
+
+import type { Language } from "@/lib/types/database";
+
+interface ProgramInfoBarProps {
+  content: Record<string, unknown>;
+  language: Language;
+}
+
+interface InfoItem {
+  icon: string;
+  label: string;
+  value: string;
+}
+
+const ICONS: Record<string, JSX.Element> = {
+  duration: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  ),
+  campus: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
+  format: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  ),
+  degree: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+    </svg>
+  ),
+};
+
+export function ProgramInfoBar({ content, language }: ProgramInfoBarProps) {
+  const isRtl = language === "he" || language === "ar";
+
+  const items: InfoItem[] = (content.items as InfoItem[]) || [];
+
+  // Build default items from content fields if no items array
+  const displayItems: InfoItem[] = items.length > 0 ? items : [
+    ...(content.duration ? [{
+      icon: "duration",
+      label: isRtl ? "משך הלימודים" : "Duration",
+      value: content.duration as string,
+    }] : []),
+    ...(content.campus ? [{
+      icon: "campus",
+      label: isRtl ? "קמפוס" : "Campus",
+      value: content.campus as string,
+    }] : []),
+    ...(content.format ? [{
+      icon: "format",
+      label: isRtl ? "מתכונת" : "Format",
+      value: content.format as string,
+    }] : []),
+    ...(content.degree ? [{
+      icon: "degree",
+      label: isRtl ? "תואר" : "Degree",
+      value: content.degree as string,
+    }] : []),
+  ];
+
+  if (displayItems.length === 0) return null;
+
+  return (
+    <section className="relative -mt-8 z-20 pb-8" dir={isRtl ? "rtl" : "ltr"}>
+      <div className="max-w-4xl mx-auto px-5">
+        <div className="bg-white rounded-2xl shadow-[0_4px_40px_rgba(0,0,0,0.08)] border border-gray-100 overflow-hidden">
+          <div className={`grid grid-cols-2 md:grid-cols-${Math.min(displayItems.length, 4)} divide-x divide-gray-100 ${isRtl ? "divide-x-reverse" : ""}`}>
+            {displayItems.map((item, index) => (
+              <div
+                key={index}
+                className="flex flex-col items-center gap-1.5 py-5 px-4 text-center"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#B8D900]/10 flex items-center justify-center text-[#9ab800] mb-1">
+                  {ICONS[item.icon] || ICONS.degree}
+                </div>
+                <span className="text-xs text-[#716C70] font-medium">{item.label}</span>
+                <span className="text-sm md:text-base font-heading font-bold text-[#2a2628]">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

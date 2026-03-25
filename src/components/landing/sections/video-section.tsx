@@ -10,25 +10,28 @@ interface VideoSectionProps {
 
 function getEmbedUrl(url: string): string | null {
   if (!url) return null;
-
-  // YouTube
   const ytMatch = url.match(
     /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
   );
   if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?rel=0`;
-
-  // Vimeo
   const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
   if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  return null;
+}
 
+function getYouTubeThumbnail(url: string): string | null {
+  const ytMatch = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
+  if (ytMatch) return `https://img.youtube.com/vi/${ytMatch[1]}/maxresdefault.jpg`;
   return null;
 }
 
 export function VideoSection({ content, language }: VideoSectionProps) {
   const isRtl = language === "he" || language === "ar";
   const videoUrl = (content.video_url as string) || "";
-  const posterUrl = (content.poster_url as string) || "";
-  const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || "";
+  const posterUrl = (content.poster_url as string) || getYouTubeThumbnail(videoUrl) || "";
+  const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "גלו עוד על התוכנית" : "Discover More");
   const [loaded, setLoaded] = useState(false);
   const [inView, setInView] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -53,18 +56,24 @@ export function VideoSection({ content, language }: VideoSectionProps) {
       <div className="max-w-4xl mx-auto px-5">
         {heading && (
           <div className="text-center mb-12">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+            <span
+              className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4 opacity-0"
+              style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+            >
               {isRtl ? "צפו בסרטון" : "Watch Video"}
             </span>
-            <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]">
+            <h2
+              className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628] opacity-0"
+              style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+            >
               {heading}
             </h2>
           </div>
         )}
 
         <div
-          className="relative rounded-2xl overflow-hidden shadow-[0_8px_60px_rgba(0,0,0,0.12)] bg-[#2a2628] aspect-video opacity-0"
-          style={{ animation: inView ? "scale-in 0.6s ease-out forwards" : "none" }}
+          className="relative rounded-2xl overflow-hidden shadow-[0_8px_60px_rgba(0,0,0,0.15)] bg-[#2a2628] aspect-video opacity-0"
+          style={{ animation: inView ? "scale-in 0.6s ease-out 0.2s forwards" : "none" }}
         >
           {!loaded && posterUrl && (
             <button
@@ -73,9 +82,9 @@ export function VideoSection({ content, language }: VideoSectionProps) {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={posterUrl} alt="" className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#B8D900] flex items-center justify-center shadow-[0_0_40px_rgba(184,217,0,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_60px_rgba(184,217,0,0.5)] transition-all duration-300">
-                  <svg className="w-8 h-8 md:w-10 md:h-10 text-[#2a2628] mr-[-2px]" fill="currentColor" viewBox="0 0 24 24">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent group-hover:from-black/40 transition-colors duration-300 flex items-center justify-center">
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-[#B8D900] flex items-center justify-center shadow-[0_0_50px_rgba(184,217,0,0.4)] group-hover:scale-110 group-hover:shadow-[0_0_70px_rgba(184,217,0,0.5)] transition-all duration-300">
+                  <svg className="w-8 h-8 md:w-10 md:h-10 text-[#2a2628] mr-[-3px]" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z" />
                   </svg>
                 </div>

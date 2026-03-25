@@ -17,81 +17,6 @@ interface FaqSectionProps {
   language: Language;
 }
 
-function FaqAccordionItem({
-  item,
-  language,
-  isOpen,
-  onToggle,
-  index,
-  inView,
-}: {
-  item: FaqItem;
-  language: Language;
-  isOpen: boolean;
-  onToggle: () => void;
-  index: number;
-  inView: boolean;
-}) {
-  const question = (item[`question_${language}` as keyof FaqItem] as string) || item.question_he || "";
-  const answer = (item[`answer_${language}` as keyof FaqItem] as string) || item.answer_he || "";
-
-  return (
-    <div
-      className="opacity-0"
-      style={{ animation: inView ? `fade-in-up 0.5s ease-out ${index * 0.08}s forwards` : "none" }}
-    >
-      <div className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
-        isOpen
-          ? "border-[#B8D900]/40 bg-white shadow-[0_4px_20px_rgba(184,217,0,0.08)]"
-          : "border-gray-200 bg-white hover:border-[#B8D900]/30"
-      }`}>
-        <button
-          onClick={onToggle}
-          className="w-full flex items-center justify-between p-5 md:p-6 text-start group"
-          aria-expanded={isOpen}
-        >
-          <div className="flex items-start gap-4">
-            {/* Green accent bar */}
-            <div className={`w-1 h-6 mt-0.5 rounded-full transition-all duration-300 ${
-              isOpen ? "bg-[#B8D900]" : "bg-gray-200 group-hover:bg-[#B8D900]/50"
-            }`} />
-            <span className="font-heading text-base md:text-lg font-bold text-[#2a2628] group-hover:text-[#2a2628] transition-colors leading-snug">
-              {question}
-            </span>
-          </div>
-          <div
-            className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 mr-4 ${
-              isOpen
-                ? "bg-[#B8D900] rotate-180"
-                : "bg-gray-100 group-hover:bg-[#B8D900]/15"
-            }`}
-          >
-            <svg
-              className={`w-4 h-4 transition-colors ${isOpen ? "text-[#2a2628]" : "text-[#716C70]"}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-        </button>
-
-        <div
-          className={`overflow-hidden transition-all duration-300 ${
-            isOpen ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
-          }`}
-        >
-          <div className="px-5 md:px-6 pb-6 mr-5">
-            <p className="text-[#716C70] text-base leading-[1.8]">{answer}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function FaqSection({ content, language }: FaqSectionProps) {
   const isRtl = language === "he" || language === "ar";
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "שאלות נפוצות" : "FAQ");
@@ -128,36 +53,80 @@ export function FaqSection({ content, language }: FaqSectionProps) {
   };
 
   return (
-    <section ref={sectionRef} className="py-20 md:py-28 bg-gray-50" dir={isRtl ? "rtl" : "ltr"}>
+    <section ref={sectionRef} className="py-20 md:py-28 bg-white" dir={isRtl ? "rtl" : "ltr"}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 
       <div className="max-w-3xl mx-auto px-5">
-        {heading && (
-          <div className="text-center mb-12">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
-              {isRtl ? "שאלות ותשובות" : "Q&A"}
-            </span>
-            <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]">
-              {heading}
-            </h2>
-          </div>
-        )}
+        <div className="text-center mb-14">
+          <span
+            className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4 opacity-0"
+            style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+          >
+            {isRtl ? "שאלות ותשובות" : "Q&A"}
+          </span>
+          <h2
+            className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628] opacity-0"
+            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+          >
+            {heading}
+          </h2>
+        </div>
 
         <div className="space-y-3">
-          {items.map((item, index) => (
-            <FaqAccordionItem
-              key={index}
-              item={item}
-              language={language}
-              isOpen={openIndex === index}
-              onToggle={() => setOpenIndex(openIndex === index ? null : index)}
-              index={index}
-              inView={inView}
-            />
-          ))}
+          {items.map((item, index) => {
+            const question = (item[`question_${language}` as keyof FaqItem] as string) || item.question_he || "";
+            const answer = (item[`answer_${language}` as keyof FaqItem] as string) || item.answer_he || "";
+            const isOpen = openIndex === index;
+
+            return (
+              <div
+                key={index}
+                className={`rounded-2xl border transition-all duration-300 overflow-hidden opacity-0 ${
+                  isOpen
+                    ? "border-[#B8D900]/30 bg-white shadow-[0_4px_20px_rgba(184,217,0,0.06)]"
+                    : "border-gray-200 bg-white hover:border-[#B8D900]/20"
+                }`}
+                style={{ animation: inView ? `fade-in-up 0.5s ease-out ${0.15 + index * 0.06}s forwards` : "none" }}
+              >
+                <button
+                  onClick={() => setOpenIndex(isOpen ? null : index)}
+                  className="w-full flex items-center justify-between p-5 md:p-6 text-start group"
+                  aria-expanded={isOpen}
+                >
+                  <div className="flex items-start gap-4">
+                    {/* Green accent bar */}
+                    <div className={`w-1 h-6 mt-0.5 rounded-full transition-all duration-300 ${
+                      isOpen ? "bg-[#B8D900]" : "bg-gray-200 group-hover:bg-[#B8D900]/50"
+                    }`} />
+                    <span className="font-heading text-base md:text-lg font-bold text-[#2a2628] leading-snug">
+                      {question}
+                    </span>
+                  </div>
+                  <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 mr-4 ${
+                    isOpen ? "bg-[#B8D900] rotate-180" : "bg-gray-100 group-hover:bg-[#B8D900]/15"
+                  }`}>
+                    <svg
+                      className={`w-4 h-4 transition-colors ${isOpen ? "text-[#2a2628]" : "text-[#716C70]"}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </button>
+
+                <div className={`overflow-hidden transition-all duration-300 ${
+                  isOpen ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+                }`}>
+                  <div className="px-5 md:px-6 pb-6 mr-5">
+                    <p className="text-[#716C70] text-base leading-[1.8]">{answer}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
