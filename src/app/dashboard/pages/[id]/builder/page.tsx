@@ -31,6 +31,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { createClient } from "@/lib/supabase/client";
 import type { PageSection } from "@/lib/types/database";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
+import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1442,73 +1443,92 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
 
             {/* Thank You Page */}
             <div>
-              <h3 className="text-xs font-bold text-[#9A969A] uppercase tracking-wider mb-3">עמוד תודה</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-bold text-[#9A969A] uppercase tracking-wider">עמוד תודה</h3>
+                <a href="/ty" target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#B8D900] hover:underline flex items-center gap-1">
+                  תצוגה מקדימה ↗
+                </a>
+              </div>
               <div className="space-y-3">
-                {/* Heading */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-[#2A2628]">כותרת עמוד תודה</Label>
-                  <Input
-                    value={tySettings.heading_he || ""}
-                    onChange={(e) => onTyChange("heading_he", e.target.value)}
-                    placeholder="תודה! קיבלנו את פרטיך (ברירת מחדל)"
-                    dir="rtl"
-                    className="h-9 text-sm"
-                  />
-                  <p className="text-[11px] text-[#9A969A]">ניתן לכלול [שם] לפרסונליזציה</p>
-                </div>
 
-                {/* Subheading */}
+                {/* Core message */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-[#2A2628]">כותרת</Label>
+                  <Input value={tySettings.heading_he || ""} onChange={(e) => onTyChange("heading_he", e.target.value)} placeholder="תודה! קיבלנו את פרטיך" dir="rtl" className="h-9 text-sm" />
+                  <p className="text-[11px] text-[#9A969A]">ניתן לכתוב [שם] לפרסונליזציה</p>
+                </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-[#2A2628]">כותרת משנה</Label>
-                  <Input
-                    value={tySettings.subheading_he || ""}
-                    onChange={(e) => onTyChange("subheading_he", e.target.value)}
-                    placeholder="יועץ לימודים ייצור איתך קשר תוך 24 שעות (ברירת מחדל)"
-                    dir="rtl"
-                    className="h-9 text-sm"
-                  />
+                  <Input value={tySettings.subheading_he || ""} onChange={(e) => onTyChange("subheading_he", e.target.value)} placeholder="יועץ לימודים ייצור איתך קשר תוך 24 שעות" dir="rtl" className="h-9 text-sm" />
                 </div>
 
-                {/* WhatsApp CTA */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-[#2A2628]">טקסט כפתור WhatsApp</Label>
-                  <Input
-                    value={tySettings.whatsapp_cta_he || ""}
-                    onChange={(e) => onTyChange("whatsapp_cta_he", e.target.value)}
-                    placeholder="רוצים לדבר עכשיו? כתבו לנו (ברירת מחדל)"
-                    dir="rtl"
-                    className="h-9 text-sm"
-                  />
+                {/* WhatsApp */}
+                <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-[#2A2628]">כפתור WhatsApp</Label>
+                    <button type="button" onClick={() => onTyChange("show_whatsapp", !tySettings.show_whatsapp)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_whatsapp ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}>
+                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tySettings.show_whatsapp ? "translate-x-4" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+                  {tySettings.show_whatsapp !== false && (
+                    <>
+                      <Input value={tySettings.whatsapp_number || ""} onChange={(e) => onTyChange("whatsapp_number", e.target.value)} placeholder="972501234567 (מהגדרות הכלליות)" dir="ltr" className="h-8 text-xs" />
+                      <Input value={tySettings.whatsapp_cta_he || ""} onChange={(e) => onTyChange("whatsapp_cta_he", e.target.value)} placeholder="רוצים לדבר עכשיו? כתבו לנו" dir="rtl" className="h-8 text-xs" />
+                    </>
+                  )}
+                </div>
+
+                {/* Social media */}
+                <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-[#2A2628]">עקבו בסושיאל מדיה</Label>
+                    <button type="button" onClick={() => onTyChange("show_social", !tySettings.show_social)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_social ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}>
+                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tySettings.show_social ? "translate-x-4" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+                  {tySettings.show_social !== false && (
+                    <div className="space-y-1.5">
+                      {([
+                        { key: "facebook_url", label: "Facebook", placeholder: "https://www.facebook.com/OnoAcademic" },
+                        { key: "instagram_url", label: "Instagram", placeholder: "https://www.instagram.com/ono_academic/" },
+                        { key: "youtube_url", label: "YouTube", placeholder: "https://www.youtube.com/@OnoAcademic" },
+                        { key: "linkedin_url", label: "LinkedIn", placeholder: "https://il.linkedin.com/school/ono-academic-college" },
+                        { key: "tiktok_url", label: "TikTok", placeholder: "https://www.tiktok.com/@ono_academic" },
+                      ] as const).map(({ key, label, placeholder }) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <span className="text-[11px] text-[#9A969A] w-14 shrink-0">{label}</span>
+                          <Input value={(tySettings[key] as string) || ""} onChange={(e) => onTyChange(key, e.target.value)} placeholder={placeholder} dir="ltr" className="h-7 text-xs flex-1" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Referral */}
+                <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-[#2A2628]">שיתוף עם חברים</Label>
+                    <button type="button" onClick={() => onTyChange("show_referral", !tySettings.show_referral)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_referral ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}>
+                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tySettings.show_referral ? "translate-x-4" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+                  {tySettings.show_referral !== false && (
+                    <Input value={tySettings.referral_cta_he || ""} onChange={(e) => onTyChange("referral_cta_he", e.target.value)} placeholder="שתפו עם חבר שמחפש תואר" dir="rtl" className="h-8 text-xs" />
+                  )}
                 </div>
 
                 {/* Calendar */}
                 <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-[#2A2628]">הזמנת פגישה (קלנדלי)</Label>
-                    <button
-                      type="button"
-                      onClick={() => onTyChange("show_calendar", !tySettings.show_calendar)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_calendar ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}
-                    >
+                    <Label className="text-xs font-semibold text-[#2A2628]">הזמנת פגישה (Calendly)</Label>
+                    <button type="button" onClick={() => onTyChange("show_calendar", !tySettings.show_calendar)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_calendar ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}>
                       <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tySettings.show_calendar ? "translate-x-4" : "translate-x-0"}`} />
                     </button>
                   </div>
                   {tySettings.show_calendar && (
                     <>
-                      <Input
-                        value={tySettings.calendar_url || ""}
-                        onChange={(e) => onTyChange("calendar_url", e.target.value)}
-                        placeholder="https://calendly.com/..."
-                        dir="ltr"
-                        className="h-8 text-xs"
-                      />
-                      <Input
-                        value={tySettings.calendar_cta_he || ""}
-                        onChange={(e) => onTyChange("calendar_cta_he", e.target.value)}
-                        placeholder="קבעו שיחת ייעוץ עכשיו"
-                        dir="rtl"
-                        className="h-8 text-xs"
-                      />
+                      <Input value={tySettings.calendar_url || ""} onChange={(e) => onTyChange("calendar_url", e.target.value)} placeholder="https://calendly.com/ono/..." dir="ltr" className="h-8 text-xs" />
+                      <Input value={tySettings.calendar_cta_he || ""} onChange={(e) => onTyChange("calendar_cta_he", e.target.value)} placeholder="קבעו שיחת ייעוץ עכשיו" dir="rtl" className="h-8 text-xs" />
                     </>
                   )}
                 </div>
@@ -1516,37 +1536,21 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                 {/* Video */}
                 <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-[#2A2628]">סרטון וידאו</Label>
-                    <button
-                      type="button"
-                      onClick={() => onTyChange("show_video", !tySettings.show_video)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_video ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}
-                    >
+                    <Label className="text-xs font-semibold text-[#2A2628]">סרטון ברכה / מידע</Label>
+                    <button type="button" onClick={() => onTyChange("show_video", !tySettings.show_video)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_video ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}>
                       <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tySettings.show_video ? "translate-x-4" : "translate-x-0"}`} />
                     </button>
                   </div>
                   {tySettings.show_video && (
-                    <Input
-                      value={tySettings.video_url || ""}
-                      onChange={(e) => onTyChange("video_url", e.target.value)}
-                      placeholder="https://youtube.com/watch?v=..."
-                      dir="ltr"
-                      className="h-8 text-xs"
-                    />
+                    <Input value={tySettings.video_url || ""} onChange={(e) => onTyChange("video_url", e.target.value)} placeholder="https://youtube.com/watch?v=..." dir="ltr" className="h-8 text-xs" />
                   )}
                 </div>
 
                 {/* Custom redirect */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-[#2A2628]">הפניה מיוחדת לאחר הרשמה</Label>
-                  <Input
-                    value={tySettings.custom_redirect_url || ""}
-                    onChange={(e) => onTyChange("custom_redirect_url", e.target.value)}
-                    placeholder="https://... (מדלג על עמוד /ty לגמרי)"
-                    dir="ltr"
-                    className="h-9 text-sm"
-                  />
-                  <p className="text-[11px] text-[#9A969A]">אם מוגדר, המשתמש יועבר לכתובת זו במקום לעמוד התודה</p>
+                  <Label className="text-xs font-semibold text-[#2A2628]">הפניה מיוחדת (מדלג על /ty)</Label>
+                  <Input value={tySettings.custom_redirect_url || ""} onChange={(e) => onTyChange("custom_redirect_url", e.target.value)} placeholder="https://..." dir="ltr" className="h-9 text-sm" />
+                  <p className="text-[11px] text-[#9A969A]">אם מוגדר, המשתמש מועבר לכתובת זו ישירות</p>
                 </div>
               </div>
             </div>
@@ -1691,7 +1695,9 @@ export default function PageBuilderPage() {
         setPage(pageRes.data as PageData);
         const customStyles = pageRes.data.custom_styles as Record<string, unknown> | null;
         setPageSettings((customStyles?.page_settings as PageOverrideSettings) || {});
-        setTySettings((customStyles?.thank_you_settings as Partial<ThankYouPageSettings>) || {});
+        // Pre-populate with Ono defaults when no per-page settings exist yet
+        const savedTy = (customStyles?.thank_you_settings as Partial<ThankYouPageSettings>) || {};
+        setTySettings(Object.keys(savedTy).length > 0 ? savedTy : { ...ONO_TY_DEFAULTS });
       }
       if (sectionsRes.data) setSections(sectionsRes.data as PageSection[]);
       setLoading(false);
