@@ -2544,7 +2544,8 @@ export default function PageBuilderPage() {
         /* Auto-open editor for the new section */
         setEditingSection(data as PageSection);
       } else {
-        showToast("שגיאה בהוספת סקציה", "error");
+        console.error("[addSection] insert error:", JSON.stringify(error));
+        showToast(`שגיאה בהוספת סקציה: ${error?.message || error?.code || "unknown"}`, "error");
       }
       setAddingType(null);
     },
