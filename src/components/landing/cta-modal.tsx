@@ -1,3 +1,7 @@
+/**
+ * CTA Modal component with form for lead capture.
+ * Includes CSRF protection, honeypot bot detection, and input validation.
+ */
 "use client";
 
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
@@ -18,10 +22,16 @@ const CtaModalContext = createContext<CtaModalContextType>({
   close: () => {},
 });
 
+/**
+ * Hook to access the CTA modal open/close controls from any child component.
+ */
 export function useCtaModal() {
   return useContext(CtaModalContext);
 }
 
+/**
+ * Provider component that manages CTA modal state.
+ */
 export function CtaModalProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const open = useCallback(() => setIsOpen(true), []);
@@ -44,14 +54,21 @@ interface CtaModalProps {
   programName?: string;
 }
 
+/**
+ * Lead capture modal with form validation, CSRF protection, and honeypot field.
+ * Displayed as a bottom sheet on mobile and centered modal on desktop.
+ */
 export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
   const { isOpen, close } = useCtaModal();
   const [formData, setFormData] = useState({ full_name: "", phone: "", email: "" });
+  const [honeypot, setHoneypot] = useState("");
+  const [csrfToken, setCsrfToken] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Lock body scroll when open
+  /* Lock body scroll when modal is open */
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -61,7 +78,7 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
-  // ESC to close
+  /* Close on ESC key */
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
@@ -70,7 +87,7 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [isOpen, close]);
 
-  // Cookie setup
+  /* Set up cookie ID for tracking */
   useEffect(() => {
     if (!document.cookie.includes("onoleads_id=")) {
       const cookieId = crypto.randomUUID();
@@ -78,6 +95,19 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
     }
   }, []);
 
+  /* Fetch CSRF token from cookie (set by middleware) */
+  useEffect(() => {
+    const token = document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("csrf_token="))
+      ?.split("=")[1] || "";
+    setCsrfToken(token);
+  }, [isOpen]);
+
+  /**
+   * Validates form fields before submission.
+   * @returns true if all required fields are valid
+   */
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.full_name.trim() || formData.full_name.trim().length < 2) {
@@ -95,8 +125,12 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
     return Object.keys(newErrors).length === 0;
   };
 
+  /**
+   * Handles form submission with all security measures.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
     if (!validate()) return;
     setSubmitting(true);
 
@@ -123,6 +157,9 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
         referrer: document.referrer || null,
         cookie_id: cookieId,
         device_type: window.innerWidth < 768 ? "mobile" : window.innerWidth < 1024 ? "tablet" : "desktop",
+        csrf_token: csrfToken,
+        /* Honeypot field - bots will fill this, real users won't see it */
+        website: honeypot,
       };
 
       const res = await fetch("/api/leads", {
@@ -133,21 +170,31 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
 
       if (res.ok) {
         setSubmitted(true);
+      } else {
+        const errorData = await res.json().catch(() => null);
+        setSubmitError(
+          errorData?.error || "אירעה שגיאה. אנא נסו שוב."
+        );
       }
     } catch (err) {
       console.error("Form submission failed:", err);
+      setSubmitError("אירעה שגיאה בחיבור. אנא נסו שוב.");
     }
     setSubmitting(false);
   };
 
+  /**
+   * Handles modal close with state cleanup.
+   */
   const handleClose = () => {
     close();
-    // Reset after animation
     setTimeout(() => {
       if (submitted) {
         setSubmitted(false);
         setFormData({ full_name: "", phone: "", email: "" });
+        setHoneypot("");
         setErrors({});
+        setSubmitError(null);
       }
     }, 300);
   };
@@ -155,11 +202,17 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
+    <div
+      className="fixed inset-0 z-[100] flex items-end md:items-center justify-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label="טופס השארת פרטים"
+    >
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
         onClick={handleClose}
+        aria-hidden="true"
       />
 
       {/* Modal */}
@@ -218,50 +271,100 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
                   )}
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4" dir="rtl">
+                {/* Server-side error message */}
+                {submitError && (
+                  <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm text-center">
+                    {submitError}
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4" dir="rtl" noValidate>
+                  {/* Honeypot field - hidden from real users, bots will fill it */}
+                  <div aria-hidden="true" className="absolute -left-[9999px] -top-[9999px]">
+                    <label htmlFor="website">אל תמלאו שדה זה</label>
+                    <input
+                      id="website"
+                      name="website"
+                      type="text"
+                      value={honeypot}
+                      onChange={(e) => setHoneypot(e.target.value)}
+                      tabIndex={-1}
+                      autoComplete="off"
+                    />
+                  </div>
+
                   {/* Full Name */}
                   <div>
+                    <label htmlFor="full_name" className="sr-only">שם מלא</label>
                     <input
+                      id="full_name"
                       type="text"
                       value={formData.full_name}
                       onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                       placeholder="שם מלא *"
+                      autoComplete="name"
                       className="w-full h-13 rounded-xl bg-white/8 border border-white/15 px-4 text-white text-base placeholder:text-white/35 focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
+                      aria-required="true"
+                      aria-invalid={!!errors.full_name}
+                      aria-describedby={errors.full_name ? "full_name_error" : undefined}
                     />
                     {errors.full_name && (
-                      <p className="text-red-400 text-xs mt-1.5 font-medium">{errors.full_name}</p>
+                      <p id="full_name_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium">{errors.full_name}</p>
                     )}
                   </div>
 
                   {/* Phone */}
                   <div>
+                    <label htmlFor="phone" className="sr-only">טלפון</label>
                     <input
+                      id="phone"
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="טלפון *"
                       dir="ltr"
+                      autoComplete="tel"
                       className="w-full h-13 rounded-xl bg-white/8 border border-white/15 px-4 text-white text-base placeholder:text-white/35 text-left focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
+                      aria-required="true"
+                      aria-invalid={!!errors.phone}
+                      aria-describedby={errors.phone ? "phone_error" : undefined}
                     />
                     {errors.phone && (
-                      <p className="text-red-400 text-xs mt-1.5 font-medium">{errors.phone}</p>
+                      <p id="phone_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium">{errors.phone}</p>
                     )}
                   </div>
 
                   {/* Email */}
                   <div>
+                    <label htmlFor="email" className="sr-only">אימייל</label>
                     <input
+                      id="email"
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="אימייל"
                       dir="ltr"
+                      autoComplete="email"
                       className="w-full h-13 rounded-xl bg-white/8 border border-white/15 px-4 text-white text-base placeholder:text-white/35 text-left focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
+                      aria-invalid={!!errors.email}
+                      aria-describedby={errors.email ? "email_error" : undefined}
                     />
                     {errors.email && (
-                      <p className="text-red-400 text-xs mt-1.5 font-medium">{errors.email}</p>
+                      <p id="email_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium">{errors.email}</p>
                     )}
                   </div>
+
+                  {/* Privacy consent notice */}
+                  <p className="text-white/30 text-xs leading-relaxed">
+                    בלחיצה על &quot;שלחו לי מידע&quot; אני מסכים/ה ל
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#B8D900]/70 hover:text-[#B8D900] underline mx-1">
+                      תנאי השימוש
+                    </a>
+                    ול
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#B8D900]/70 hover:text-[#B8D900] underline mx-1">
+                      מדיניות הפרטיות
+                    </a>
+                  </p>
 
                   {/* Submit */}
                   <button
@@ -271,7 +374,7 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
                   >
                     {submitting ? (
                       <span className="flex items-center justify-center gap-2">
-                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                         </svg>
@@ -286,14 +389,14 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
                 {/* Trust indicators */}
                 <div className="flex items-center justify-center gap-4 mt-5 text-white/30 text-xs">
                   <span className="flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                     ללא התחייבות
                   </span>
-                  <span className="w-px h-3 bg-white/15" />
+                  <span className="w-px h-3 bg-white/15" aria-hidden="true" />
                   <span className="flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                     פרטיותכם מובטחת
@@ -312,6 +415,9 @@ export function CtaModal({ pageId, programId, programName }: CtaModalProps) {
 // Floating CTA Button
 // ============================================================================
 
+/**
+ * Floating "leave details" button that appears after scrolling.
+ */
 export function FloatingCtaButton() {
   const { open } = useCtaModal();
   const [visible, setVisible] = useState(false);
@@ -335,7 +441,7 @@ export function FloatingCtaButton() {
       aria-label="השאירו פרטים"
     >
       <span>השאירו פרטים</span>
-      <svg className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <svg className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M10 6l6 6-6 6" />
       </svg>
     </button>

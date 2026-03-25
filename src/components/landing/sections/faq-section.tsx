@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * FAQ Section - Clean accordion with smooth expand/collapse animations,
+ * green accent on active question, and Schema.org FAQPage JSON-LD for SEO.
+ */
+
 import { useState, useEffect, useRef } from "react";
 import type { Language } from "@/lib/types/database";
 
@@ -38,7 +43,7 @@ export function FaqSection({ content, language }: FaqSectionProps) {
 
   if (items.length === 0) return null;
 
-  // Schema.org FAQPage JSON-LD
+  /* ---- Schema.org FAQPage structured data ---- */
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -60,21 +65,27 @@ export function FaqSection({ content, language }: FaqSectionProps) {
       />
 
       <div className="max-w-3xl mx-auto px-5">
+        {/* Header */}
         <div className="text-center mb-14">
-          <span
-            className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4 opacity-0"
+          <div
+            className="inline-flex items-center gap-3 mb-5 opacity-0"
             style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
           >
-            {isRtl ? "שאלות ותשובות" : "Q&A"}
-          </span>
+            <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
+              {isRtl ? "שאלות ותשובות" : "Q&A"}
+            </span>
+            <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+          </div>
           <h2
-            className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628] opacity-0"
+            className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
             style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
           >
             {heading}
           </h2>
         </div>
 
+        {/* Accordion items */}
         <div className="space-y-3">
           {items.map((item, index) => {
             const question = (item[`question_${language}` as keyof FaqItem] as string) || item.question_he || "";
@@ -86,7 +97,7 @@ export function FaqSection({ content, language }: FaqSectionProps) {
                 key={index}
                 className={`rounded-2xl border transition-all duration-300 overflow-hidden opacity-0 ${
                   isOpen
-                    ? "border-[#B8D900]/30 bg-white shadow-[0_4px_20px_rgba(184,217,0,0.06)]"
+                    ? "border-[#B8D900]/40 bg-white shadow-[0_4px_24px_rgba(184,217,0,0.08)]"
                     : "border-gray-200 bg-white hover:border-[#B8D900]/20"
                 }`}
                 style={{ animation: inView ? `fade-in-up 0.5s ease-out ${0.15 + index * 0.06}s forwards` : "none" }}
@@ -98,15 +109,17 @@ export function FaqSection({ content, language }: FaqSectionProps) {
                 >
                   <div className="flex items-start gap-4">
                     {/* Green accent bar */}
-                    <div className={`w-1 h-6 mt-0.5 rounded-full transition-all duration-300 ${
+                    <div className={`w-1 self-stretch rounded-full transition-all duration-300 shrink-0 ${
                       isOpen ? "bg-[#B8D900]" : "bg-gray-200 group-hover:bg-[#B8D900]/50"
                     }`} />
                     <span className="font-heading text-base md:text-lg font-bold text-[#2a2628] leading-snug">
                       {question}
                     </span>
                   </div>
-                  <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 mr-4 ${
-                    isOpen ? "bg-[#B8D900] rotate-180" : "bg-gray-100 group-hover:bg-[#B8D900]/15"
+                  <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${isRtl ? "ml-4" : "mr-4"} ${
+                    isOpen
+                      ? "bg-[#B8D900] rotate-180 shadow-[0_0_15px_rgba(184,217,0,0.3)]"
+                      : "bg-gray-100 group-hover:bg-[#B8D900]/15"
                   }`}>
                     <svg
                       className={`w-4 h-4 transition-colors ${isOpen ? "text-[#2a2628]" : "text-[#716C70]"}`}
@@ -117,11 +130,16 @@ export function FaqSection({ content, language }: FaqSectionProps) {
                   </div>
                 </button>
 
-                <div className={`overflow-hidden transition-all duration-300 ${
-                  isOpen ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
-                }`}>
-                  <div className="px-5 md:px-6 pb-6 mr-5">
-                    <p className="text-[#716C70] text-base leading-[1.8]">{answer}</p>
+                {/* Answer with smooth animation */}
+                <div
+                  className={`grid transition-all duration-300 ease-in-out ${
+                    isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className={`px-5 md:px-6 pb-6 ${isRtl ? "pr-10" : "pl-10"}`}>
+                      <p className="font-heebo text-[#716C70] text-base leading-[1.8]">{answer}</p>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * Program Info Bar - Horizontal bar with 3-4 key facts about the program
+ * (duration, campus, schedule, degree). Floats over the hero-to-content
+ * transition with a white card design and icon for each fact.
+ */
+
+import { useEffect, useRef, useState } from "react";
 import type { Language } from "@/lib/types/database";
 
 interface ProgramInfoBarProps {
@@ -13,6 +20,7 @@ interface InfoItem {
   value: string;
 }
 
+/* ---- Icon set for each fact type ---- */
 const ICONS: Record<string, JSX.Element> = {
   duration: (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -40,10 +48,23 @@ const ICONS: Record<string, JSX.Element> = {
 
 export function ProgramInfoBar({ content, language }: ProgramInfoBarProps) {
   const isRtl = language === "he" || language === "ar";
+  const [inView, setInView] = useState(false);
+  const barRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } },
+      { threshold: 0.3 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
 
   const items: InfoItem[] = (content.items as InfoItem[]) || [];
 
-  // Build default items from content fields if no items array
+  /* Build default items from content fields if no items array */
   const displayItems: InfoItem[] = items.length > 0 ? items : [
     ...(content.duration ? [{
       icon: "duration",
@@ -70,20 +91,23 @@ export function ProgramInfoBar({ content, language }: ProgramInfoBarProps) {
   if (displayItems.length === 0) return null;
 
   return (
-    <section className="relative -mt-8 z-20 pb-8" dir={isRtl ? "rtl" : "ltr"}>
+    <section ref={barRef} className="relative -mt-8 z-20 pb-8" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-4xl mx-auto px-5">
-        <div className="bg-white rounded-2xl shadow-[0_4px_40px_rgba(0,0,0,0.08)] border border-gray-100 overflow-hidden">
+        <div
+          className="bg-white rounded-2xl shadow-[0_4px_40px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden opacity-0"
+          style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
+        >
           <div className={`grid grid-cols-2 md:grid-cols-${Math.min(displayItems.length, 4)} divide-x divide-gray-100 ${isRtl ? "divide-x-reverse" : ""}`}>
             {displayItems.map((item, index) => (
               <div
                 key={index}
-                className="flex flex-col items-center gap-1.5 py-5 px-4 text-center"
+                className="group flex flex-col items-center gap-2 py-6 px-4 text-center hover:bg-[#B8D900]/[0.03] transition-colors duration-300"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#B8D900]/10 flex items-center justify-center text-[#9ab800] mb-1">
+                <div className="w-11 h-11 rounded-xl bg-[#B8D900]/10 flex items-center justify-center text-[#9ab800] mb-1 group-hover:bg-[#B8D900] group-hover:text-[#2a2628] transition-all duration-300">
                   {ICONS[item.icon] || ICONS.degree}
                 </div>
-                <span className="text-xs text-[#716C70] font-medium">{item.label}</span>
-                <span className="text-sm md:text-base font-heading font-bold text-[#2a2628]">{item.value}</span>
+                <span className="font-heebo text-xs text-[#716C70] font-medium">{item.label}</span>
+                <span className="font-heading text-sm md:text-base font-bold text-[#2a2628]">{item.value}</span>
               </div>
             ))}
           </div>

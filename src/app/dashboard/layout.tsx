@@ -36,10 +36,10 @@ export default function DashboardLayout({
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F5F5F5]">
+    <div className="flex h-screen overflow-hidden bg-[#f3f4f6]" dir="rtl">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex lg:w-[260px] lg:shrink-0 border-l border-[#E5E5E5]">
-        <div className="w-full">
+      <aside className="hidden lg:flex lg:w-[260px] lg:shrink-0">
+        <div className="w-full shadow-xl shadow-black/10">
           <Sidebar />
         </div>
       </aside>
@@ -49,7 +49,7 @@ export default function DashboardLayout({
         <SheetContent
           side="right"
           showCloseButton={false}
-          className="p-0 w-[280px] bg-[#4A4648] border-0"
+          className="p-0 w-[280px] border-0 shadow-2xl"
         >
           <SheetTitle className="sr-only">תפריט ניווט</SheetTitle>
           <Sidebar onNavigate={() => setSidebarOpen(false)} />
@@ -64,7 +64,7 @@ export default function DashboardLayout({
         />
 
         <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6 max-w-[1400px] mx-auto">
+          <div className="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto animate-fade-in">
             {children}
           </div>
         </main>

@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * Benefits Section - 3-column grid of benefit cards with icons,
+ * green accent on hover, and smooth staggered entrance animations.
+ * Supports both structured items and plain string arrays from scraped data.
+ */
+
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "@/lib/types/database";
 
@@ -16,6 +22,7 @@ interface BenefitsSectionProps {
   language: Language;
 }
 
+/* ---- Icon library for benefit cards ---- */
 const BENEFIT_ICONS: Record<string, JSX.Element> = {
   faculty: (
     <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -24,7 +31,7 @@ const BENEFIT_ICONS: Record<string, JSX.Element> = {
   ),
   practical: (
     <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17l-5.1-5.1m0 0L11.42 4.97m-5.1 5.1H21M3 21h18" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
     </svg>
   ),
   placement: (
@@ -47,8 +54,17 @@ const BENEFIT_ICONS: Record<string, JSX.Element> = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
     </svg>
   ),
+  star: (
+    <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+    </svg>
+  ),
 };
 
+/** Fallback icon order for items without explicit icon key */
+const ICON_CYCLE = ["star", "faculty", "practical", "placement", "campuses", "scholarship", "career"];
+
+/** Default benefits when no data is provided */
 const DEFAULT_BENEFITS: BenefitItem[] = [
   { icon: "faculty", title_he: "סגל אקדמי מוביל", description_he: "מרצים מהשורה הראשונה בתעשייה ובאקדמיה" },
   { icon: "practical", title_he: "הכשרה מעשית", description_he: "שילוב תיאוריה ופרקטיקה מהיום הראשון" },
@@ -58,10 +74,30 @@ const DEFAULT_BENEFITS: BenefitItem[] = [
   { icon: "career", title_he: "ליווי קריירה אישי", description_he: "מרכז קריירה וסדנאות הכנה לעולם העבודה" },
 ];
 
+/**
+ * Normalizes items from various data shapes:
+ * - Array of BenefitItem objects (structured)
+ * - Array of strings (from scraped data)
+ */
+function normalizeItems(raw: unknown): BenefitItem[] {
+  if (!Array.isArray(raw)) return DEFAULT_BENEFITS;
+  if (raw.length === 0) return DEFAULT_BENEFITS;
+
+  return raw.map((item, i) => {
+    if (typeof item === "string") {
+      return {
+        icon: ICON_CYCLE[i % ICON_CYCLE.length],
+        title_he: item,
+      };
+    }
+    return item as BenefitItem;
+  });
+}
+
 export function BenefitsSection({ content, language }: BenefitsSectionProps) {
   const isRtl = language === "he" || language === "ar";
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "למה ללמוד באונו?" : "Why choose Ono?");
-  const items: BenefitItem[] = (content.items as BenefitItem[]) || DEFAULT_BENEFITS;
+  const items = normalizeItems(content.items);
 
   const [inView, setInView] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -78,39 +114,51 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-20 md:py-28 bg-gray-50" dir={isRtl ? "rtl" : "ltr"}>
+    <section ref={sectionRef} className="py-20 md:py-28 bg-[#fafafa]" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-6xl mx-auto px-5">
-        <div className="text-center mb-14">
-          <span
-            className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4 opacity-0"
+        {/* Section header */}
+        <div className="text-center mb-16">
+          <div
+            className="inline-flex items-center gap-3 mb-5 opacity-0"
             style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
           >
-            {isRtl ? "היתרונות שלנו" : "Our Advantages"}
-          </span>
+            <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
+              {isRtl ? "היתרונות שלנו" : "Our Advantages"}
+            </span>
+            <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+          </div>
           <h2
-            className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628] opacity-0"
+            className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
             style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
           >
             {heading}
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+        {/* 3-column card grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-7">
           {items.map((item, index) => {
             const title = (item[`title_${language}` as keyof BenefitItem] as string) || item.title_he;
             const desc = (item[`description_${language}` as keyof BenefitItem] as string) || item.description_he || "";
+            const iconKey = item.icon || ICON_CYCLE[index % ICON_CYCLE.length];
 
             return (
               <div
                 key={index}
-                className="group bg-white rounded-2xl p-6 md:p-7 border border-gray-100 hover:border-[#B8D900]/30 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300 opacity-0"
+                className="group relative bg-white rounded-2xl p-7 md:p-8 border border-gray-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] hover:border-[#B8D900]/40 hover:shadow-[0_12px_40px_rgba(184,217,0,0.1)] transition-all duration-400 opacity-0 hover:-translate-y-1"
                 style={{ animation: inView ? `fade-in-up 0.5s ease-out ${0.1 + index * 0.08}s forwards` : "none" }}
               >
-                <div className="w-14 h-14 rounded-2xl bg-[#B8D900]/10 flex items-center justify-center text-[#9ab800] mb-5 group-hover:bg-[#B8D900]/20 transition-colors">
-                  {BENEFIT_ICONS[item.icon || ""] || BENEFIT_ICONS.faculty}
+                {/* Green top accent line on hover */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-[#B8D900] rounded-t-2xl scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center" />
+
+                <div className="w-14 h-14 rounded-2xl bg-[#B8D900]/10 flex items-center justify-center text-[#9ab800] mb-5 group-hover:bg-[#B8D900] group-hover:text-[#2a2628] transition-all duration-300">
+                  {BENEFIT_ICONS[iconKey] || BENEFIT_ICONS.star}
                 </div>
-                <h3 className="font-heading font-bold text-lg text-[#2a2628] mb-2">{title}</h3>
-                {desc && <p className="text-[#716C70] text-sm leading-relaxed">{desc}</p>}
+                <h3 className="font-heading font-bold text-lg text-[#2a2628] mb-2 leading-snug">{title}</h3>
+                {desc && (
+                  <p className="font-heebo text-[#716C70] text-sm leading-relaxed">{desc}</p>
+                )}
               </div>
             );
           })}

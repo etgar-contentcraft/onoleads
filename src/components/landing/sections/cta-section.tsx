@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * CTA Section - Clean, minimal call-to-action with a large heading,
+ * short description, one primary button (opens CTA modal), and phone link.
+ * No inline form - all leads go through the modal.
+ */
+
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
@@ -12,6 +18,8 @@ interface CtaSectionProps {
 export function CtaSection({ content, language }: CtaSectionProps) {
   const { open } = useCtaModal();
   const isRtl = language === "he" || language === "ar";
+
+  /* ---- Content fields ---- */
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "מוכנים להתחיל?" : "Ready to start?");
   const description = (content[`description_${language}`] as string) || (content.description_he as string) || (isRtl ? "השאירו פרטים ויועץ לימודים יחזור אליכם" : "");
   const buttonText = (content[`button_text_${language}`] as string) || (content.button_text_he as string) || (isRtl ? "לפרטים נוספים" : "Get info");
@@ -34,10 +42,10 @@ export function CtaSection({ content, language }: CtaSectionProps) {
   return (
     <section
       ref={sectionRef}
-      className="relative py-16 md:py-24 overflow-hidden"
+      className="relative py-20 md:py-28 overflow-hidden"
       dir={isRtl ? "rtl" : "ltr"}
     >
-      {/* Background gradient */}
+      {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#B8D900] via-[#c8e920] to-[#B8D900]" />
 
       {/* Decorative pattern */}
@@ -53,10 +61,11 @@ export function CtaSection({ content, language }: CtaSectionProps) {
       </div>
 
       {/* Decorative shapes */}
-      <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-white/8" />
-      <div className="absolute -bottom-20 -left-20 w-80 h-80 rounded-full bg-white/8" />
+      <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/10" />
+      <div className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full bg-white/10" />
 
       <div className="relative z-10 max-w-3xl mx-auto px-5 text-center">
+        {/* Heading */}
         <h2
           className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] mb-4 opacity-0"
           style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
@@ -64,30 +73,37 @@ export function CtaSection({ content, language }: CtaSectionProps) {
           {heading}
         </h2>
 
+        {/* Description */}
         {description && (
           <p
-            className="text-lg md:text-xl text-[#2a2628]/60 mb-8 max-w-xl mx-auto opacity-0"
+            className="font-heebo text-lg md:text-xl text-[#2a2628]/60 mb-10 max-w-xl mx-auto opacity-0"
             style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.15s forwards" : "none" }}
           >
             {description}
           </p>
         )}
 
+        {/* Buttons */}
         <div
           className="flex flex-col sm:flex-row items-center justify-center gap-4 opacity-0"
           style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.3s forwards" : "none" }}
         >
+          {/* Primary CTA - opens modal */}
           <button
             onClick={open}
-            className="inline-flex items-center justify-center px-10 py-5 rounded-2xl bg-[#2a2628] text-white font-heading font-bold text-lg transition-all duration-300 hover:bg-[#3a3638] hover:shadow-[0_8px_30px_rgba(0,0,0,0.2)] hover:scale-[1.03] active:scale-[0.98]"
+            className="group inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#2a2628] text-white font-heading font-bold text-lg transition-all duration-300 hover:bg-[#3a3638] hover:shadow-[0_8px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] active:scale-[0.98]"
           >
             {buttonText}
+            <svg className="w-5 h-5 transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6l6 6-6 6" />
+            </svg>
           </button>
 
+          {/* Phone link */}
           {phone && (
             <a
               href={`tel:${phone}`}
-              className="inline-flex items-center justify-center gap-2 px-8 py-5 rounded-2xl bg-white/30 backdrop-blur-md text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-white/50 hover:scale-[1.03] active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-2.5 px-8 py-5 rounded-2xl bg-white/30 backdrop-blur-md text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-white/50 hover:scale-[1.03] active:scale-[0.98]"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />

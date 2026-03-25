@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import type { Language, PageSection, Program } from "@/lib/types/database";
 import { CtaModalProvider, CtaModal, FloatingCtaButton, useCtaModal } from "./cta-modal";
+import { CookieConsent } from "../compliance/cookie-consent";
+import { AccessibilityWidget } from "../compliance/accessibility-widget";
 import { HeroSection } from "./sections/hero-section";
 import { ProgramInfoBar } from "./sections/program-info-bar";
 import { AboutSection } from "./sections/about-section";
@@ -278,7 +280,7 @@ function InnerLayout({
   });
 
   return (
-    <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-white">
+    <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-white font-heebo">
       {/* Sticky Header */}
       <StickyHeader
         programName={pageTitle || program?.name_he}
@@ -318,9 +320,23 @@ function InnerLayout({
       </main>
 
       {/* Footer */}
-      <footer className="py-10 bg-[#2a2628]" dir={isRtl ? "rtl" : "ltr"}>
+      <footer className="py-12 bg-[#2a2628]" dir={isRtl ? "rtl" : "ltr"}>
         <div className="max-w-6xl mx-auto px-5">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Branding line */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 mb-3">
+              <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+              <span className="text-[#B8D900] font-heading font-bold text-sm tracking-wider">
+                המכללה המומלצת בישראל
+              </span>
+              <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+            </div>
+            <h3 className="font-heading text-xl text-white/90 font-bold">
+              הקריה האקדמית אונו
+            </h3>
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-6 border-t border-white/10">
             <div className="flex items-center gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -333,20 +349,26 @@ function InnerLayout({
                 <p className="text-white/90 font-heading font-bold text-sm">
                   הקריה האקדמית אונו
                 </p>
-                <p className="text-xs text-white/50">המכללה המומלצת בישראל</p>
+                <p className="text-xs text-white/50 font-heebo">המכללה המומלצת בישראל</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-6 text-white/50 text-sm">
+            <div className="flex items-center gap-6 text-white/50 text-sm font-heebo">
               <a href="tel:*2899" className="hover:text-[#B8D900] transition-colors">*2899</a>
               <a href="https://www.ono.ac.il" target="_blank" rel="noopener noreferrer" className="hover:text-[#B8D900] transition-colors">
                 ono.ac.il
               </a>
             </div>
 
-            <p className="text-xs text-white/40">
-              &copy; {new Date().getFullYear()} הקריה האקדמית אונו. כל הזכויות שמורות.
-            </p>
+            <div className="flex items-center gap-4 text-white/50 text-xs font-heebo">
+              <a href="/privacy" className="hover:text-[#B8D900] transition-colors">מדיניות פרטיות</a>
+              <span className="w-px h-3 bg-white/20" />
+              <a href="/terms" className="hover:text-[#B8D900] transition-colors">תנאי שימוש</a>
+              <span className="w-px h-3 bg-white/20" />
+              <p className="text-white/40">
+                &copy; {new Date().getFullYear()} הקריה האקדמית אונו
+              </p>
+            </div>
           </div>
         </div>
       </footer>
@@ -364,6 +386,10 @@ function InnerLayout({
         programId={programId}
         programName={pageTitle || program?.name_he}
       />
+
+      {/* Compliance widgets */}
+      <CookieConsent />
+      <AccessibilityWidget />
     </div>
   );
 }
