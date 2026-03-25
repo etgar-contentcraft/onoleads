@@ -348,8 +348,8 @@ function buildHeroSection(
     content: {
       heading_he: `${degreeLabel} ${program.name_he}`,
       subheading_he: scraped
-        ? scraped.description_he.substring(0, 120) +
-          (scraped.description_he.length > 120 ? "..." : "")
+        ? scraped.description_he.substring(0, 200) +
+          (scraped.description_he.length > 200 ? "..." : "")
         : "הקריה האקדמית אונו - המכללה המומלצת בישראל",
       cta_text_he: "לפרטים נוספים",
       stat_value: statValue,

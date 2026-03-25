@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * GenericEditor — editing panels for all section types except hero.
+ * Every text field shows a live character counter and has a tooltip explaining its purpose.
+ */
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2 } from "lucide-react";
+import { CharCount } from "../char-count";
 
 type GenericContent = Record<string, unknown>;
 
@@ -16,36 +22,80 @@ interface GenericEditorProps {
   onChange: (content: GenericContent) => void;
 }
 
+/** Labeled field row with optional char counter and tooltip */
+function F({
+  label,
+  tip,
+  max,
+  value,
+  children,
+}: {
+  label: string;
+  tip?: string;
+  max?: number;
+  value?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <Label title={tip} className={`text-xs font-semibold leading-none ${tip ? "cursor-help" : ""}`}>
+          {label}
+          {tip && <span className="mr-1 text-[#9A969A] text-[10px]">ℹ</span>}
+        </Label>
+        {max !== undefined && value !== undefined && <CharCount value={value} max={max} />}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Video ────────────────────────────────────────────────────────────────────
+
 function VideoEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Video URL</Label>
+      <F label="Video URL" tip="קישור YouTube או Vimeo. YouTube: youtube.com/watch?v=... | Vimeo: vimeo.com/...">
         <Input
           value={(content.video_url as string) || ""}
           onChange={(e) => onChange({ ...content, video_url: e.target.value })}
-          placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+          placeholder="https://youtube.com/watch?v=..."
         />
-        <p className="text-xs text-muted-foreground">YouTube or Vimeo URL</p>
-      </div>
-      <div className="space-y-2">
-        <Label>Poster Image URL (optional)</Label>
+      </F>
+      <F
+        label="כותרת (עברית)"
+        tip="כותרת שמוצגת מעל הסרטון. אופציונלי."
+        max={60}
+        value={(content.heading_he as string) || ""}
+      >
+        <Input
+          value={(content.heading_he as string) || ""}
+          onChange={(e) => onChange({ ...content, heading_he: e.target.value })}
+          placeholder="צפו בסרטון הסיור שלנו"
+          dir="rtl"
+        />
+      </F>
+      <F label="תמונת פוסטר (אופציונלי)" tip="תמונה שמוצגת לפני שהסרטון מופעל. מידות: 1280×720px (16:9). JPG/WebP.">
         <Input
           value={(content.poster_url as string) || ""}
           onChange={(e) => onChange({ ...content, poster_url: e.target.value })}
           placeholder="https://..."
         />
-      </div>
+      </F>
       <div className="flex items-center gap-2">
         <Switch
           checked={(content.autoplay as boolean) || false}
           onCheckedChange={(checked) => onChange({ ...content, autoplay: checked })}
         />
-        <Label>Autoplay</Label>
+        <Label title="הסרטון יתחיל לפעול אוטומטית. שים לב: אוטוהפעל ללא קול בלבד בדפדפנים מודרניים.">
+          הפעלה אוטומטית
+        </Label>
       </div>
     </div>
   );
 }
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
 
 function StatsEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
   const items = (content.items as Array<{ value: string; label_he: string; label_en: string; suffix?: string }>) || [];
@@ -56,52 +106,68 @@ function StatsEditorFields({ content, onChange }: { content: GenericContent; onC
     onChange({ ...content, items: newItems });
   };
 
-  const addItem = () => {
-    onChange({ ...content, items: [...items, { value: "", label_he: "", label_en: "", suffix: "" }] });
-  };
-
-  const removeItem = (index: number) => {
-    onChange({ ...content, items: items.filter((_, i) => i !== index) });
-  };
-
   return (
     <div className="space-y-4">
+      <F
+        label="כותרת (עברית)"
+        tip="כותרת הסקשן שמוצגת מעל המספרים. אופציונלי — אפשר להשאיר ריק."
+        max={50}
+        value={(content.heading_he as string) || ""}
+      >
+        <Input
+          value={(content.heading_he as string) || ""}
+          onChange={(e) => onChange({ ...content, heading_he: e.target.value })}
+          placeholder="המספרים מדברים"
+          dir="rtl"
+        />
+      </F>
       {items.map((item, index) => (
         <div key={index} className="p-3 rounded-lg border border-border bg-muted/30 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Stat {index + 1}</span>
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeItem(index)}>
+            <span className="text-xs font-semibold text-[#9A969A]">נתון {index + 1}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" title="מחק נתון" onClick={() => onChange({ ...content, items: items.filter((_, i) => i !== index) })}>
               <Trash2 className="w-3 h-3" />
             </Button>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-xs">Value</Label>
-              <Input value={item.value} onChange={(e) => updateItem(index, { ...item, value: e.target.value })} placeholder="50,000" className="h-8 text-xs" />
+              <div className="flex justify-between">
+                <Label className="text-xs" title="המספר או האחוז שיוצג בגדול. לדוג': 90%, 50,000+">ערך</Label>
+                <CharCount value={item.value} max={10} />
+              </div>
+              <Input value={item.value} onChange={(e) => updateItem(index, { ...item, value: e.target.value })} placeholder="90%" className="h-8 text-xs" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Suffix</Label>
+              <Label className="text-xs" title="מה מציגים לאחר הערך. למשל '+' או '%'.">סיומת</Label>
               <Input value={item.suffix || ""} onChange={(e) => updateItem(index, { ...item, suffix: e.target.value })} placeholder="+" className="h-8 text-xs" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <Label className="text-xs">Label (HE)</Label>
+              <div className="flex justify-between">
+                <Label className="text-xs" title="תיאור הנתון בעברית. מוצג מתחת למספר.">תווית (עברית)</Label>
+                <CharCount value={item.label_he} max={30} />
+              </div>
               <Input value={item.label_he} onChange={(e) => updateItem(index, { ...item, label_he: e.target.value })} dir="rtl" className="h-8 text-xs" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Label (EN)</Label>
+              <div className="flex justify-between">
+                <Label className="text-xs" title="Stat label in English.">Label (EN)</Label>
+                <CharCount value={item.label_en} max={30} />
+              </div>
               <Input value={item.label_en} onChange={(e) => updateItem(index, { ...item, label_en: e.target.value })} className="h-8 text-xs" />
             </div>
           </div>
         </div>
       ))}
-      <Button variant="outline" size="sm" onClick={addItem} className="w-full">
-        <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Stat
+      <Button variant="outline" size="sm" title="הוסף נתון סטטיסטי נוסף (מומלץ: עד 4 נתונים)" onClick={() => onChange({ ...content, items: [...items, { value: "", label_he: "", label_en: "", suffix: "" }] })} className="w-full">
+        <Plus className="w-3.5 h-3.5 mr-1.5" /> הוסף נתון
       </Button>
     </div>
   );
 }
+
+// ─── Testimonials ─────────────────────────────────────────────────────────────
 
 function TestimonialsEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
   const items = (content.items as Array<{ name: string; role_he: string; role_en?: string; quote_he: string; quote_en?: string; image_url?: string }>) || [];
@@ -112,48 +178,69 @@ function TestimonialsEditorFields({ content, onChange }: { content: GenericConte
     onChange({ ...content, items: newItems });
   };
 
-  const addItem = () => {
-    onChange({ ...content, items: [...items, { name: "", role_he: "", quote_he: "", quote_en: "" }] });
-  };
-
-  const removeItem = (index: number) => {
-    onChange({ ...content, items: items.filter((_, i) => i !== index) });
-  };
-
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Section Heading (HE)</Label>
+      <F label="כותרת (עברית)" tip="כותרת סקשן ההמלצות. אופציונלי." max={50} value={(content.heading_he as string) || ""}>
         <Input value={(content.heading_he as string) || ""} onChange={(e) => onChange({ ...content, heading_he: e.target.value })} dir="rtl" placeholder="מה אומרים הסטודנטים" />
-      </div>
-      <div className="space-y-2">
-        <Label>Section Heading (EN)</Label>
-        <Input value={(content.heading_en as string) || ""} onChange={(e) => onChange({ ...content, heading_en: e.target.value })} placeholder="What students say" />
-      </div>
+      </F>
       {items.map((item, index) => (
         <div key={index} className="p-3 rounded-lg border border-border bg-muted/30 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Testimonial {index + 1}</span>
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeItem(index)}>
+            <span className="text-xs font-semibold text-[#9A969A]">המלצה {index + 1}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" title="מחק המלצה" onClick={() => onChange({ ...content, items: items.filter((_, i) => i !== index) })}>
               <Trash2 className="w-3 h-3" />
             </Button>
           </div>
-          <Input value={item.name} onChange={(e) => updateItem(index, { ...item, name: e.target.value })} placeholder="Name" className="h-8 text-xs" />
-          <div className="grid grid-cols-2 gap-2">
-            <Input value={item.role_he} onChange={(e) => updateItem(index, { ...item, role_he: e.target.value })} placeholder="תפקיד" dir="rtl" className="h-8 text-xs" />
-            <Input value={item.role_en || ""} onChange={(e) => updateItem(index, { ...item, role_en: e.target.value })} placeholder="Role" className="h-8 text-xs" />
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <Label className="text-xs" title="שם מלא של הסטודנט/ית.">שם</Label>
+              <CharCount value={item.name} max={30} />
+            </div>
+            <Input value={item.name} onChange={(e) => updateItem(index, { ...item, name: e.target.value })} placeholder="ישראל ישראלי" className="h-8 text-xs" />
           </div>
-          <Textarea value={item.quote_he} onChange={(e) => updateItem(index, { ...item, quote_he: e.target.value })} placeholder="ציטוט..." dir="rtl" rows={2} className="text-xs" />
-          <Textarea value={item.quote_en || ""} onChange={(e) => updateItem(index, { ...item, quote_en: e.target.value })} placeholder="Quote..." rows={2} className="text-xs" />
-          <Input value={item.image_url || ""} onChange={(e) => updateItem(index, { ...item, image_url: e.target.value })} placeholder="Image URL (optional)" className="h-8 text-xs" />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <Label className="text-xs" title="תפקיד/תואר שהסטודנט לומד או למד.">תפקיד (עברית)</Label>
+                <CharCount value={item.role_he} max={40} />
+              </div>
+              <Input value={item.role_he} onChange={(e) => updateItem(index, { ...item, role_he: e.target.value })} placeholder="בוגר תואר ראשון" dir="rtl" className="h-8 text-xs" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <Label className="text-xs" title="Role in English.">Role (EN)</Label>
+                <CharCount value={item.role_en || ""} max={40} />
+              </div>
+              <Input value={item.role_en || ""} onChange={(e) => updateItem(index, { ...item, role_en: e.target.value })} placeholder="BA Graduate" className="h-8 text-xs" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <Label className="text-xs" title="ציטוט ישיר בגוף ראשון. עד 150 תווים לתצוגה מיטבית.">ציטוט (עברית)</Label>
+              <CharCount value={item.quote_he} max={150} />
+            </div>
+            <Textarea value={item.quote_he} onChange={(e) => updateItem(index, { ...item, quote_he: e.target.value })} placeholder="אונו שינתה את הכיוון שלי..." dir="rtl" rows={2} className="text-xs" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <Label className="text-xs" title="Quote in English.">Quote (EN)</Label>
+              <CharCount value={item.quote_en || ""} max={150} />
+            </div>
+            <Textarea value={item.quote_en || ""} onChange={(e) => updateItem(index, { ...item, quote_en: e.target.value })} placeholder="Ono changed my direction..." rows={2} className="text-xs" />
+          </div>
+          <F label="תמונה (URL)" tip="תמונת פרופיל. מידות: 200×200px לפחות, ריבועית. JPG/PNG/WebP.">
+            <Input value={item.image_url || ""} onChange={(e) => updateItem(index, { ...item, image_url: e.target.value })} placeholder="https://..." className="h-8 text-xs" />
+          </F>
         </div>
       ))}
-      <Button variant="outline" size="sm" onClick={addItem} className="w-full">
-        <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Testimonial
+      <Button variant="outline" size="sm" title="הוסף המלצת סטודנט (מומלץ: 3-6 המלצות)" onClick={() => onChange({ ...content, items: [...items, { name: "", role_he: "", quote_he: "", quote_en: "" }] })} className="w-full">
+        <Plus className="w-3.5 h-3.5 mr-1.5" /> הוסף המלצה
       </Button>
     </div>
   );
 }
+
+// ─── CTA ──────────────────────────────────────────────────────────────────────
 
 function CtaEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
   return (
@@ -164,168 +251,178 @@ function CtaEditorFields({ content, onChange }: { content: GenericContent; onCha
         <TabsTrigger value="ar">عربي</TabsTrigger>
       </TabsList>
       <TabsContent value="he" className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label>כותרת</Label>
+        <F label="כותרת" tip="כותרת גדולה מעל כפתור ה-CTA. שאלה או הצהרה קצרה." max={50} value={(content.heading_he as string) || ""}>
           <Input value={(content.heading_he as string) || ""} onChange={(e) => onChange({ ...content, heading_he: e.target.value })} dir="rtl" placeholder="מוכנים להתחיל?" />
-        </div>
-        <div className="space-y-2">
-          <Label>תיאור</Label>
+        </F>
+        <F label="תיאור" tip="שורה אחת מתחת לכותרת — מסביר את הערך בלחיצה." max={120} value={(content.description_he as string) || ""}>
           <Textarea value={(content.description_he as string) || ""} onChange={(e) => onChange({ ...content, description_he: e.target.value })} dir="rtl" rows={2} />
-        </div>
-        <div className="space-y-2">
-          <Label>טקסט כפתור</Label>
+        </F>
+        <F label="טקסט כפתור" tip="הפועל על הכפתור. קצר וחד — 'להרשמה', 'קבלו מידע', 'דברו איתנו'." max={22} value={(content.button_text_he as string) || ""}>
           <Input value={(content.button_text_he as string) || ""} onChange={(e) => onChange({ ...content, button_text_he: e.target.value })} dir="rtl" placeholder="להרשמה" />
-        </div>
+        </F>
       </TabsContent>
       <TabsContent value="en" className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label>Heading</Label>
+        <F label="Heading" tip="Large heading above the CTA button." max={50} value={(content.heading_en as string) || ""}>
           <Input value={(content.heading_en as string) || ""} onChange={(e) => onChange({ ...content, heading_en: e.target.value })} placeholder="Ready to start?" />
-        </div>
-        <div className="space-y-2">
-          <Label>Description</Label>
+        </F>
+        <F label="Description" tip="One-line descriptor below the heading." max={120} value={(content.description_en as string) || ""}>
           <Textarea value={(content.description_en as string) || ""} onChange={(e) => onChange({ ...content, description_en: e.target.value })} rows={2} />
-        </div>
-        <div className="space-y-2">
-          <Label>Button Text</Label>
+        </F>
+        <F label="Button Text" tip="Action verb for the button. Keep short." max={22} value={(content.button_text_en as string) || ""}>
           <Input value={(content.button_text_en as string) || ""} onChange={(e) => onChange({ ...content, button_text_en: e.target.value })} placeholder="Register Now" />
-        </div>
+        </F>
       </TabsContent>
       <TabsContent value="ar" className="space-y-4 mt-4">
-        <div className="space-y-2">
-          <Label>العنوان</Label>
+        <F label="العنوان" tip="عنوان كبير فوق زر CTA." max={50} value={(content.heading_ar as string) || ""}>
           <Input value={(content.heading_ar as string) || ""} onChange={(e) => onChange({ ...content, heading_ar: e.target.value })} dir="rtl" />
-        </div>
-        <div className="space-y-2">
-          <Label>الوصف</Label>
+        </F>
+        <F label="الوصف" max={120} value={(content.description_ar as string) || ""}>
           <Textarea value={(content.description_ar as string) || ""} onChange={(e) => onChange({ ...content, description_ar: e.target.value })} dir="rtl" rows={2} />
-        </div>
-        <div className="space-y-2">
-          <Label>نص الزر</Label>
+        </F>
+        <F label="نص الزر" max={22} value={(content.button_text_ar as string) || ""}>
           <Input value={(content.button_text_ar as string) || ""} onChange={(e) => onChange({ ...content, button_text_ar: e.target.value })} dir="rtl" />
-        </div>
+        </F>
       </TabsContent>
-      <div className="mt-4 space-y-2">
-        <Label>Button URL</Label>
-        <Input value={(content.button_url as string) || ""} onChange={(e) => onChange({ ...content, button_url: e.target.value })} placeholder="#form" />
-      </div>
-      <div className="mt-2 space-y-2">
-        <Label>Background Color (hex)</Label>
-        <Input value={(content.bg_color as string) || ""} onChange={(e) => onChange({ ...content, bg_color: e.target.value })} placeholder="#B8D900" />
+      <div className="mt-4 space-y-3">
+        <F label="כתובת URL לכפתור" tip="לאן ילך הלחצן. '#form' לגלילה לטופס בעמוד. URL מלא לדף חיצוני.">
+          <Input value={(content.button_url as string) || ""} onChange={(e) => onChange({ ...content, button_url: e.target.value })} placeholder="#form" />
+        </F>
+        <F label="צבע רקע (hex)" tip="הצבע מאחורי בלוק ה-CTA. ברירת מחדל: #B8D900 (צהוב-ירוק אונו).">
+          <Input value={(content.bg_color as string) || ""} onChange={(e) => onChange({ ...content, bg_color: e.target.value })} placeholder="#B8D900" />
+        </F>
       </div>
     </Tabs>
   );
 }
 
+// ─── WhatsApp ─────────────────────────────────────────────────────────────────
+
 function WhatsappEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>WhatsApp Phone Number</Label>
+      <F label="מספר WhatsApp" tip="מספר בפורמט בינלאומי ללא '+'. לדוגמה: 972501234567. אם ריק — יורש מהגדרות הכלליות.">
         <Input value={(content.phone as string) || ""} onChange={(e) => onChange({ ...content, phone: e.target.value })} placeholder="972501234567" />
-        <p className="text-xs text-muted-foreground">International format without +</p>
-      </div>
-      <div className="space-y-2">
-        <Label>Default Message (HE)</Label>
-        <Textarea value={(content.message_he as string) || ""} onChange={(e) => onChange({ ...content, message_he: e.target.value })} dir="rtl" placeholder="היי, אשמח לקבל פרטים" rows={2} />
-      </div>
-      <div className="space-y-2">
-        <Label>Default Message (EN)</Label>
+      </F>
+      <F label="הודעה ברירת מחדל (עברית)" tip="הטקסט שיופיע מראש בצ'אט. המשתמש יכול לשנות." max={100} value={(content.message_he as string) || ""}>
+        <Textarea value={(content.message_he as string) || ""} onChange={(e) => onChange({ ...content, message_he: e.target.value })} dir="rtl" placeholder="היי, אשמח לקבל פרטים על התוכנית" rows={2} />
+      </F>
+      <F label="הודעה ברירת מחדל (אנגלית)" max={100} value={(content.message_en as string) || ""}>
         <Textarea value={(content.message_en as string) || ""} onChange={(e) => onChange({ ...content, message_en: e.target.value })} placeholder="Hi, I'd like more info" rows={2} />
-      </div>
-      <div className="space-y-2">
-        <Label>Tooltip Text (HE)</Label>
+      </F>
+      <F label="טולטיפ (עברית)" tip="הטקסט שמופיע בבועה מעל הכפתור הצף." max={40} value={(content.tooltip_he as string) || ""}>
         <Input value={(content.tooltip_he as string) || ""} onChange={(e) => onChange({ ...content, tooltip_he: e.target.value })} dir="rtl" placeholder="דברו איתנו בוואטסאפ" />
-      </div>
+      </F>
     </div>
   );
 }
+
+// ─── Accordion ────────────────────────────────────────────────────────────────
 
 function AccordionEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
   const items = (content.items as Array<{ title_he: string; title_en?: string; body_he: string; body_en?: string }>) || [];
   const updateItem = (index: number, item: typeof items[0]) => {
-    const newItems = [...items];
-    newItems[index] = item;
-    onChange({ ...content, items: newItems });
+    const n = [...items];
+    n[index] = item;
+    onChange({ ...content, items: n });
   };
-  const addItem = () => onChange({ ...content, items: [...items, { title_he: "", title_en: "", body_he: "", body_en: "" }] });
-  const removeItem = (index: number) => onChange({ ...content, items: items.filter((_, i) => i !== index) });
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Heading (HE)</Label>
+      <F label="כותרת (עברית)" tip="כותרת הסקשן. אופציונלי." max={50} value={(content.heading_he as string) || ""}>
         <Input value={(content.heading_he as string) || ""} onChange={(e) => onChange({ ...content, heading_he: e.target.value })} dir="rtl" />
-      </div>
-      <div className="space-y-2">
-        <Label>Heading (EN)</Label>
-        <Input value={(content.heading_en as string) || ""} onChange={(e) => onChange({ ...content, heading_en: e.target.value })} />
-      </div>
+      </F>
       {items.map((item, index) => (
         <div key={index} className="p-3 rounded-lg border bg-muted/30 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Item {index + 1}</span>
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeItem(index)}>
+            <span className="text-xs font-semibold text-[#9A969A]">פריט {index + 1}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" title="מחק פריט" onClick={() => onChange({ ...content, items: items.filter((_, i) => i !== index) })}>
               <Trash2 className="w-3 h-3" />
             </Button>
           </div>
-          <Input value={item.title_he} onChange={(e) => updateItem(index, { ...item, title_he: e.target.value })} placeholder="כותרת" dir="rtl" className="h-8 text-xs" />
-          <Textarea value={item.body_he} onChange={(e) => updateItem(index, { ...item, body_he: e.target.value })} placeholder="תוכן" dir="rtl" rows={2} className="text-xs" />
-          <Input value={item.title_en || ""} onChange={(e) => updateItem(index, { ...item, title_en: e.target.value })} placeholder="Title" className="h-8 text-xs" />
-          <Textarea value={item.body_en || ""} onChange={(e) => updateItem(index, { ...item, body_en: e.target.value })} placeholder="Content" rows={2} className="text-xs" />
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <Label className="text-xs" title="הכותרת הנראית כשהפריט סגור.">כותרת (עברית)</Label>
+              <CharCount value={item.title_he} max={60} />
+            </div>
+            <Input value={item.title_he} onChange={(e) => updateItem(index, { ...item, title_he: e.target.value })} placeholder="שאלה או נושא" dir="rtl" className="h-8 text-xs" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <Label className="text-xs" title="התוכן שנחשף לאחר לחיצה. יכול להיות ארוך.">תוכן (עברית)</Label>
+              <CharCount value={item.body_he} max={300} />
+            </div>
+            <Textarea value={item.body_he} onChange={(e) => updateItem(index, { ...item, body_he: e.target.value })} placeholder="תשובה או תיאור מפורט" dir="rtl" rows={2} className="text-xs" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <Label className="text-xs">Title (EN)</Label>
+              <CharCount value={item.title_en || ""} max={60} />
+            </div>
+            <Input value={item.title_en || ""} onChange={(e) => updateItem(index, { ...item, title_en: e.target.value })} placeholder="Title" className="h-8 text-xs" />
+          </div>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <Label className="text-xs">Content (EN)</Label>
+              <CharCount value={item.body_en || ""} max={300} />
+            </div>
+            <Textarea value={item.body_en || ""} onChange={(e) => updateItem(index, { ...item, body_en: e.target.value })} placeholder="Content" rows={2} className="text-xs" />
+          </div>
         </div>
       ))}
-      <Button variant="outline" size="sm" onClick={addItem} className="w-full">
-        <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Item
+      <Button variant="outline" size="sm" title="הוסף שורה לאקורדיון" onClick={() => onChange({ ...content, items: [...items, { title_he: "", title_en: "", body_he: "", body_en: "" }] })} className="w-full">
+        <Plus className="w-3.5 h-3.5 mr-1.5" /> הוסף פריט
       </Button>
     </div>
   );
 }
 
+// ─── Gallery ──────────────────────────────────────────────────────────────────
+
 function GalleryEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
   const images = (content.images as Array<{ url: string; alt_he?: string; alt_en?: string }>) || [];
-  const addImage = () => onChange({ ...content, images: [...images, { url: "", alt_he: "", alt_en: "" }] });
-  const removeImage = (index: number) => onChange({ ...content, images: images.filter((_, i) => i !== index) });
   const updateImage = (index: number, img: typeof images[0]) => {
-    const newImages = [...images];
-    newImages[index] = img;
-    onChange({ ...content, images: newImages });
+    const n = [...images];
+    n[index] = img;
+    onChange({ ...content, images: n });
   };
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Heading (HE)</Label>
+      <F label="כותרת (עברית)" tip="כותרת הגלריה. אופציונלי." max={50} value={(content.heading_he as string) || ""}>
         <Input value={(content.heading_he as string) || ""} onChange={(e) => onChange({ ...content, heading_he: e.target.value })} dir="rtl" />
-      </div>
-      <div className="space-y-2">
-        <Label>Heading (EN)</Label>
-        <Input value={(content.heading_en as string) || ""} onChange={(e) => onChange({ ...content, heading_en: e.target.value })} />
-      </div>
+      </F>
       {images.map((img, index) => (
         <div key={index} className="p-3 rounded-lg border bg-muted/30 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Image {index + 1}</span>
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeImage(index)}>
+            <span className="text-xs font-semibold text-[#9A969A]">תמונה {index + 1}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" title="מחק תמונה" onClick={() => onChange({ ...content, images: images.filter((_, i) => i !== index) })}>
               <Trash2 className="w-3 h-3" />
             </Button>
           </div>
-          <Input value={img.url} onChange={(e) => updateImage(index, { ...img, url: e.target.value })} placeholder="Image URL" className="h-8 text-xs" />
-          <Input value={img.alt_he || ""} onChange={(e) => updateImage(index, { ...img, alt_he: e.target.value })} placeholder="Alt text (HE)" dir="rtl" className="h-8 text-xs" />
+          <F label="URL תמונה" tip="קישור לתמונה. מידות מומלצות: 800×600px לפחות. JPG/WebP.">
+            <Input value={img.url} onChange={(e) => updateImage(index, { ...img, url: e.target.value })} placeholder="https://..." className="h-8 text-xs" />
+          </F>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <Label className="text-xs" title="תיאור הנגישות לתמונה. חשוב לנגישות ו-SEO.">Alt text (עברית)</Label>
+              <CharCount value={img.alt_he || ""} max={80} />
+            </div>
+            <Input value={img.alt_he || ""} onChange={(e) => updateImage(index, { ...img, alt_he: e.target.value })} placeholder="תיאור התמונה" dir="rtl" className="h-8 text-xs" />
+          </div>
         </div>
       ))}
-      <Button variant="outline" size="sm" onClick={addImage} className="w-full">
-        <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Image
+      <Button variant="outline" size="sm" title="הוסף תמונה לגלריה" onClick={() => onChange({ ...content, images: [...images, { url: "", alt_he: "", alt_en: "" }] })} className="w-full">
+        <Plus className="w-3.5 h-3.5 mr-1.5" /> הוסף תמונה
       </Button>
     </div>
   );
 }
+
+// ─── Curriculum ───────────────────────────────────────────────────────────────
 
 function CurriculumEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
   const semesters = (content.semesters as Array<{ title_he: string; title_en?: string; courses: Array<{ name_he: string; name_en?: string }> }>) || [];
 
-  const addSemester = () => onChange({ ...content, semesters: [...semesters, { title_he: "", title_en: "", courses: [] }] });
-  const removeSemester = (index: number) => onChange({ ...content, semesters: semesters.filter((_, i) => i !== index) });
   const updateSemester = (index: number, sem: typeof semesters[0]) => {
     const n = [...semesters];
     n[index] = sem;
@@ -334,57 +431,67 @@ function CurriculumEditorFields({ content, onChange }: { content: GenericContent
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Heading (HE)</Label>
+      <F label="כותרת (עברית)" tip="כותרת סקשן תוכנית הלימודים." max={50} value={(content.heading_he as string) || ""}>
         <Input value={(content.heading_he as string) || ""} onChange={(e) => onChange({ ...content, heading_he: e.target.value })} dir="rtl" placeholder="תוכנית הלימודים" />
-      </div>
-      <div className="space-y-2">
-        <Label>Heading (EN)</Label>
-        <Input value={(content.heading_en as string) || ""} onChange={(e) => onChange({ ...content, heading_en: e.target.value })} placeholder="Curriculum" />
-      </div>
+      </F>
       {semesters.map((sem, sIndex) => (
         <div key={sIndex} className="p-3 rounded-lg border bg-muted/30 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Semester {sIndex + 1}</span>
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeSemester(sIndex)}>
+            <span className="text-xs font-semibold text-[#9A969A]">סמסטר / שנה {sIndex + 1}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" title="מחק סמסטר" onClick={() => onChange({ ...content, semesters: semesters.filter((_, i) => i !== sIndex) })}>
               <Trash2 className="w-3 h-3" />
             </Button>
           </div>
-          <Input value={sem.title_he} onChange={(e) => updateSemester(sIndex, { ...sem, title_he: e.target.value })} placeholder="שנה א'" dir="rtl" className="h-8 text-xs" />
-          <Input value={sem.title_en || ""} onChange={(e) => updateSemester(sIndex, { ...sem, title_en: e.target.value })} placeholder="Year 1" className="h-8 text-xs" />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <Label className="text-xs" title="כותרת השנה/סמסטר בעברית.">כותרת (עברית)</Label>
+                <CharCount value={sem.title_he} max={30} />
+              </div>
+              <Input value={sem.title_he} onChange={(e) => updateSemester(sIndex, { ...sem, title_he: e.target.value })} placeholder="שנה א'" dir="rtl" className="h-8 text-xs" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <Label className="text-xs">Title (EN)</Label>
+                <CharCount value={sem.title_en || ""} max={30} />
+              </div>
+              <Input value={sem.title_en || ""} onChange={(e) => updateSemester(sIndex, { ...sem, title_en: e.target.value })} placeholder="Year 1" className="h-8 text-xs" />
+            </div>
+          </div>
           {sem.courses.map((course, cIndex) => (
             <div key={cIndex} className="flex gap-2 items-center">
               <Input value={course.name_he} onChange={(e) => {
                 const courses = [...sem.courses];
                 courses[cIndex] = { ...course, name_he: e.target.value };
                 updateSemester(sIndex, { ...sem, courses });
-              }} placeholder="שם קורס" dir="rtl" className="h-7 text-xs flex-1" />
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive shrink-0" onClick={() => {
+              }} placeholder="שם קורס" dir="rtl" className="h-7 text-xs flex-1" title="שם הקורס בתוכנית הלימודים" />
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive shrink-0" title="מחק קורס" onClick={() => {
                 updateSemester(sIndex, { ...sem, courses: sem.courses.filter((_, i) => i !== cIndex) });
               }}>
                 <Trash2 className="w-3 h-3" />
               </Button>
             </div>
           ))}
-          <Button variant="ghost" size="sm" className="text-xs" onClick={() => {
+          <Button variant="ghost" size="sm" className="text-xs" title="הוסף קורס לסמסטר זה" onClick={() => {
             updateSemester(sIndex, { ...sem, courses: [...sem.courses, { name_he: "", name_en: "" }] });
           }}>
-            <Plus className="w-3 h-3 mr-1" /> Add Course
+            <Plus className="w-3 h-3 mr-1" /> הוסף קורס
           </Button>
         </div>
       ))}
-      <Button variant="outline" size="sm" onClick={addSemester} className="w-full">
-        <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Semester
+      <Button variant="outline" size="sm" title="הוסף שנה/סמסטר חדשים לתוכנית הלימודים" onClick={() => onChange({ ...content, semesters: [...semesters, { title_he: "", title_en: "", courses: [] }] })} className="w-full">
+        <Plus className="w-3.5 h-3.5 mr-1.5" /> הוסף סמסטר/שנה
       </Button>
     </div>
   );
 }
 
+// ─── Custom HTML ──────────────────────────────────────────────────────────────
+
 function CustomHtmlEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>HTML Content</Label>
+      <F label="HTML" tip="קוד HTML מותאם אישית. יוצג בתוך מיכל מבודד. אפשר להשתמש בתגיות <div>, <p>, <a> וכד'.">
         <Textarea
           value={(content.html as string) || ""}
           onChange={(e) => onChange({ ...content, html: e.target.value })}
@@ -392,10 +499,8 @@ function CustomHtmlEditorFields({ content, onChange }: { content: GenericContent
           rows={10}
           className="font-mono text-xs"
         />
-        <p className="text-xs text-muted-foreground">Raw HTML will be rendered in an isolated container</p>
-      </div>
-      <div className="space-y-2">
-        <Label>Custom CSS (optional)</Label>
+      </F>
+      <F label="CSS מותאם (אופציונלי)" tip="סגנונות CSS שיחולו רק על הבלוק הזה.">
         <Textarea
           value={(content.css as string) || ""}
           onChange={(e) => onChange({ ...content, css: e.target.value })}
@@ -403,10 +508,12 @@ function CustomHtmlEditorFields({ content, onChange }: { content: GenericContent
           rows={5}
           className="font-mono text-xs"
         />
-      </div>
+      </F>
     </div>
   );
 }
+
+// ─── Sticky Header ────────────────────────────────────────────────────────────
 
 function StickyHeaderEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
   return (
@@ -418,60 +525,53 @@ function StickyHeaderEditorFields({ content, onChange }: { content: GenericConte
           <TabsTrigger value="ar">عربي</TabsTrigger>
         </TabsList>
         <TabsContent value="he" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>טקסט</Label>
+          <F label="טקסט" tip="הטקסט שמוצג בכותרת הנצמדת. בדרך כלל שם התוכנית." max={40} value={(content.text_he as string) || ""}>
             <Input value={(content.text_he as string) || ""} onChange={(e) => onChange({ ...content, text_he: e.target.value })} dir="rtl" placeholder="הירשמו עכשיו!" />
-          </div>
-          <div className="space-y-2">
-            <Label>טקסט כפתור</Label>
+          </F>
+          <F label="טקסט כפתור" tip="הכפתור שמוצג בצד. עד 20 תווים." max={20} value={(content.button_text_he as string) || ""}>
             <Input value={(content.button_text_he as string) || ""} onChange={(e) => onChange({ ...content, button_text_he: e.target.value })} dir="rtl" placeholder="להרשמה" />
-          </div>
+          </F>
         </TabsContent>
         <TabsContent value="en" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>Text</Label>
+          <F label="Text" max={40} value={(content.text_en as string) || ""}>
             <Input value={(content.text_en as string) || ""} onChange={(e) => onChange({ ...content, text_en: e.target.value })} placeholder="Register now!" />
-          </div>
-          <div className="space-y-2">
-            <Label>Button Text</Label>
+          </F>
+          <F label="Button Text" max={20} value={(content.button_text_en as string) || ""}>
             <Input value={(content.button_text_en as string) || ""} onChange={(e) => onChange({ ...content, button_text_en: e.target.value })} placeholder="Register" />
-          </div>
+          </F>
         </TabsContent>
         <TabsContent value="ar" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>النص</Label>
+          <F label="النص" max={40} value={(content.text_ar as string) || ""}>
             <Input value={(content.text_ar as string) || ""} onChange={(e) => onChange({ ...content, text_ar: e.target.value })} dir="rtl" />
-          </div>
-          <div className="space-y-2">
-            <Label>نص الزر</Label>
+          </F>
+          <F label="نص الزر" max={20} value={(content.button_text_ar as string) || ""}>
             <Input value={(content.button_text_ar as string) || ""} onChange={(e) => onChange({ ...content, button_text_ar: e.target.value })} dir="rtl" />
-          </div>
+          </F>
         </TabsContent>
       </Tabs>
-      <div className="space-y-2">
-        <Label>Button URL</Label>
+      <F label="כתובת URL לכפתור" tip="'#form' לגלילה לטופס. URL חיצוני לדף אחר.">
         <Input value={(content.button_url as string) || ""} onChange={(e) => onChange({ ...content, button_url: e.target.value })} placeholder="#form" />
-      </div>
-      <div className="space-y-2">
-        <Label>Background Color</Label>
+      </F>
+      <F label="צבע רקע" tip="צבע הכותרת הנצמדת. ברירת מחדל: צהוב-ירוק אונו.">
         <Input value={(content.bg_color as string) || ""} onChange={(e) => onChange({ ...content, bg_color: e.target.value })} placeholder="#B8D900" />
-      </div>
+      </F>
       <div className="flex items-center gap-2">
         <Switch
           checked={(content.show_phone as boolean) || false}
           onCheckedChange={(checked) => onChange({ ...content, show_phone: checked })}
         />
-        <Label>Show Phone Number</Label>
+        <Label title="מציג מספר טלפון לחיץ בכותרת. מומלץ למובייל.">הצג מספר טלפון</Label>
       </div>
       {Boolean(content.show_phone) && (
-        <div className="space-y-2">
-          <Label>Phone Number</Label>
+        <F label="מספר טלפון" tip="מספר שיוצג ויהיה ניתן ללחיצה. לדוגמה: *6930 או 03-1234567.">
           <Input value={(content.phone as string) || ""} onChange={(e) => onChange({ ...content, phone: e.target.value })} placeholder="*6930" />
-        </div>
+        </F>
       )}
     </div>
   );
 }
+
+// ─── Export ───────────────────────────────────────────────────────────────────
 
 export function GenericEditor({ sectionType, content, onChange }: GenericEditorProps) {
   switch (sectionType) {
@@ -498,7 +598,7 @@ export function GenericEditor({ sectionType, content, onChange }: GenericEditorP
     default:
       return (
         <div className="p-4 text-center text-sm text-muted-foreground">
-          No editor available for section type: {sectionType}
+          אין עורך זמין לסוג סקשן זה: {sectionType}
         </div>
       );
   }

@@ -1,9 +1,24 @@
 "use client";
 
+/**
+ * HeroEditor — editing panel for the hero section.
+ * Shows live character counters and tooltips for every field.
+ */
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CharCount } from "../char-count";
+
+/** Recommended character limits per field */
+const LIMITS = {
+  heading: 35,
+  subheading: 120,
+  cta_text: 22,
+  stat_label: 30,
+  stat_value: 10,
+};
 
 interface HeroContent {
   heading_he?: string;
@@ -28,6 +43,36 @@ interface HeroEditorProps {
   onChange: (content: HeroContent) => void;
 }
 
+/** Labeled input with live char count and tooltip */
+function Field({
+  label,
+  tooltip,
+  children,
+  count,
+  max,
+}: {
+  label: string;
+  tooltip: string;
+  children: React.ReactNode;
+  count?: string;
+  max?: number;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <Label title={tooltip} className="cursor-help text-xs font-semibold leading-none" aria-label={label}>
+          {label}
+          <span className="mr-1 text-[#9A969A] text-[10px]" title={tooltip}>ℹ</span>
+        </Label>
+        {count !== undefined && max !== undefined && (
+          <CharCount value={count} max={max} />
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function HeroEditor({ content, onChange }: HeroEditorProps) {
   const update = (key: keyof HeroContent, value: string) => {
     onChange({ ...content, [key]: value });
@@ -43,138 +88,184 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
         </TabsList>
 
         <TabsContent value="he" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label htmlFor="heading_he">כותרת</Label>
+          <Field
+            label="כותרת ראשית"
+            tooltip="הכותרת הגדולה שרואים ראשונה. עצרו בין 25-35 תווים לתוצאה הטובה ביותר בשורה אחת."
+            count={content.heading_he || ""}
+            max={LIMITS.heading}
+          >
             <Input
-              id="heading_he"
               value={content.heading_he || ""}
               onChange={(e) => update("heading_he", e.target.value)}
-              placeholder="הקריה האקדמית אונו"
+              placeholder="תואר ראשון במשפטים"
               dir="rtl"
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="subheading_he">כותרת משנה</Label>
+          </Field>
+
+          <Field
+            label="כותרת משנה"
+            tooltip="תיאור קצר מתחת לכותרת. שתי שורות מקסימום. מעל 120 תווים עלול לגרום לגלישה בטלפון."
+            count={content.subheading_he || ""}
+            max={LIMITS.subheading}
+          >
             <Textarea
-              id="subheading_he"
               value={content.subheading_he || ""}
               onChange={(e) => update("subheading_he", e.target.value)}
-              placeholder="המכללה המומלצת בישראל"
+              placeholder="תכנית המשפטים הגדולה בישראל — לימודים גמישים שמתאימים לחיים שלך"
               dir="rtl"
-              rows={2}
+              rows={3}
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="cta_text_he">טקסט כפתור CTA</Label>
+          </Field>
+
+          <Field
+            label="טקסט כפתור CTA"
+            tooltip="הטקסט על כפתור ההרשמה. כדאי להשתמש בפועל פעיל — 'קבלו מידע', 'להרשמה' וכד'. עד 22 תווים."
+            count={content.cta_text_he || ""}
+            max={LIMITS.cta_text}
+          >
             <Input
-              id="cta_text_he"
               value={content.cta_text_he || ""}
               onChange={(e) => update("cta_text_he", e.target.value)}
-              placeholder="להרשמה"
+              placeholder="קבלו מידע מלא"
               dir="rtl"
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="stat_label_he">תווית נתון</Label>
+          </Field>
+
+          <Field
+            label="תווית נתון"
+            tooltip="הטקסט שמופיע ליד הנתון הסטטיסטי (לדוגמה '90%'). שמרו קצר — עד 30 תווים."
+            count={content.stat_label_he || ""}
+            max={LIMITS.stat_label}
+          >
             <Input
-              id="stat_label_he"
               value={content.stat_label_he || ""}
               onChange={(e) => update("stat_label_he", e.target.value)}
-              placeholder="בוגרים מובילים"
+              placeholder="שיעור הצלחה בבחינת הלשכה"
               dir="rtl"
             />
-          </div>
+          </Field>
         </TabsContent>
 
         <TabsContent value="en" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label htmlFor="heading_en">Heading</Label>
+          <Field
+            label="Heading"
+            tooltip="Main display heading. Keep under 35 characters for best single-line display."
+            count={content.heading_en || ""}
+            max={LIMITS.heading}
+          >
             <Input
-              id="heading_en"
               value={content.heading_en || ""}
               onChange={(e) => update("heading_en", e.target.value)}
-              placeholder="Ono Academic College"
+              placeholder="Law School at Ono"
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="subheading_en">Subheading</Label>
+          </Field>
+
+          <Field
+            label="Subheading"
+            tooltip="Short descriptor below the heading. Max 2 lines recommended. Over 120 chars may overflow on mobile."
+            count={content.subheading_en || ""}
+            max={LIMITS.subheading}
+          >
             <Textarea
-              id="subheading_en"
               value={content.subheading_en || ""}
               onChange={(e) => update("subheading_en", e.target.value)}
-              placeholder="Israel's most recommended college"
-              rows={2}
+              placeholder="Israel's largest law program — flexible study that fits your life"
+              rows={3}
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="cta_text_en">CTA Button Text</Label>
+          </Field>
+
+          <Field
+            label="CTA Button Text"
+            tooltip="Text on the registration button. Use an action verb. Keep under 22 characters."
+            count={content.cta_text_en || ""}
+            max={LIMITS.cta_text}
+          >
             <Input
-              id="cta_text_en"
               value={content.cta_text_en || ""}
               onChange={(e) => update("cta_text_en", e.target.value)}
-              placeholder="Register Now"
+              placeholder="Get Full Info"
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="stat_label_en">Stat Label</Label>
+          </Field>
+
+          <Field
+            label="Stat Label"
+            tooltip="Label next to the stat number (e.g. '90%'). Keep short — under 30 chars."
+            count={content.stat_label_en || ""}
+            max={LIMITS.stat_label}
+          >
             <Input
-              id="stat_label_en"
               value={content.stat_label_en || ""}
               onChange={(e) => update("stat_label_en", e.target.value)}
-              placeholder="Leading graduates"
+              placeholder="Bar exam pass rate"
             />
-          </div>
+          </Field>
         </TabsContent>
 
         <TabsContent value="ar" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label htmlFor="heading_ar">العنوان</Label>
+          <Field
+            label="العنوان"
+            tooltip="العنوان الرئيسي. حافظ على 35 حرفاً كحد أقصى لأفضل عرض."
+            count={content.heading_ar || ""}
+            max={LIMITS.heading}
+          >
             <Input
-              id="heading_ar"
               value={content.heading_ar || ""}
               onChange={(e) => update("heading_ar", e.target.value)}
-              placeholder="كلية أونو الأكاديمية"
+              placeholder="كلية الحقوق في أونو"
               dir="rtl"
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="subheading_ar">العنوان الفرعي</Label>
+          </Field>
+
+          <Field
+            label="العنوان الفرعي"
+            tooltip="وصف قصير أسفل العنوان. سطرين كحد أقصى."
+            count={content.subheading_ar || ""}
+            max={LIMITS.subheading}
+          >
             <Textarea
-              id="subheading_ar"
               value={content.subheading_ar || ""}
               onChange={(e) => update("subheading_ar", e.target.value)}
               dir="rtl"
-              rows={2}
+              rows={3}
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="cta_text_ar">نص زر CTA</Label>
+          </Field>
+
+          <Field
+            label="نص زر CTA"
+            tooltip="نص زر التسجيل. استخدم فعلاً نشطاً. حتى 22 حرفاً."
+            count={content.cta_text_ar || ""}
+            max={LIMITS.cta_text}
+          >
             <Input
-              id="cta_text_ar"
               value={content.cta_text_ar || ""}
               onChange={(e) => update("cta_text_ar", e.target.value)}
               dir="rtl"
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="stat_label_ar">تسمية الإحصاء</Label>
+          </Field>
+
+          <Field
+            label="تسمية الإحصاء"
+            tooltip="النص بجانب الرقم الإحصائي. حافظ على الإيجاز."
+            count={content.stat_label_ar || ""}
+            max={LIMITS.stat_label}
+          >
             <Input
-              id="stat_label_ar"
               value={content.stat_label_ar || ""}
               onChange={(e) => update("stat_label_ar", e.target.value)}
               dir="rtl"
             />
-          </div>
+          </Field>
         </TabsContent>
       </Tabs>
 
       <div className="border-t pt-4 space-y-4">
-        <h3 className="text-sm font-medium text-foreground">Shared Settings</h3>
+        <h3 className="text-xs font-semibold text-[#9A969A] uppercase tracking-wider">הגדרות משותפות</h3>
 
-        <div className="space-y-2">
-          <Label htmlFor="background_image_url">Background Image URL</Label>
+        <Field
+          label="תמונת רקע (URL)"
+          tooltip="תמונה שתכסה את כל הרקע של ה-Hero. מידות מומלצות: 1920×1080px לפחות. פורמט JPG/WebP."
+        >
           <Input
-            id="background_image_url"
             value={content.background_image_url || ""}
             onChange={(e) => update("background_image_url", e.target.value)}
             placeholder="https://..."
@@ -190,27 +281,31 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
               />
             </div>
           )}
-        </div>
+        </Field>
 
-        <div className="space-y-2">
-          <Label htmlFor="stat_value">Stat Value</Label>
+        <Field
+          label="ערך סטטיסטי"
+          tooltip="המספר הגדול שמוצג לצד ה-CTA. לדוגמה: '90%', '50,000+', '97'. עד 10 תווים."
+          count={content.stat_value || ""}
+          max={LIMITS.stat_value}
+        >
           <Input
-            id="stat_value"
             value={content.stat_value || ""}
             onChange={(e) => update("stat_value", e.target.value)}
-            placeholder="50,000+"
+            placeholder="90%"
           />
-        </div>
+        </Field>
 
-        <div className="space-y-2">
-          <Label htmlFor="cta_url">CTA URL</Label>
+        <Field
+          label="כתובת URL לכפתור"
+          tooltip="לאן יגיע המשתמש לאחר לחיצה על כפתור ה-CTA. השתמשו ב-'#form' כדי לגלול לטופס בעמוד."
+        >
           <Input
-            id="cta_url"
             value={content.cta_url || ""}
             onChange={(e) => update("cta_url", e.target.value)}
             placeholder="#form"
           />
-        </div>
+        </Field>
       </div>
     </div>
   );

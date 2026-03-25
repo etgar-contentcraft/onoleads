@@ -159,11 +159,25 @@ export default async function LandingPage({ params }: PageProps) {
   }
 
   return (
-    <html lang={language} dir={isRtl ? "rtl" : "ltr"}>
+    <html
+      lang={language}
+      dir={isRtl ? "rtl" : "ltr"}
+      style={
+        {
+          "--font-heading": "'Rubik', sans-serif",
+          "--font-heebo": "'Heebo', sans-serif",
+        } as React.CSSProperties
+      }
+    >
       <head>
-        {/* Preconnect */}
+        {/* Fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Heebo:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
 
         {/* JSON-LD Schemas */}
         {schemas.map((schema, i) => (

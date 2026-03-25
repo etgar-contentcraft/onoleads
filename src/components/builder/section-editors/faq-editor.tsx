@@ -1,11 +1,19 @@
 "use client";
 
+/**
+ * FaqEditor — editing panel for the FAQ section.
+ * Shows live character counters and tooltips per field.
+ */
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2 } from "lucide-react";
+import { CharCount } from "../char-count";
+
+const LIMITS = { heading: 50, question: 80, answer: 350 };
 
 interface FaqItem {
   question_he: string;
@@ -42,14 +50,7 @@ export function FaqEditor({ content, onChange }: FaqEditorProps) {
   };
 
   const addItem = () => {
-    update("items", [
-      ...items,
-      { question_he: "", question_en: "", answer_he: "", answer_en: "" },
-    ]);
-  };
-
-  const removeItem = (index: number) => {
-    update("items", items.filter((_, i) => i !== index));
+    update("items", [...items, { question_he: "", question_en: "", answer_he: "", answer_en: "" }]);
   };
 
   return (
@@ -61,108 +62,116 @@ export function FaqEditor({ content, onChange }: FaqEditorProps) {
           <TabsTrigger value="ar">عربي</TabsTrigger>
         </TabsList>
 
+        {/* Hebrew */}
         <TabsContent value="he" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>כותרת</Label>
-            <Input
-              value={content.heading_he || ""}
-              onChange={(e) => update("heading_he", e.target.value)}
-              placeholder="שאלות נפוצות"
-              dir="rtl"
-            />
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label title="כותרת הסקשן שמוצגת מעל השאלות." className="text-xs font-semibold cursor-help">
+                כותרת <span className="text-[#9A969A] text-[10px]">ℹ</span>
+              </Label>
+              <CharCount value={content.heading_he || ""} max={LIMITS.heading} />
+            </div>
+            <Input value={content.heading_he || ""} onChange={(e) => update("heading_he", e.target.value)} placeholder="שאלות נפוצות" dir="rtl" />
           </div>
 
           {items.map((item, index) => (
             <div key={index} className="p-3 rounded-lg border border-border bg-muted/30 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">שאלה {index + 1}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeItem(index)}>
+                <span className="text-xs font-semibold text-[#9A969A]">שאלה {index + 1}</span>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" title="מחק שאלה" onClick={() => update("items", items.filter((_, i) => i !== index))}>
                   <Trash2 className="w-3 h-3" />
                 </Button>
               </div>
-              <Input
-                value={item.question_he}
-                onChange={(e) => updateItem(index, { ...item, question_he: e.target.value })}
-                placeholder="שאלה..."
-                dir="rtl"
-                className="h-8 text-sm"
-              />
-              <Textarea
-                value={item.answer_he}
-                onChange={(e) => updateItem(index, { ...item, answer_he: e.target.value })}
-                placeholder="תשובה..."
-                dir="rtl"
-                rows={2}
-                className="text-sm"
-              />
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <Label className="text-xs" title="השאלה שהמבקר שואל. ניסוח כשאלה ישירה ממיר יותר.">שאלה</Label>
+                  <CharCount value={item.question_he} max={LIMITS.question} />
+                </div>
+                <Input value={item.question_he} onChange={(e) => updateItem(index, { ...item, question_he: e.target.value })} placeholder="מה משך הלימודים?" dir="rtl" className="h-8 text-sm" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <Label className="text-xs" title="תשובה מפורטת. כדאי לכלול עובדות ומספרים. עד 350 תווים.">תשובה</Label>
+                  <CharCount value={item.answer_he} max={LIMITS.answer} />
+                </div>
+                <Textarea value={item.answer_he} onChange={(e) => updateItem(index, { ...item, answer_he: e.target.value })} placeholder="תשובה..." dir="rtl" rows={3} className="text-sm" />
+              </div>
             </div>
           ))}
         </TabsContent>
 
+        {/* English */}
         <TabsContent value="en" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>Heading</Label>
-            <Input
-              value={content.heading_en || ""}
-              onChange={(e) => update("heading_en", e.target.value)}
-              placeholder="Frequently Asked Questions"
-            />
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold">Heading</Label>
+              <CharCount value={content.heading_en || ""} max={LIMITS.heading} />
+            </div>
+            <Input value={content.heading_en || ""} onChange={(e) => update("heading_en", e.target.value)} placeholder="Frequently Asked Questions" />
           </div>
 
           {items.map((item, index) => (
             <div key={index} className="p-3 rounded-lg border border-border bg-muted/30 space-y-2">
-              <span className="text-xs font-medium text-muted-foreground">Question {index + 1}</span>
-              <Input
-                value={item.question_en || ""}
-                onChange={(e) => updateItem(index, { ...item, question_en: e.target.value })}
-                placeholder="Question..."
-                className="h-8 text-sm"
-              />
-              <Textarea
-                value={item.answer_en || ""}
-                onChange={(e) => updateItem(index, { ...item, answer_en: e.target.value })}
-                placeholder="Answer..."
-                rows={2}
-                className="text-sm"
-              />
+              <span className="text-xs font-semibold text-[#9A969A]">Question {index + 1}</span>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <Label className="text-xs">Question</Label>
+                  <CharCount value={item.question_en || ""} max={LIMITS.question} />
+                </div>
+                <Input value={item.question_en || ""} onChange={(e) => updateItem(index, { ...item, question_en: e.target.value })} placeholder="What is the program duration?" className="h-8 text-sm" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <Label className="text-xs">Answer</Label>
+                  <CharCount value={item.answer_en || ""} max={LIMITS.answer} />
+                </div>
+                <Textarea value={item.answer_en || ""} onChange={(e) => updateItem(index, { ...item, answer_en: e.target.value })} placeholder="Answer..." rows={3} className="text-sm" />
+              </div>
             </div>
           ))}
         </TabsContent>
 
+        {/* Arabic */}
         <TabsContent value="ar" className="space-y-4 mt-4">
-          <div className="space-y-2">
-            <Label>العنوان</Label>
-            <Input
-              value={content.heading_ar || ""}
-              onChange={(e) => update("heading_ar", e.target.value)}
-              dir="rtl"
-            />
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold">العنوان</Label>
+              <CharCount value={content.heading_ar || ""} max={LIMITS.heading} />
+            </div>
+            <Input value={content.heading_ar || ""} onChange={(e) => update("heading_ar", e.target.value)} dir="rtl" />
           </div>
 
           {items.map((item, index) => (
             <div key={index} className="p-3 rounded-lg border border-border bg-muted/30 space-y-2">
-              <span className="text-xs font-medium text-muted-foreground">سؤال {index + 1}</span>
-              <Input
-                value={item.question_ar || ""}
-                onChange={(e) => updateItem(index, { ...item, question_ar: e.target.value })}
-                dir="rtl"
-                className="h-8 text-sm"
-              />
-              <Textarea
-                value={item.answer_ar || ""}
-                onChange={(e) => updateItem(index, { ...item, answer_ar: e.target.value })}
-                dir="rtl"
-                rows={2}
-                className="text-sm"
-              />
+              <span className="text-xs font-semibold text-[#9A969A]">سؤال {index + 1}</span>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <Label className="text-xs">السؤال</Label>
+                  <CharCount value={item.question_ar || ""} max={LIMITS.question} />
+                </div>
+                <Input value={item.question_ar || ""} onChange={(e) => updateItem(index, { ...item, question_ar: e.target.value })} dir="rtl" className="h-8 text-sm" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <Label className="text-xs">الإجابة</Label>
+                  <CharCount value={item.answer_ar || ""} max={LIMITS.answer} />
+                </div>
+                <Textarea value={item.answer_ar || ""} onChange={(e) => updateItem(index, { ...item, answer_ar: e.target.value })} dir="rtl" rows={3} className="text-sm" />
+              </div>
             </div>
           ))}
         </TabsContent>
       </Tabs>
 
-      <Button variant="outline" size="sm" onClick={addItem} className="w-full">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={addItem}
+        title="הוסף שאלה ותשובה. FAQ עוזר לדירוג SEO ומהווה מקור ציטוט ל-AI. מומלץ: 5-8 שאלות."
+        className="w-full"
+      >
         <Plus className="w-3.5 h-3.5 mr-1.5" />
-        Add Question
+        הוסף שאלה
       </Button>
     </div>
   );

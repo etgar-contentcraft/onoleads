@@ -102,7 +102,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-screen flex items-center overflow-hidden"
+      className="relative min-h-screen flex items-center overflow-x-hidden"
       dir={isRtl ? "rtl" : "ltr"}
     >
       {/* Background with parallax */}
