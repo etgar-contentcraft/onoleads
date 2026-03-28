@@ -2839,16 +2839,15 @@ export default function PageBuilderPage() {
             </svg>
           </Button>
 
-          <a href={`/dashboard/pages/${pageId}/settings`}>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 gap-2 border-[#E5E5E5] text-[#4A4648] hover:border-[#B8D900]"
-            >
-              <Settings2 className="w-3.5 h-3.5" />
-              הגדרות עמוד
-            </Button>
-          </a>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPageSettingsOpen(true)}
+            className="h-9 gap-2 border-[#E5E5E5] text-[#4A4648] hover:border-[#B8D900]"
+          >
+            <Settings2 className="w-3.5 h-3.5" />
+            הגדרות עמוד
+          </Button>
 
           <Button
             variant="outline"

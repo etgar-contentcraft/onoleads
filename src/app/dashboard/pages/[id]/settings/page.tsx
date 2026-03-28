@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Loader2, Save, ExternalLink, Info } from "lucide-react";
+import { ArrowRight, Loader2, Save, ExternalLink } from "lucide-react";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 
@@ -44,13 +44,7 @@ interface PageOverrides {
   brand_color_primary?: string;
   brand_color_dark?: string;
   brand_color_gray?: string;
-  exit_intent_enabled?: string;
-  exit_intent_sensitivity?: string;
-  exit_intent_bg_color?: string;
-  exit_intent_accent_color?: string;
-  exit_intent_title_he?: string;
-  exit_intent_body_he?: string;
-  exit_intent_cta_he?: string;
+
   social_proof_enabled?: string;
   social_proof_days?: string;
 }
@@ -204,9 +198,7 @@ export default function PageSettingsPage() {
     );
   }
 
-  const exitEnabled = overrides.exit_intent_enabled === "true";
   const socialEnabled = overrides.social_proof_enabled === "true";
-  const sensitivity = (overrides.exit_intent_sensitivity || "medium") as "subtle" | "medium" | "aggressive";
 
   return (
     <div className="space-y-6 max-w-5xl" dir="rtl">
@@ -373,125 +365,25 @@ export default function PageSettingsPage() {
         </Card>
       </div>
 
-      {/* Exit Intent — full width, rich options */}
+      {/* Popups — link to campaigns management */}
       <Card className="border-0 shadow-sm">
         <CardHeader>
           <div className="flex items-start justify-between">
             <div>
-              <CardTitle className="text-base text-[#2a2628]">פופ-אפ יציאה (Exit Intent)</CardTitle>
+              <CardTitle className="text-base text-[#2a2628]">פופאפים</CardTitle>
               <CardDescription className="mt-1">
-                מוצג כאשר המבקר עומד לעזוב את הדף. כבוי כברירת מחדל — הפעלה כאן מפעילה רק בעמוד זה.
+                ניהול פופאפים, exit intent, וסרגלי CTA לעמוד זה. ניתן ליצור פופאפים מתבניות מוכנות ולשייך אותם לעמודים.
               </CardDescription>
             </div>
-            <button type="button"
-              onClick={() => set("exit_intent_enabled", exitEnabled ? "false" : "true")}
-              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors mt-1 ${exitEnabled ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}
-              role="switch" aria-checked={exitEnabled}>
-              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${exitEnabled ? "translate-x-4" : "translate-x-0"}`} />
-            </button>
+            <a
+              href="/dashboard/campaigns"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#B8D900] text-[#2A2628] text-sm font-semibold hover:bg-[#A8C400] transition-colors shrink-0"
+            >
+              ניהול פופאפים
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
           </div>
         </CardHeader>
-        {exitEnabled && (
-          <CardContent className="space-y-6">
-            {/* Sensitivity */}
-            <div>
-              <Label className="text-sm font-semibold text-[#2a2628] block mb-3">רמת עדינות</Label>
-              <div className="grid grid-cols-3 gap-3">
-                {([
-                  { value: "subtle", label: "עדין", desc: "עכבר בלבד, דסקטופ" },
-                  { value: "medium", label: "בינוני", desc: "עכבר + גלילה מהירה" },
-                  { value: "aggressive", label: "אגרסיבי", desc: "+ זמן שהייה 20שנ׳" },
-                ] as { value: "subtle" | "medium" | "aggressive"; label: string; desc: string }[]).map((opt) => (
-                  <button key={opt.value} type="button"
-                    onClick={() => set("exit_intent_sensitivity", opt.value)}
-                    className={`p-3 rounded-xl border-2 text-right transition-all ${sensitivity === opt.value ? "border-[#B8D900] bg-[#B8D900]/5" : "border-[#E5E5E5] hover:border-[#B8D900]/40"}`}>
-                    <p className="text-sm font-semibold text-[#2a2628]">{opt.label}</p>
-                    <p className="text-[11px] text-[#9A969A] mt-0.5 leading-snug">{opt.desc}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Banner design */}
-            <div>
-              <Label className="text-sm font-semibold text-[#2a2628] block mb-3">עיצוב הבאנר</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Colors */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl border-2 border-[#e5e7eb] cursor-pointer relative overflow-hidden shrink-0"
-                      style={{ backgroundColor: overrides.exit_intent_bg_color || "#ffffff" }}>
-                      <input type="color" value={overrides.exit_intent_bg_color || "#ffffff"}
-                        onChange={(e) => set("exit_intent_bg_color", e.target.value)}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                    </div>
-                    <div className="flex-1">
-                      <Label className="text-xs text-[#716C70]">צבע רקע</Label>
-                      <Input value={overrides.exit_intent_bg_color || ""} onChange={(e) => set("exit_intent_bg_color", e.target.value)}
-                        placeholder="#ffffff" className="mt-1 h-8 text-xs font-mono" dir="ltr" />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl border-2 border-[#e5e7eb] cursor-pointer relative overflow-hidden shrink-0"
-                      style={{ backgroundColor: overrides.exit_intent_accent_color || "#B8D900" }}>
-                      <input type="color" value={overrides.exit_intent_accent_color || "#B8D900"}
-                        onChange={(e) => set("exit_intent_accent_color", e.target.value)}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                    </div>
-                    <div className="flex-1">
-                      <Label className="text-xs text-[#716C70]">צבע אקסנט (פס + כפתור)</Label>
-                      <Input value={overrides.exit_intent_accent_color || ""} onChange={(e) => set("exit_intent_accent_color", e.target.value)}
-                        placeholder="#B8D900" className="mt-1 h-8 text-xs font-mono" dir="ltr" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Preview */}
-                <div className="rounded-xl border border-[#e5e7eb] p-4 text-center"
-                  style={{ backgroundColor: overrides.exit_intent_bg_color || "#ffffff" }}>
-                  <div className="w-8 h-1 rounded-full mx-auto mb-2"
-                    style={{ backgroundColor: overrides.exit_intent_accent_color || "#B8D900" }} />
-                  <p className="text-xs font-bold text-[#2a2628] mb-1">{overrides.exit_intent_title_he || "רגע לפני שתלכו..."}</p>
-                  <p className="text-[10px] text-[#716C70] mb-2 leading-snug">{overrides.exit_intent_body_he || "השאירו פרטים ויועץ יחזור אליכם"}</p>
-                  <div className="py-1.5 rounded-lg text-[10px] font-bold text-[#2a2628]"
-                    style={{ backgroundColor: overrides.exit_intent_accent_color || "#B8D900" }}>
-                    {overrides.exit_intent_cta_he || "השאירו פרטים עכשיו →"}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Texts */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label className="text-sm font-medium text-[#2a2628]">כותרת</Label>
-                <Input value={overrides.exit_intent_title_he || ""} onChange={(e) => set("exit_intent_title_he", e.target.value)}
-                  placeholder="רגע לפני שתלכו..." className="mt-1.5 h-9" dir="rtl" />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-[#2a2628]">טקסט גוף</Label>
-                <Input value={overrides.exit_intent_body_he || ""} onChange={(e) => set("exit_intent_body_he", e.target.value)}
-                  placeholder="השאירו פרטים ויועץ יחזור אליכם..." className="mt-1.5 h-9" dir="rtl" />
-              </div>
-              <div>
-                <Label className="text-sm font-medium text-[#2a2628]">טקסט כפתור CTA</Label>
-                <Input value={overrides.exit_intent_cta_he || ""} onChange={(e) => set("exit_intent_cta_he", e.target.value)}
-                  placeholder="השאירו פרטים עכשיו →" className="mt-1.5 h-9" dir="rtl" />
-              </div>
-            </div>
-            <div className="flex items-start gap-1.5 text-[11px] text-[#9A969A] bg-[#f9fafb] rounded-lg px-3 py-2">
-              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-blue-400" />
-              <span>
-                <strong className="text-[#716C70]">טקסט דינמי:</strong>{" "}
-                ניתן להשתמש ב-<code className="font-mono bg-white px-1 rounded">{"{{utm_source}}"}</code> ו-<code className="font-mono bg-white px-1 rounded">{"{{utm_campaign}}"}</code>{" "}
-                בכל שדה טקסט. להוסיף ערך ברירת מחדל:{" "}
-                <code className="font-mono bg-white px-1 rounded">{"{{utm_source|Google}}"}</code>
-              </span>
-            </div>
-          </CardContent>
-        )}
       </Card>
 
       {/* Thank You Page */}
