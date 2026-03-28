@@ -20,6 +20,7 @@ import {
   GraduationCap,
   LayoutTemplate,
   Users2,
+  Megaphone,
 } from "lucide-react";
 import { useAdminLanguage } from "@/contexts/admin-language-context";
 import type { TranslationKey } from "@/lib/i18n/admin-translations";
@@ -36,6 +37,7 @@ const navItems: { labelKey: TranslationKey; href: string; icon: React.ElementTyp
   { labelKey: "nav_settings",        href: "/dashboard/settings",       icon: Settings },
   { labelKey: "nav_templates",       href: "/dashboard/templates",      icon: LayoutTemplate },
   { labelKey: "nav_faculty",         href: "/dashboard/faculty",        icon: GraduationCap },
+  { labelKey: "nav_campaigns",       href: "/dashboard/campaigns",       icon: Megaphone },
   { labelKey: "nav_shared_sections", href: "/dashboard/shared-sections",icon: Globe },
   { labelKey: "nav_audit",           href: "/dashboard/audit",          icon: ShieldCheck },
   { labelKey: "nav_help",            href: "/dashboard/help",           icon: HelpCircle },

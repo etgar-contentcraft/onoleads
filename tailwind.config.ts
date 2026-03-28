@@ -17,6 +17,15 @@ const config: Config = {
         heading: ["var(--font-heading)", "var(--font-heebo)", "sans-serif"],
         sans: ["var(--font-heebo)", "sans-serif"],
       },
+      keyframes: {
+        "slide-in-bar": {
+          "0%": { transform: "translateY(100%)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+      },
+      animation: {
+        "slide-in-bar": "slide-in-bar 0.4s ease-out forwards",
+      },
     },
   },
   plugins: [],

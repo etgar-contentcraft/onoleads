@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Page, PageSection, Language, Program } from "@/lib/types/database";
+import type { PopupCampaign } from "@/lib/types/popup-campaigns";
 import { LandingPageLayout, type PageSettings } from "@/components/landing/landing-page-layout";
 import type { Metadata } from "next";
 
@@ -20,7 +21,7 @@ async function getPageData(slug: string) {
   if (!pageRes.data) return null;
   const page = pageRes.data;
 
-  const [sectionsRes, programRes] = await Promise.all([
+  const [sectionsRes, programRes, campaignsRes] = await Promise.all([
     supabase
       .from("page_sections")
       .select("*, shared_sections:shared_section_id(content, styles)")
@@ -29,6 +30,12 @@ async function getPageData(slug: string) {
     page.program_id
       ? supabase.from("programs").select("*").eq("id", page.program_id).single()
       : Promise.resolve({ data: null }),
+    supabase
+      .from("page_popup_assignments")
+      .select("*, campaign:campaign_id(*)")
+      .eq("page_id", page.id)
+      .eq("is_enabled", true)
+      .order("priority", { ascending: false }),
   ]);
 
   // Build global settings map from key-value rows
@@ -50,13 +57,6 @@ async function getPageData(slug: string) {
     default_cta_text: pageOverrides.default_cta_text || globalMap.default_cta_text,
     google_analytics_id: pageOverrides.google_analytics_id || globalMap.google_analytics_id,
     facebook_pixel_id: pageOverrides.facebook_pixel_id || globalMap.facebook_pixel_id,
-    exit_intent_enabled: pageOverrides.exit_intent_enabled === "true",
-    exit_intent_sensitivity: (pageOverrides.exit_intent_sensitivity as "subtle" | "medium" | "aggressive") || "medium",
-    exit_intent_bg_color: pageOverrides.exit_intent_bg_color || globalMap.exit_intent_bg_color,
-    exit_intent_accent_color: pageOverrides.exit_intent_accent_color || globalMap.exit_intent_accent_color,
-    exit_intent_title_he: pageOverrides.exit_intent_title_he || globalMap.exit_intent_title_he,
-    exit_intent_body_he: pageOverrides.exit_intent_body_he || globalMap.exit_intent_body_he,
-    exit_intent_cta_he: pageOverrides.exit_intent_cta_he || globalMap.exit_intent_cta_he,
     social_proof_enabled: pageOverrides.social_proof_enabled === "true",
     social_proof_days: pageOverrides.social_proof_days ? parseInt(pageOverrides.social_proof_days, 10) : 7,
   };
@@ -70,11 +70,20 @@ async function getPageData(slug: string) {
     return s;
   }) as PageSection[];
 
+  // Filter active campaigns (check dates and is_active flag)
+  const now = new Date().toISOString();
+  const campaigns = ((campaignsRes.data || []) as { campaign: PopupCampaign | null }[])
+    .map((a) => a.campaign)
+    .filter((c): c is PopupCampaign => !!c && c.is_active)
+    .filter((c) => !c.start_date || c.start_date <= now)
+    .filter((c) => !c.end_date || c.end_date >= now);
+
   return {
     page: page as Page,
     sections,
     program: (programRes.data as Program | null),
     settings,
+    campaigns,
   };
 }
 
@@ -145,7 +154,7 @@ export default async function LandingPage({ params }: PageProps) {
 
   if (!data) notFound();
 
-  const { page, sections, program, settings } = data;
+  const { page, sections, program, settings, campaigns } = data;
   const language = (page.language || "he") as Language;
   const isRtl = language === "he" || language === "ar";
 
@@ -243,6 +252,7 @@ export default async function LandingPage({ params }: PageProps) {
           pageTitle={page.title_he}
           program={program}
           settings={settings}
+          campaigns={campaigns}
         />
       </body>
     </html>
