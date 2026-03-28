@@ -6,7 +6,8 @@
  */
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { Suspense, useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -205,8 +206,21 @@ function isPopupType(type: CampaignType): boolean {
  * Uses a state-based view system: list, create_step1 (template picker),
  * create_step2 (customize form), and edit (full-screen edit form).
  */
-export default function CampaignsPage() {
+/** Wrapper with Suspense boundary for useSearchParams */
+export default function CampaignsPageWrapper() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center text-sm text-[#9A969A]">טוען...</div>}>
+      <CampaignsPage />
+    </Suspense>
+  );
+}
+
+function CampaignsPage() {
   const supabase = createClient();
+  const searchParams = useSearchParams();
+
+  /** Track whether we already handled ?action=create&page_id=X from URL */
+  const handledUrlCreate = useRef(false);
 
   /* ── View state ── */
   const [view, setView] = useState<ViewState>("list");
@@ -321,6 +335,41 @@ export default function CampaignsPage() {
   useEffect(() => {
     loadCampaigns();
   }, [loadCampaigns]);
+
+  /**
+   * Handle URL params: ?action=create&page_id=X opens the create flow
+   * with the given page auto-selected in the assignment list.
+   */
+  useEffect(() => {
+    if (handledUrlCreate.current || loading) return;
+    const action = searchParams.get("action");
+    const preselectedPageId = searchParams.get("page_id");
+    if (action === "create") {
+      handledUrlCreate.current = true;
+      // Reset form and go to template picker
+      setEditTarget(null);
+      setFormName("");
+      setFormType("exit_intent");
+      setFormTemplateId(null);
+      setFormContent(buildDefaultContent("exit_intent"));
+      setFormTrigger(buildDefaultTrigger("exit_intent"));
+      setFormFrequency("once_per_session");
+      setFormMobile(true);
+      setFormDesktop(true);
+      setFormStartDate("");
+      setFormEndDate("");
+      setPageSearchQuery("");
+      setSaveError("");
+      // Pre-select the page if provided
+      if (preselectedPageId) {
+        setAssignedPageIds(new Set([preselectedPageId]));
+      } else {
+        setAssignedPageIds(new Set());
+      }
+      setView("create_step1");
+      loadPages();
+    }
+  }, [loading, searchParams, loadPages]);
 
   /* ────────────────────── Filtered lists ────────────────────── */
 

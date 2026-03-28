@@ -365,7 +365,7 @@ export default function PageSettingsPage() {
         </Card>
       </div>
 
-      {/* Popups — link to campaigns management */}
+      {/* Popups — link to campaigns management + create new */}
       <Card className="border-0 shadow-sm">
         <CardHeader>
           <div className="flex items-start justify-between">
@@ -375,13 +375,21 @@ export default function PageSettingsPage() {
                 ניהול פופאפים, exit intent, וסרגלי CTA לעמוד זה. ניתן ליצור פופאפים מתבניות מוכנות ולשייך אותם לעמודים.
               </CardDescription>
             </div>
-            <a
-              href="/dashboard/campaigns"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#B8D900] text-[#2A2628] text-sm font-semibold hover:bg-[#A8C400] transition-colors shrink-0"
-            >
-              ניהול פופאפים
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={`/dashboard/campaigns?page_id=${pageId}&action=create`}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#B8D900] text-[#2A2628] text-sm font-semibold hover:bg-[#A8C400] transition-colors"
+              >
+                + צור פופאפ לעמוד זה
+              </a>
+              <a
+                href="/dashboard/campaigns"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#E5E5E5] text-[#4A4648] text-sm font-medium hover:border-[#B8D900] transition-colors"
+              >
+                ניהול פופאפים
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
           </div>
         </CardHeader>
       </Card>
