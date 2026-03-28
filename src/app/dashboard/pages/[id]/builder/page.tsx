@@ -83,8 +83,6 @@ interface PageOverrideSettings {
   default_cta_text?: string;
   google_analytics_id?: string;
   facebook_pixel_id?: string;
-  /** "true" to enable exit-intent popup on this page (off by default) */
-  exit_intent_enabled?: string;
   /** "true" to enable social proof toast on this page (off by default) */
   social_proof_enabled?: string;
   /** Days window for social proof count, stored as string */
@@ -1910,7 +1908,6 @@ function SettingField({ label, fieldKey, placeholder, hint, dir = "ltr", setting
  * Visual style matches the global settings page: card-style sections with icons.
  */
 function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onTyChange, onSave, saving }: PageSettingsDialogProps) {
-  const exitEnabled = settings.exit_intent_enabled === "true";
   const socialEnabled = settings.social_proof_enabled === "true";
 
   return (
@@ -1967,21 +1964,20 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                 </div>
               </div>
               <div className="px-4 py-3 space-y-3">
-                {/* Exit Intent Toggle */}
+                {/* Popups — link to /dashboard/campaigns */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <Label className="text-xs font-semibold text-[#2A2628] block">פופאפ עזיבה (Exit Intent)</Label>
-                    <p className="text-[11px] text-[#9A969A] mt-0.5 leading-relaxed">מוצג פעם אחת כשהמבקר מנסה לעזוב — מעלה המרות ~7%. <span className="text-amber-600 font-medium">כבוי כברירת מחדל.</span></p>
+                    <Label className="text-xs font-semibold text-[#2A2628] block">פופאפים</Label>
+                    <p className="text-[11px] text-[#9A969A] mt-0.5 leading-relaxed">ניהול פופאפים, exit intent, וסרגלי CTA לעמוד זה.</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => onChange("exit_intent_enabled", exitEnabled ? "false" : "true")}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors mt-0.5 ${exitEnabled ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}
-                    role="switch"
-                    aria-checked={exitEnabled}
+                  <a
+                    href="/dashboard/campaigns"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-[#B8D900] hover:underline font-semibold shrink-0 mt-0.5"
                   >
-                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${exitEnabled ? "translate-x-4" : "translate-x-0"}`} />
-                  </button>
+                    ניהול פופאפים ↗
+                  </a>
                 </div>
                 {/* Social Proof Toast Toggle */}
                 <div className="flex items-start justify-between gap-3">

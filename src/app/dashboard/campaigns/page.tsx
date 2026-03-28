@@ -1,7 +1,8 @@
 /**
- * Campaigns dashboard — full CRUD for managing popup campaigns and sticky CTA bars.
+ * Popups dashboard — full CRUD for managing popup campaigns and sticky CTA bars.
  * Supports creating from templates, editing, deleting, toggling active state,
  * and assigning campaigns to specific landing pages.
+ * Uses a full-screen view for create/edit instead of a dialog.
  */
 "use client";
 
@@ -34,6 +35,8 @@ import {
   ChevronRight,
   CheckSquare,
   Square,
+  ArrowRight,
+  Search,
 } from "lucide-react";
 import { POPUP_TEMPLATES, TEMPLATE_GROUPS } from "@/lib/popup-templates";
 import type {
@@ -96,10 +99,9 @@ const MAX_SCROLL_PERCENT = 100;
 const MAX_STICKY_SCROLL_PX = 2000;
 /** Step size for slider-style range inputs */
 const RANGE_STEP = 5;
-/** Template picker step index */
-const STEP_TEMPLATE = 0;
-/** Customize form step index */
-const STEP_CUSTOMIZE = 1;
+
+/** View states for the full-screen create/edit flow */
+type ViewState = "list" | "create_step1" | "create_step2" | "edit";
 
 /** Minimal page record for the assignment picker */
 interface PageRecord {
@@ -198,17 +200,23 @@ function isPopupType(type: CampaignType): boolean {
    Main Page Component
    ══════════════════════════════════════════════════════════════ */
 
+/**
+ * PopupsPage — dashboard page for managing popup campaigns.
+ * Uses a state-based view system: list, create_step1 (template picker),
+ * create_step2 (customize form), and edit (full-screen edit form).
+ */
 export default function CampaignsPage() {
   const supabase = createClient();
+
+  /* ── View state ── */
+  const [view, setView] = useState<ViewState>("list");
 
   /* ── List state ── */
   const [campaigns, setCampaigns] = useState<CampaignWithCount[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<CampaignType | "all">("all");
 
-  /* ── Dialog state ── */
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogStep, setDialogStep] = useState(STEP_TEMPLATE);
+  /* ── Form state ── */
   const [editTarget, setEditTarget] = useState<CampaignWithCount | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -237,6 +245,7 @@ export default function CampaignsPage() {
   const [allPages, setAllPages] = useState<PageRecord[]>([]);
   const [assignedPageIds, setAssignedPageIds] = useState<Set<string>>(new Set());
   const [loadingPages, setLoadingPages] = useState(false);
+  const [pageSearchQuery, setPageSearchQuery] = useState("");
 
   /* ── Toggling active inline ── */
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -278,7 +287,7 @@ export default function CampaignsPage() {
   }, [supabase]);
 
   /**
-   * Fetch all pages for the assignment picker inside the create/edit dialog.
+   * Fetch all pages for the assignment picker inside the create/edit form.
    */
   const loadPages = useCallback(async () => {
     setLoadingPages(true);
@@ -313,13 +322,24 @@ export default function CampaignsPage() {
     loadCampaigns();
   }, [loadCampaigns]);
 
-  /* ────────────────────── Filtered list ────────────────────── */
+  /* ────────────────────── Filtered lists ────────────────────── */
 
   /** Campaigns filtered by the currently active type tab */
   const filteredCampaigns = useMemo(() => {
     if (activeFilter === "all") return campaigns;
     return campaigns.filter((c) => c.campaign_type === activeFilter);
   }, [campaigns, activeFilter]);
+
+  /** Pages filtered by the search query (matches title or slug) */
+  const filteredPages = useMemo(() => {
+    if (!pageSearchQuery.trim()) return allPages;
+    const q = pageSearchQuery.trim().toLowerCase();
+    return allPages.filter(
+      (page) =>
+        (page.title_he || "").toLowerCase().includes(q) ||
+        (page.slug || "").toLowerCase().includes(q)
+    );
+  }, [allPages, pageSearchQuery]);
 
   /* ────────────────────── Stats ────────────────────── */
 
@@ -332,14 +352,13 @@ export default function CampaignsPage() {
     return { total, active, views, conversions };
   }, [campaigns]);
 
-  /* ────────────────────── Dialog Helpers ────────────────────── */
+  /* ────────────────────── Navigation Helpers ────────────────────── */
 
   /**
-   * Open the create dialog at the template picker step.
+   * Navigate to the create flow at the template picker step.
    */
   const openCreate = () => {
     setEditTarget(null);
-    setDialogStep(STEP_TEMPLATE);
     setFormName("");
     setFormType("exit_intent");
     setFormTemplateId(null);
@@ -351,8 +370,9 @@ export default function CampaignsPage() {
     setFormStartDate("");
     setFormEndDate("");
     setAssignedPageIds(new Set());
+    setPageSearchQuery("");
     setSaveError("");
-    setDialogOpen(true);
+    setView("create_step1");
     loadPages();
   };
 
@@ -366,16 +386,15 @@ export default function CampaignsPage() {
     setFormName(template.name_he);
     setFormContent(buildDefaultContent(template.campaign_type, template));
     setFormTrigger(buildDefaultTrigger(template.campaign_type, template));
-    setDialogStep(STEP_CUSTOMIZE);
+    setView("create_step2");
   };
 
   /**
-   * Open the edit dialog pre-filled with an existing campaign's data.
+   * Navigate to the edit form pre-filled with an existing campaign's data.
    * @param campaign - the campaign to edit
    */
   const openEdit = (campaign: CampaignWithCount) => {
     setEditTarget(campaign);
-    setDialogStep(STEP_CUSTOMIZE);
     setFormName(campaign.name);
     setFormType(campaign.campaign_type);
     setFormTemplateId(campaign.template_id);
@@ -386,21 +405,32 @@ export default function CampaignsPage() {
     setFormDesktop(campaign.show_on_desktop);
     setFormStartDate(campaign.start_date || "");
     setFormEndDate(campaign.end_date || "");
+    setPageSearchQuery("");
     setSaveError("");
-    setDialogOpen(true);
+    setView("edit");
     loadPages();
     loadAssignments(campaign.id);
+  };
+
+  /**
+   * Navigate back to the list view, resetting form state.
+   */
+  const goBackToList = () => {
+    setView("list");
+    setEditTarget(null);
+    setSaveError("");
+    setPageSearchQuery("");
   };
 
   /* ────────────────────── Save ────────────────────── */
 
   /**
    * Persist the campaign (insert or update) and sync page assignments.
-   * On success, closes the dialog and reloads the campaign list.
+   * On success, navigates back to the list and reloads campaigns.
    */
   const handleSave = async () => {
     if (!formName.trim()) {
-      setSaveError("יש להזין שם לקמפיין");
+      setSaveError("יש להזין שם לפופאפ");
       return;
     }
     setSaving(true);
@@ -429,7 +459,7 @@ export default function CampaignsPage() {
         .eq("id", editTarget.id);
 
       if (error) {
-        console.error("[campaigns] update error:", error);
+        console.error("[popups] update error:", error);
         setSaveError(`שגיאה בעדכון: ${error.message || error.code}`);
         setSaving(false);
         return;
@@ -444,7 +474,7 @@ export default function CampaignsPage() {
         .single();
 
       if (error || !data) {
-        console.error("[campaigns] insert error:", error);
+        console.error("[popups] insert error:", error);
         setSaveError(`שגיאה ביצירה: ${error?.message || error?.code || "unknown"}`);
         setSaving(false);
         return;
@@ -470,13 +500,13 @@ export default function CampaignsPage() {
           .insert(newAssignments);
 
         if (assignError) {
-          console.error("[campaigns] assignment sync error:", assignError);
+          console.error("[popups] assignment sync error:", assignError);
         }
       }
     }
 
     setSaving(false);
-    setDialogOpen(false);
+    goBackToList();
     loadCampaigns();
   };
 
@@ -570,6 +600,453 @@ export default function CampaignsPage() {
      Render
      ══════════════════════════════════════════════════════════════ */
 
+  /* ── Full-screen: Template Picker (Step 1) ── */
+  if (view === "create_step1") {
+    return (
+      <div className="min-h-screen bg-[#f3f4f6]">
+        <div className="max-w-4xl mx-auto p-8" dir="rtl">
+          {/* Back button */}
+          <button
+            onClick={goBackToList}
+            className="flex items-center gap-1.5 text-sm text-[#9A969A] hover:text-[#2A2628] transition-colors mb-6"
+          >
+            <ArrowRight className="w-4 h-4" />
+            חזרה לרשימה
+          </button>
+
+          {/* Page title */}
+          <h1 className="text-xl font-bold text-[#2A2628] mb-8">בחרו תבנית לפופאפ</h1>
+
+          {/* Template groups */}
+          <div className="space-y-8">
+            {TEMPLATE_GROUPS.map((group) => {
+              const templates = POPUP_TEMPLATES.filter(
+                (t) => t.campaign_type === group.type
+              );
+              return (
+                <div key={group.type}>
+                  <h3 className="text-sm font-semibold text-[#2A2628] mb-1">
+                    {group.label_he}
+                  </h3>
+                  <p className="text-xs text-[#9A969A] mb-3">{group.description_he}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {templates.map((tmpl) => (
+                      <button
+                        key={tmpl.id}
+                        onClick={() => selectTemplate(tmpl)}
+                        className="text-right p-5 rounded-xl border border-[#E5E5E5] bg-white hover:border-[#B8D900] hover:shadow-md transition-all group"
+                      >
+                        <span className="text-2xl block mb-2">{tmpl.icon}</span>
+                        <span className="text-sm font-medium text-[#2A2628] block">
+                          {tmpl.name_he}
+                        </span>
+                        <span className="text-xs text-[#9A969A] block mt-1 leading-relaxed">
+                          {tmpl.description_he}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Full-screen: Customize Form (Step 2 / Edit) ── */
+  if (view === "create_step2" || view === "edit") {
+    const isEditing = view === "edit";
+    const pageTitle = isEditing ? "עריכת פופאפ" : "יצירת פופאפ חדש";
+
+    return (
+      <div className="min-h-screen bg-[#f3f4f6]">
+        <div className="max-w-4xl mx-auto p-8" dir="rtl">
+          {/* Back button */}
+          <button
+            onClick={isEditing ? goBackToList : () => setView("create_step1")}
+            className="flex items-center gap-1.5 text-sm text-[#9A969A] hover:text-[#2A2628] transition-colors mb-6"
+          >
+            <ArrowRight className="w-4 h-4" />
+            {isEditing ? "חזרה לרשימה" : "חזרה לבחירת תבנית"}
+          </button>
+
+          {/* Page title */}
+          <h1 className="text-xl font-bold text-[#2A2628] mb-8">{pageTitle}</h1>
+
+          <div className="space-y-6">
+            {/* Campaign Name */}
+            <div className="bg-white rounded-xl border border-[#E5E5E5] p-6">
+              <FieldGroup label="שם פופאפ (פנימי)">
+                <Input
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="למשל: Exit Intent — הזדמנות אחרונה"
+                  dir="rtl"
+                />
+              </FieldGroup>
+            </div>
+
+            {/* ── Content Fields ── */}
+            <div className="bg-white rounded-xl border border-[#E5E5E5] p-6 space-y-5">
+              <h4 className="text-sm font-semibold text-[#2A2628]">תוכן</h4>
+
+              {isPopupType(formType) ? (
+                /* Popup content fields */
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <FieldGroup label="כותרת">
+                      <Input
+                        value={(formContent as PopupContent).title_he || ""}
+                        onChange={(e) => updateContent("title_he", e.target.value)}
+                        dir="rtl"
+                        placeholder="כותרת הפופאפ"
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="טקסט כפתור CTA">
+                      <Input
+                        value={(formContent as PopupContent).cta_text_he || ""}
+                        onChange={(e) => updateContent("cta_text_he", e.target.value)}
+                        dir="rtl"
+                        placeholder="כן, אני רוצה"
+                      />
+                    </FieldGroup>
+                  </div>
+                  <FieldGroup label="גוף הטקסט">
+                    <Textarea
+                      value={(formContent as PopupContent).body_he || ""}
+                      onChange={(e) => updateContent("body_he", e.target.value)}
+                      dir="rtl"
+                      placeholder="טקסט ההסבר"
+                      rows={3}
+                    />
+                  </FieldGroup>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <FieldGroup label="טקסט סגירה">
+                      <Input
+                        value={(formContent as PopupContent).dismiss_text_he || ""}
+                        onChange={(e) => updateContent("dismiss_text_he", e.target.value)}
+                        dir="rtl"
+                        placeholder="לא תודה"
+                      />
+                    </FieldGroup>
+                    <div className="flex items-end pb-1">
+                      <div className="flex items-center gap-3">
+                        <Switch
+                          checked={(formContent as PopupContent).include_form || false}
+                          onCheckedChange={(val) => updateContent("include_form", val)}
+                        />
+                        <Label className="text-sm">כלול טופס ליד בתוך הפופאפ</Label>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Sticky bar content fields */
+                <>
+                  <FieldGroup label="טקסט הבר">
+                    <Input
+                      value={(formContent as StickyBarContent).text_he || ""}
+                      onChange={(e) => updateContent("text_he", e.target.value)}
+                      dir="rtl"
+                      placeholder="ההרשמה פתוחה!"
+                    />
+                  </FieldGroup>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <FieldGroup label="טקסט כפתור CTA">
+                      <Input
+                        value={(formContent as StickyBarContent).cta_text_he || ""}
+                        onChange={(e) => updateContent("cta_text_he", e.target.value)}
+                        dir="rtl"
+                        placeholder="להרשמה"
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="מספר טלפון">
+                      <Input
+                        value={(formContent as StickyBarContent).phone_number || ""}
+                        onChange={(e) => updateContent("phone_number", e.target.value)}
+                        dir="ltr"
+                        placeholder="*2899"
+                      />
+                    </FieldGroup>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={(formContent as StickyBarContent).show_phone || false}
+                      onCheckedChange={(val) => updateContent("show_phone", val)}
+                    />
+                    <Label className="text-sm">הצג מספר טלפון</Label>
+                  </div>
+                  <FieldGroup label="מיקום הבר">
+                    <select
+                      value={(formContent as StickyBarContent).position || "bottom"}
+                      onChange={(e) => updateContent("position", e.target.value)}
+                      className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"
+                      dir="rtl"
+                    >
+                      <option value="top">למעלה</option>
+                      <option value="bottom">למטה</option>
+                    </select>
+                  </FieldGroup>
+                </>
+              )}
+
+              {/* Color inputs — shared by all types */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <FieldGroup label="צבע רקע">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={(formContent as PopupContent).bg_color || "#ffffff"}
+                      onChange={(e) => updateContent("bg_color", e.target.value)}
+                      className="w-8 h-8 rounded border border-[#E5E5E5] cursor-pointer"
+                    />
+                    <Input
+                      value={(formContent as PopupContent).bg_color || "#ffffff"}
+                      onChange={(e) => updateContent("bg_color", e.target.value)}
+                      dir="ltr"
+                      className="flex-1"
+                    />
+                  </div>
+                </FieldGroup>
+                <FieldGroup label="צבע הדגשה">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={(formContent as PopupContent).accent_color || "#B8D900"}
+                      onChange={(e) => updateContent("accent_color", e.target.value)}
+                      className="w-8 h-8 rounded border border-[#E5E5E5] cursor-pointer"
+                    />
+                    <Input
+                      value={(formContent as PopupContent).accent_color || "#B8D900"}
+                      onChange={(e) => updateContent("accent_color", e.target.value)}
+                      dir="ltr"
+                      className="flex-1"
+                    />
+                  </div>
+                </FieldGroup>
+              </div>
+            </div>
+
+            {/* ── Trigger Config ── */}
+            <div className="bg-white rounded-xl border border-[#E5E5E5] p-6 space-y-5">
+              <h4 className="text-sm font-semibold text-[#2A2628]">הפעלה (Trigger)</h4>
+
+              {formType === "exit_intent" && (
+                <FieldGroup label="רגישות">
+                  <select
+                    value={(formTrigger as ExitIntentTrigger).sensitivity || "medium"}
+                    onChange={(e) => updateTrigger("sensitivity", e.target.value)}
+                    className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"
+                    dir="rtl"
+                  >
+                    {SENSITIVITY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </FieldGroup>
+              )}
+
+              {formType === "timed" && (
+                <FieldGroup label={`השהיה: ${(formTrigger as TimedTrigger).delay_seconds || DEFAULT_DELAY_SECONDS} שניות`}>
+                  <input
+                    type="range"
+                    min={0}
+                    max={MAX_DELAY_SECONDS}
+                    step={RANGE_STEP}
+                    value={(formTrigger as TimedTrigger).delay_seconds || DEFAULT_DELAY_SECONDS}
+                    onChange={(e) => updateTrigger("delay_seconds", Number(e.target.value))}
+                    className="w-full accent-[#B8D900]"
+                  />
+                  <div className="flex justify-between text-xs text-[#9A969A]">
+                    <span>0 שניות</span>
+                    <span>{MAX_DELAY_SECONDS} שניות</span>
+                  </div>
+                </FieldGroup>
+              )}
+
+              {formType === "scroll_triggered" && (
+                <FieldGroup label={`אחוז גלילה: ${(formTrigger as ScrollTrigger).scroll_percent || DEFAULT_SCROLL_PERCENT}%`}>
+                  <input
+                    type="range"
+                    min={0}
+                    max={MAX_SCROLL_PERCENT}
+                    step={RANGE_STEP}
+                    value={(formTrigger as ScrollTrigger).scroll_percent || DEFAULT_SCROLL_PERCENT}
+                    onChange={(e) => updateTrigger("scroll_percent", Number(e.target.value))}
+                    className="w-full accent-[#B8D900]"
+                  />
+                  <div className="flex justify-between text-xs text-[#9A969A]">
+                    <span>0%</span>
+                    <span>100%</span>
+                  </div>
+                </FieldGroup>
+              )}
+
+              {formType === "sticky_bar" && (
+                <FieldGroup label="הצג לאחר גלילה (פיקסלים)">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={MAX_STICKY_SCROLL_PX}
+                    value={(formTrigger as StickyBarTrigger).show_after_scroll_px ?? DEFAULT_STICKY_SCROLL_PX}
+                    onChange={(e) => updateTrigger("show_after_scroll_px", Number(e.target.value))}
+                    dir="ltr"
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-[#9A969A]">0 = מיידי, ללא גלילה</p>
+                </FieldGroup>
+              )}
+            </div>
+
+            {/* ── Frequency & Display ── */}
+            <div className="bg-white rounded-xl border border-[#E5E5E5] p-6 space-y-5">
+              <h4 className="text-sm font-semibold text-[#2A2628]">תצוגה ותדירות</h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <FieldGroup label="תדירות הצגה">
+                  <select
+                    value={formFrequency}
+                    onChange={(e) => setFormFrequency(e.target.value as CampaignFrequency)}
+                    className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"
+                    dir="rtl"
+                  >
+                    {(Object.keys(FREQUENCY_LABELS) as CampaignFrequency[]).map((f) => (
+                      <option key={f} value={f}>
+                        {FREQUENCY_LABELS[f]}
+                      </option>
+                    ))}
+                  </select>
+                </FieldGroup>
+
+                <div className="flex items-end gap-6 pb-1">
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={formDesktop}
+                      onCheckedChange={(val) => setFormDesktop(!!val)}
+                    />
+                    <Label className="text-sm">דסקטופ</Label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={formMobile}
+                      onCheckedChange={(val) => setFormMobile(!!val)}
+                    />
+                    <Label className="text-sm">מובייל</Label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <FieldGroup label="תאריך התחלה">
+                  <Input
+                    type="date"
+                    value={formStartDate}
+                    onChange={(e) => setFormStartDate(e.target.value)}
+                    dir="ltr"
+                  />
+                </FieldGroup>
+                <FieldGroup label="תאריך סיום">
+                  <Input
+                    type="date"
+                    value={formEndDate}
+                    onChange={(e) => setFormEndDate(e.target.value)}
+                    dir="ltr"
+                  />
+                </FieldGroup>
+              </div>
+            </div>
+
+            {/* ── Page Assignment ── */}
+            <div className="bg-white rounded-xl border border-[#E5E5E5] p-6 space-y-4">
+              <h4 className="text-sm font-semibold text-[#2A2628]">
+                שיוך לעמודים ({assignedPageIds.size} נבחרו)
+              </h4>
+
+              {/* Search input for filtering pages */}
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9A969A]" />
+                <Input
+                  value={pageSearchQuery}
+                  onChange={(e) => setPageSearchQuery(e.target.value)}
+                  placeholder="חיפוש לפי שם עמוד או slug..."
+                  dir="rtl"
+                  className="pr-9"
+                />
+              </div>
+
+              {loadingPages ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="w-5 h-5 animate-spin text-[#9A969A]" />
+                </div>
+              ) : allPages.length === 0 ? (
+                <p className="text-sm text-[#9A969A]">לא נמצאו עמודים</p>
+              ) : filteredPages.length === 0 ? (
+                <p className="text-sm text-[#9A969A]">לא נמצאו עמודים התואמים לחיפוש</p>
+              ) : (
+                <div className="max-h-64 overflow-y-auto space-y-1">
+                  {filteredPages.map((page) => {
+                    const isAssigned = assignedPageIds.has(page.id);
+                    return (
+                      <button
+                        key={page.id}
+                        onClick={() => togglePageAssignment(page.id)}
+                        className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-right transition-colors ${
+                          isAssigned
+                            ? "bg-[#B8D900]/10 text-[#2A2628]"
+                            : "hover:bg-[#F8F9FA] text-[#716C70]"
+                        }`}
+                      >
+                        {isAssigned ? (
+                          <CheckSquare className="w-4 h-4 text-[#8aac00] shrink-0" />
+                        ) : (
+                          <Square className="w-4 h-4 text-[#C8C4C8] shrink-0" />
+                        )}
+                        <span className="truncate">{page.title_he || page.slug}</span>
+                        <span className="text-xs text-[#C8C4C8] mr-auto" dir="ltr">
+                          /{page.slug}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Save error */}
+            {saveError && (
+              <p className="text-xs text-red-500 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                {saveError}
+              </p>
+            )}
+
+            {/* ── Action Buttons ── */}
+            <div className="flex items-center justify-end gap-3 pt-2 pb-8">
+              <Button
+                variant="outline"
+                onClick={isEditing ? goBackToList : () => setView("create_step1")}
+              >
+                ביטול
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving || !formName.trim()}
+                className="bg-[#B8D900] text-[#2A2628] hover:bg-[#A8C400]"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "שמור"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Default: List View ── */
   return (
     <div className="p-8 max-w-6xl mx-auto" dir="rtl">
       {/* ── Header ── */}
@@ -579,7 +1056,7 @@ export default function CampaignsPage() {
             <Megaphone className="w-5 h-5 text-[#8aac00]" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-[#2A2628]">קמפיינים</h1>
+            <h1 className="text-xl font-bold text-[#2A2628]">פופאפים</h1>
             <p className="text-sm text-[#9A969A]">ניהול פופאפים ובר CTA לדפי נחיתה</p>
           </div>
         </div>
@@ -588,14 +1065,14 @@ export default function CampaignsPage() {
           className="gap-2 bg-[#B8D900] text-[#2A2628] hover:bg-[#A8C400]"
         >
           <Plus className="w-4 h-4" />
-          צור קמפיין חדש
+          צור פופאפ חדש
         </Button>
       </div>
 
       {/* ── Stats Bar ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={<FileStack className="w-4 h-4 text-[#8aac00]" />} label="סה״כ קמפיינים" value={stats.total} />
-        <StatCard icon={<Megaphone className="w-4 h-4 text-green-600" />} label="קמפיינים פעילים" value={stats.active} />
+        <StatCard icon={<FileStack className="w-4 h-4 text-[#8aac00]" />} label="סה״כ פופאפים" value={stats.total} />
+        <StatCard icon={<Megaphone className="w-4 h-4 text-green-600" />} label="פופאפים פעילים" value={stats.active} />
         <StatCard icon={<Eye className="w-4 h-4 text-blue-600" />} label="סה״כ צפיות" value={stats.views} />
         <StatCard icon={<MousePointerClick className="w-4 h-4 text-purple-600" />} label="סה״כ המרות" value={stats.conversions} />
       </div>
@@ -626,9 +1103,9 @@ export default function CampaignsPage() {
         <div className="text-center py-20 border-2 border-dashed border-[#E5E5E5] rounded-2xl">
           <Megaphone className="w-12 h-12 mx-auto mb-3 text-[#C8C4C8]" />
           <p className="text-[#9A969A] font-medium mb-1">
-            {activeFilter === "all" ? "אין קמפיינים עדיין" : "אין קמפיינים מסוג זה"}
+            {activeFilter === "all" ? "אין פופאפים עדיין" : "אין פופאפים מסוג זה"}
           </p>
-          <p className="text-sm text-[#C8C4C8]">צרו קמפיין חדש כדי להתחיל</p>
+          <p className="text-sm text-[#C8C4C8]">צרו פופאפ חדש כדי להתחיל</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -645,414 +1122,20 @@ export default function CampaignsPage() {
         </div>
       )}
 
-      {/* ══════════ Create / Edit Dialog ══════════ */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent
-          className="max-w-3xl max-h-[90vh] overflow-y-auto"
-          dir="rtl"
-        >
-          <DialogHeader>
-            <DialogTitle>
-              {editTarget
-                ? "עריכת קמפיין"
-                : dialogStep === STEP_TEMPLATE
-                  ? "בחרו תבנית לקמפיין"
-                  : "התאמה אישית"}
-            </DialogTitle>
-          </DialogHeader>
-
-          {/* ── Step 1: Template Picker ── */}
-          {!editTarget && dialogStep === STEP_TEMPLATE && (
-            <div className="space-y-6 py-2">
-              {TEMPLATE_GROUPS.map((group) => {
-                const templates = POPUP_TEMPLATES.filter(
-                  (t) => t.campaign_type === group.type
-                );
-                return (
-                  <div key={group.type}>
-                    <h3 className="text-sm font-semibold text-[#2A2628] mb-1">
-                      {group.label_he}
-                    </h3>
-                    <p className="text-xs text-[#9A969A] mb-3">{group.description_he}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                      {templates.map((tmpl) => (
-                        <button
-                          key={tmpl.id}
-                          onClick={() => selectTemplate(tmpl)}
-                          className="text-right p-4 rounded-xl border border-[#E5E5E5] bg-white hover:border-[#B8D900] hover:shadow-sm transition-all group"
-                        >
-                          <span className="text-2xl block mb-2">{tmpl.icon}</span>
-                          <span className="text-sm font-medium text-[#2A2628] block">
-                            {tmpl.name_he}
-                          </span>
-                          <span className="text-xs text-[#9A969A] block mt-1 leading-relaxed">
-                            {tmpl.description_he}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* ── Step 2: Customize Form (also used for edit) ── */}
-          {(editTarget || dialogStep === STEP_CUSTOMIZE) && (
-            <div className="space-y-5 py-2">
-              {/* Back button (create mode only) */}
-              {!editTarget && (
-                <button
-                  onClick={() => setDialogStep(STEP_TEMPLATE)}
-                  className="flex items-center gap-1 text-sm text-[#9A969A] hover:text-[#2A2628] transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                  חזרה לבחירת תבנית
-                </button>
-              )}
-
-              {/* Campaign Name */}
-              <FieldGroup label="שם קמפיין (פנימי)">
-                <Input
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="למשל: Exit Intent — הזדמנות אחרונה"
-                  dir="rtl"
-                />
-              </FieldGroup>
-
-              {/* ── Content Fields ── */}
-              <div className="border border-[#E5E5E5] rounded-xl p-4 space-y-4">
-                <h4 className="text-sm font-semibold text-[#2A2628]">תוכן</h4>
-
-                {isPopupType(formType) ? (
-                  /* Popup content fields */
-                  <>
-                    <FieldGroup label="כותרת">
-                      <Input
-                        value={(formContent as PopupContent).title_he || ""}
-                        onChange={(e) => updateContent("title_he", e.target.value)}
-                        dir="rtl"
-                        placeholder="כותרת הפופאפ"
-                      />
-                    </FieldGroup>
-                    <FieldGroup label="גוף הטקסט">
-                      <Textarea
-                        value={(formContent as PopupContent).body_he || ""}
-                        onChange={(e) => updateContent("body_he", e.target.value)}
-                        dir="rtl"
-                        placeholder="טקסט ההסבר"
-                        rows={3}
-                      />
-                    </FieldGroup>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FieldGroup label="טקסט כפתור CTA">
-                        <Input
-                          value={(formContent as PopupContent).cta_text_he || ""}
-                          onChange={(e) => updateContent("cta_text_he", e.target.value)}
-                          dir="rtl"
-                          placeholder="כן, אני רוצה"
-                        />
-                      </FieldGroup>
-                      <FieldGroup label="טקסט סגירה">
-                        <Input
-                          value={(formContent as PopupContent).dismiss_text_he || ""}
-                          onChange={(e) => updateContent("dismiss_text_he", e.target.value)}
-                          dir="rtl"
-                          placeholder="לא תודה"
-                        />
-                      </FieldGroup>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Switch
-                        checked={(formContent as PopupContent).include_form || false}
-                        onCheckedChange={(val) => updateContent("include_form", val)}
-                      />
-                      <Label className="text-sm">כלול טופס ליד בתוך הפופאפ</Label>
-                    </div>
-                  </>
-                ) : (
-                  /* Sticky bar content fields */
-                  <>
-                    <FieldGroup label="טקסט הבר">
-                      <Input
-                        value={(formContent as StickyBarContent).text_he || ""}
-                        onChange={(e) => updateContent("text_he", e.target.value)}
-                        dir="rtl"
-                        placeholder="ההרשמה פתוחה!"
-                      />
-                    </FieldGroup>
-                    <div className="grid grid-cols-2 gap-4">
-                      <FieldGroup label="טקסט כפתור CTA">
-                        <Input
-                          value={(formContent as StickyBarContent).cta_text_he || ""}
-                          onChange={(e) => updateContent("cta_text_he", e.target.value)}
-                          dir="rtl"
-                          placeholder="להרשמה"
-                        />
-                      </FieldGroup>
-                      <FieldGroup label="מספר טלפון">
-                        <Input
-                          value={(formContent as StickyBarContent).phone_number || ""}
-                          onChange={(e) => updateContent("phone_number", e.target.value)}
-                          dir="ltr"
-                          placeholder="*2899"
-                        />
-                      </FieldGroup>
-                    </div>
-                  </>
-                )}
-
-                {/* Color inputs — shared by all types */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FieldGroup label="צבע רקע">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={(formContent as PopupContent).bg_color || "#ffffff"}
-                        onChange={(e) => updateContent("bg_color", e.target.value)}
-                        className="w-8 h-8 rounded border border-[#E5E5E5] cursor-pointer"
-                      />
-                      <Input
-                        value={(formContent as PopupContent).bg_color || "#ffffff"}
-                        onChange={(e) => updateContent("bg_color", e.target.value)}
-                        dir="ltr"
-                        className="flex-1"
-                      />
-                    </div>
-                  </FieldGroup>
-                  <FieldGroup label="צבע הדגשה">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={(formContent as PopupContent).accent_color || "#B8D900"}
-                        onChange={(e) => updateContent("accent_color", e.target.value)}
-                        className="w-8 h-8 rounded border border-[#E5E5E5] cursor-pointer"
-                      />
-                      <Input
-                        value={(formContent as PopupContent).accent_color || "#B8D900"}
-                        onChange={(e) => updateContent("accent_color", e.target.value)}
-                        dir="ltr"
-                        className="flex-1"
-                      />
-                    </div>
-                  </FieldGroup>
-                </div>
-              </div>
-
-              {/* ── Trigger Config ── */}
-              <div className="border border-[#E5E5E5] rounded-xl p-4 space-y-4">
-                <h4 className="text-sm font-semibold text-[#2A2628]">הפעלה (Trigger)</h4>
-
-                {formType === "exit_intent" && (
-                  <FieldGroup label="רגישות">
-                    <select
-                      value={(formTrigger as ExitIntentTrigger).sensitivity || "medium"}
-                      onChange={(e) => updateTrigger("sensitivity", e.target.value)}
-                      className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"
-                      dir="rtl"
-                    >
-                      {SENSITIVITY_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </FieldGroup>
-                )}
-
-                {formType === "timed" && (
-                  <FieldGroup label={`השהיה: ${(formTrigger as TimedTrigger).delay_seconds || DEFAULT_DELAY_SECONDS} שניות`}>
-                    <input
-                      type="range"
-                      min={0}
-                      max={MAX_DELAY_SECONDS}
-                      step={RANGE_STEP}
-                      value={(formTrigger as TimedTrigger).delay_seconds || DEFAULT_DELAY_SECONDS}
-                      onChange={(e) => updateTrigger("delay_seconds", Number(e.target.value))}
-                      className="w-full accent-[#B8D900]"
-                    />
-                    <div className="flex justify-between text-xs text-[#9A969A]">
-                      <span>0 שניות</span>
-                      <span>{MAX_DELAY_SECONDS} שניות</span>
-                    </div>
-                  </FieldGroup>
-                )}
-
-                {formType === "scroll_triggered" && (
-                  <FieldGroup label={`אחוז גלילה: ${(formTrigger as ScrollTrigger).scroll_percent || DEFAULT_SCROLL_PERCENT}%`}>
-                    <input
-                      type="range"
-                      min={0}
-                      max={MAX_SCROLL_PERCENT}
-                      step={RANGE_STEP}
-                      value={(formTrigger as ScrollTrigger).scroll_percent || DEFAULT_SCROLL_PERCENT}
-                      onChange={(e) => updateTrigger("scroll_percent", Number(e.target.value))}
-                      className="w-full accent-[#B8D900]"
-                    />
-                    <div className="flex justify-between text-xs text-[#9A969A]">
-                      <span>0%</span>
-                      <span>100%</span>
-                    </div>
-                  </FieldGroup>
-                )}
-
-                {formType === "sticky_bar" && (
-                  <FieldGroup label="הצג לאחר גלילה (פיקסלים)">
-                    <Input
-                      type="number"
-                      min={0}
-                      max={MAX_STICKY_SCROLL_PX}
-                      value={(formTrigger as StickyBarTrigger).show_after_scroll_px ?? DEFAULT_STICKY_SCROLL_PX}
-                      onChange={(e) => updateTrigger("show_after_scroll_px", Number(e.target.value))}
-                      dir="ltr"
-                      placeholder="0"
-                    />
-                    <p className="text-xs text-[#9A969A]">0 = מיידי, ללא גלילה</p>
-                  </FieldGroup>
-                )}
-              </div>
-
-              {/* ── Frequency & Display ── */}
-              <div className="border border-[#E5E5E5] rounded-xl p-4 space-y-4">
-                <h4 className="text-sm font-semibold text-[#2A2628]">תצוגה ותדירות</h4>
-
-                <FieldGroup label="תדירות הצגה">
-                  <select
-                    value={formFrequency}
-                    onChange={(e) => setFormFrequency(e.target.value as CampaignFrequency)}
-                    className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"
-                    dir="rtl"
-                  >
-                    {(Object.keys(FREQUENCY_LABELS) as CampaignFrequency[]).map((f) => (
-                      <option key={f} value={f}>
-                        {FREQUENCY_LABELS[f]}
-                      </option>
-                    ))}
-                  </select>
-                </FieldGroup>
-
-                <div className="flex gap-6">
-                  <div className="flex items-center gap-3">
-                    <Switch
-                      checked={formDesktop}
-                      onCheckedChange={(val) => setFormDesktop(!!val)}
-                    />
-                    <Label className="text-sm">דסקטופ</Label>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Switch
-                      checked={formMobile}
-                      onCheckedChange={(val) => setFormMobile(!!val)}
-                    />
-                    <Label className="text-sm">מובייל</Label>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FieldGroup label="תאריך התחלה">
-                    <Input
-                      type="date"
-                      value={formStartDate}
-                      onChange={(e) => setFormStartDate(e.target.value)}
-                      dir="ltr"
-                    />
-                  </FieldGroup>
-                  <FieldGroup label="תאריך סיום">
-                    <Input
-                      type="date"
-                      value={formEndDate}
-                      onChange={(e) => setFormEndDate(e.target.value)}
-                      dir="ltr"
-                    />
-                  </FieldGroup>
-                </div>
-              </div>
-
-              {/* ── Page Assignment ── */}
-              <div className="border border-[#E5E5E5] rounded-xl p-4 space-y-3">
-                <h4 className="text-sm font-semibold text-[#2A2628]">
-                  שיוך לעמודים ({assignedPageIds.size} נבחרו)
-                </h4>
-
-                {loadingPages ? (
-                  <div className="flex items-center justify-center py-6">
-                    <Loader2 className="w-5 h-5 animate-spin text-[#9A969A]" />
-                  </div>
-                ) : allPages.length === 0 ? (
-                  <p className="text-sm text-[#9A969A]">לא נמצאו עמודים</p>
-                ) : (
-                  <div className="max-h-48 overflow-y-auto space-y-1">
-                    {allPages.map((page) => {
-                      const isAssigned = assignedPageIds.has(page.id);
-                      return (
-                        <button
-                          key={page.id}
-                          onClick={() => togglePageAssignment(page.id)}
-                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-right transition-colors ${
-                            isAssigned
-                              ? "bg-[#B8D900]/10 text-[#2A2628]"
-                              : "hover:bg-[#F8F9FA] text-[#716C70]"
-                          }`}
-                        >
-                          {isAssigned ? (
-                            <CheckSquare className="w-4 h-4 text-[#8aac00] shrink-0" />
-                          ) : (
-                            <Square className="w-4 h-4 text-[#C8C4C8] shrink-0" />
-                          )}
-                          <span className="truncate">{page.title_he || page.slug}</span>
-                          <span className="text-xs text-[#C8C4C8] mr-auto" dir="ltr">
-                            /{page.slug}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Save error */}
-              {saveError && (
-                <p className="text-xs text-red-500 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" />
-                  {saveError}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* ── Dialog Footer ── */}
-          {(editTarget || dialogStep === STEP_CUSTOMIZE) && (
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                ביטול
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={saving || !formName.trim()}
-                className="bg-[#B8D900] text-[#2A2628] hover:bg-[#A8C400]"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "שמור"}
-              </Button>
-            </DialogFooter>
-          )}
-        </DialogContent>
-      </Dialog>
-
       {/* ══════════ Delete Confirmation Dialog ══════════ */}
       <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <DialogContent dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <AlertTriangle className="w-5 h-5" />
-              מחיקת קמפיין
+              מחיקת פופאפ
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-[#4A4648]">
             האם למחוק את <strong>{deleteTarget?.name}</strong>?
             {(deleteTarget?.pages_count || 0) > 0 && (
               <span className="block mt-2 text-amber-700 bg-amber-50 rounded-lg p-2 text-xs">
-                אזהרה: הקמפיין משויך ל-{deleteTarget?.pages_count} עמודים. השיוכים יימחקו גם הם.
+                אזהרה: הפופאפ משויך ל-{deleteTarget?.pages_count} עמודים. השיוכים יימחקו גם הם.
               </span>
             )}
           </p>
