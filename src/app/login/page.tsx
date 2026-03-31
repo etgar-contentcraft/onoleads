@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,18 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  /** Show error if redirected from failed auth callback or expired session */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const authError = params.get("error");
+    const expired = params.get("expired");
+    if (authError === "auth_callback_failed") {
+      setError("קישור ההזמנה פג תוקף או אינו תקין. בקש הזמנה חדשה.");
+    } else if (expired === "1") {
+      setError("פג תוקף החיבור. התחבר שנית.");
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

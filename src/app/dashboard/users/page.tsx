@@ -121,7 +121,10 @@ export default function UsersPage() {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Failed to send invitation");
-      setInviteSuccess(inviteEmail.trim());
+      const msg = body.inviteLink
+        ? `ההזמנה נוצרה. שתף את הקישור: ${body.inviteLink}`
+        : inviteEmail.trim();
+      setInviteSuccess(msg);
       setInviteEmail("");
       /* Reload users after a successful invite */
       fetchUsers();
