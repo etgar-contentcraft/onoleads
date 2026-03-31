@@ -46,8 +46,10 @@ export async function POST(request: NextRequest) {
 
     /* --- Invite user via admin client --- */
     const adminClient = createAdminClient();
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://onoleads.vercel.app";
     const { error } = await adminClient.auth.admin.inviteUserByEmail(
-      email.trim().toLowerCase()
+      email.trim().toLowerCase(),
+      { redirectTo: `${SITE_URL}/login` }
     );
 
     if (error) {
