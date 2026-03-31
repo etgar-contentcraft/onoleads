@@ -176,7 +176,7 @@ export default function NewPageWizard() {
       }
     }
 
-    router.push(`/dashboard/builder?page=${newPage.id}`);
+    router.push(`/dashboard/pages/${newPage.id}/builder`);
   };
 
   const canGoToStep2 = selectedTemplate !== null;
