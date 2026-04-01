@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 
 interface Testimonial {
@@ -229,12 +230,14 @@ function TestimonialCard({
       {/* Author info */}
       <div className="flex items-center gap-4 pt-5 border-t border-gray-100">
         {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={imageUrl}
             alt={item.name}
+            width={56}
+            height={56}
             className="w-14 h-14 rounded-full object-cover border-2 border-[#B8D900]/20 shadow-sm"
-            loading="lazy"
+            sizes="56px"
+            quality={75}
           />
         ) : (
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#B8D900] to-[#9ab800] flex items-center justify-center text-[#2a2628] font-heading font-bold text-xl shadow-sm">

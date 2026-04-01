@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 
 interface StatItem {
@@ -116,8 +117,7 @@ export function StatsSection({ content, language }: StatsSectionProps) {
       <div className="absolute inset-0 z-0 bg-[#2a2628]">
         {bgImage && (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bgImage} alt="" className="w-full h-full object-cover" loading="lazy" />
+            <Image src={bgImage} alt="" fill className="object-cover" sizes="100vw" quality={80} />
             <div className="absolute inset-0 bg-[#2a2628]/85" />
           </>
         )}

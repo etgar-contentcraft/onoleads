@@ -1,3 +1,8 @@
+/**
+ * Dynamic landing page route for OnoLeads.
+ * Fetches page data, program info, and sections from Supabase,
+ * then renders the page with enhanced SEO metadata and JSON-LD structured data.
+ */
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -5,11 +10,64 @@ import type { Page, PageSection, Language, Program } from "@/lib/types/database"
 import type { PopupCampaign } from "@/lib/types/popup-campaigns";
 import { LandingPageLayout, type PageSettings } from "@/components/landing/landing-page-layout";
 import type { Metadata } from "next";
+import { Heebo, Rubik } from "next/font/google";
+
+/** Heebo — primary body font for Hebrew and Latin text */
+const heebo = Heebo({
+  subsets: ["hebrew", "latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-heebo",
+  display: "swap",
+});
+
+/** Rubik — heading font for Hebrew and Latin text */
+const rubik = Rubik({
+  subsets: ["hebrew", "latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-heading",
+  display: "swap",
+});
+
+/** Default OG image used when the program has no hero image */
+const DEFAULT_OG_IMAGE =
+  "https://www.ono.ac.il/wp-content/uploads/2023/04/Ono_009-min-1-scaled-e1649600345705-2-2.jpg";
+
+/** Base URL for canonical links and structured data */
+const BASE_URL = "https://onoleads.vercel.app";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+/**
+ * Derives a Hebrew degree label from the program's degree_type string.
+ * @param degreeType - e.g. "B.A.", "M.A.", "B.Sc."
+ * @returns Hebrew label like "תואר ראשון" or "תואר שני"
+ */
+function getDegreeLabel(degreeType: string): string {
+  const lower = degreeType.toLowerCase();
+  if (lower.includes("b.a") || lower.includes("b.sc") || lower === "ba") return "תואר ראשון";
+  if (lower.includes("m.a") || lower.includes("m.sc") || lower === "ma") return "תואר שני";
+  return "תואר";
+}
+
+/**
+ * Derives an English educational level from the program's degree_type string.
+ * @param degreeType - e.g. "B.A.", "M.A.", "B.Sc."
+ * @returns Educational level like "Bachelor" or "Master"
+ */
+function getEducationalLevel(degreeType: string): string {
+  const lower = degreeType.toLowerCase();
+  if (lower.includes("b.a") || lower.includes("b.sc") || lower === "ba") return "Bachelor";
+  if (lower.includes("m.a") || lower.includes("m.sc") || lower === "ma") return "Master";
+  return "Postgraduate";
+}
+
+/**
+ * Fetches all data needed for a landing page: page record, sections, program, settings, campaigns.
+ * @param slug - URL slug identifying the landing page
+ * @returns Combined page data or null if page not found/unpublished
+ */
 async function getPageData(slug: string) {
   const supabase = await createClient();
 
@@ -87,6 +145,10 @@ async function getPageData(slug: string) {
   };
 }
 
+/**
+ * Generates enhanced SEO metadata including OpenGraph, Twitter Cards,
+ * canonical URL, keywords, and authorship info.
+ */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const data = await getPageData(slug);
@@ -104,24 +166,40 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         ? "הקריה האקדמית אונו - המכללה המומלצת בישראל. השאירו פרטים ונחזור אליכם."
         : "Ono Academic College - Israel's most recommended college.");
 
+  const ogImage = program?.hero_image_url || DEFAULT_OG_IMAGE;
+
   return {
     title,
     description,
+    authors: [{ name: "הקריה האקדמית אונו" }],
+    creator: "הקריה האקדמית אונו",
+    publisher: "הקריה האקדמית אונו",
+    category: "education",
+    keywords: program
+      ? [
+          program.name_he,
+          "הקריה האקדמית אונו",
+          "תואר",
+          getDegreeLabel(program.degree_type),
+          "לימודים",
+          "אקדמיה",
+        ].filter(Boolean)
+      : ["הקריה האקדמית אונו", "לימודים אקדמיים"],
+    alternates: {
+      canonical: `${BASE_URL}/lp/${slug}`,
+    },
     openGraph: {
       title,
       description,
       type: "website",
       locale: page.language === "he" ? "he_IL" : page.language === "ar" ? "ar_SA" : "en_US",
-      images: program?.hero_image_url
-        ? [{ url: program.hero_image_url, width: 1200, height: 630, alt: title }]
-        : [
-            {
-              url: "https://www.ono.ac.il/wp-content/uploads/2023/04/Ono_009-min-1-scaled-e1649600345705-2-2.jpg",
-              width: 1200,
-              height: 630,
-              alt: "הקריה האקדמית אונו",
-            },
-          ],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
     },
     robots: {
       index: true,
@@ -148,6 +226,193 @@ export async function generateStaticParams() {
 export const revalidate = false;
 export const dynamicParams = true;
 
+/**
+ * Builds an array of JSON-LD structured data schemas for the landing page.
+ * Includes: EducationalOrganization, Course (if program), BreadcrumbList,
+ * WebPage, and FAQPage (if FAQ section exists).
+ * @param slug - Page URL slug
+ * @param page - Page record from Supabase
+ * @param sections - Page sections array
+ * @param program - Associated program or null
+ * @param title - Resolved page title for SEO
+ * @param description - Resolved page description for SEO
+ * @returns Array of JSON-LD schema objects
+ */
+function buildJsonLdSchemas(
+  slug: string,
+  page: Page,
+  sections: PageSection[],
+  program: Program | null,
+  title: string,
+  description: string,
+): Record<string, unknown>[] {
+  const pageUrl = `${BASE_URL}/lp/${slug}`;
+
+  // EducationalOrganization — enhanced with social links, geo, and contact info
+  const orgSchema: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "EducationalOrganization",
+    name: "הקריה האקדמית אונו",
+    alternateName: "Ono Academic College",
+    url: "https://www.ono.ac.il",
+    logo: "https://www.ono.ac.il/wp-content/uploads/2023/01/ono-logo.png",
+    sameAs: [
+      "https://www.facebook.com/OnoCampus",
+      "https://www.instagram.com/ono_academic",
+      "https://www.youtube.com/@onoacademiccollege",
+      "https://www.linkedin.com/school/ono-academic-college/",
+      "https://he.wikipedia.org/wiki/הקריה_האקדמית_אונו",
+    ],
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "רחוב הבנאי 104",
+      addressLocality: "קריית אונו",
+      addressRegion: "מחוז מרכז",
+      postalCode: "5545173",
+      addressCountry: "IL",
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: 32.0636,
+      longitude: 34.8621,
+    },
+    telephone: "*2899",
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: "*2899",
+      contactType: "admissions",
+      availableLanguage: ["Hebrew", "Arabic", "English"],
+    },
+  };
+
+  const schemas: Record<string, unknown>[] = [orgSchema];
+
+  // Course schema — enhanced with courseInstance, offers, prerequisites
+  if (program) {
+    const isMaster = getEducationalLevel(program.degree_type) === "Master";
+    const campusName = program.campuses?.length
+      ? program.campuses[0]
+      : "קמפוס קריית אונו";
+
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "Course",
+      name: program.name_he,
+      description: program.description_he || `לימודי ${program.name_he} בהקריה האקדמית אונו`,
+      url: pageUrl,
+      provider: {
+        "@type": "EducationalOrganization",
+        name: "הקריה האקדמית אונו",
+        sameAs: "https://www.ono.ac.il",
+      },
+      educationalLevel: getEducationalLevel(program.degree_type),
+      educationalCredentialAwarded: program.degree_type,
+      inLanguage: page.language || "he",
+      coursePrerequisites: isMaster ? "Bachelor's degree" : "Bagrut certificate",
+      hasCourseInstance: {
+        "@type": "CourseInstance",
+        courseMode: "onsite",
+        ...(program.duration_semesters && {
+          courseWorkload: `${program.duration_semesters} סמסטרים`,
+        }),
+        instructor: {
+          "@type": "Organization",
+          name: "הקריה האקדמית אונו",
+        },
+        location: {
+          "@type": "Place",
+          name: campusName,
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: "קריית אונו",
+            addressCountry: "IL",
+          },
+        },
+      },
+      offers: {
+        "@type": "Offer",
+        category: "Tuition",
+        availability: "https://schema.org/InStock",
+        url: pageUrl,
+      },
+    });
+  }
+
+  // BreadcrumbList — navigation path for search engines
+  schemas.push({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "הקריה האקדמית אונו",
+        item: "https://www.ono.ac.il",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "לימודים",
+        item: "https://www.ono.ac.il",
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: title,
+        item: pageUrl,
+      },
+    ],
+  });
+
+  // WebPage schema — helps LLM crawlers understand page purpose and freshness
+  schemas.push({
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: title,
+    description,
+    url: pageUrl,
+    inLanguage: page.language || "he",
+    isPartOf: {
+      "@type": "WebSite",
+      name: "OnoLeads",
+      url: BASE_URL,
+    },
+    about: {
+      "@type": "Thing",
+      name: program?.name_he || title,
+    },
+    datePublished: page.created_at,
+    dateModified: page.updated_at || page.created_at,
+    speakable: {
+      "@type": "SpeakableSpecification",
+      cssSelector: ["h1", "h2", ".hero-description"],
+    },
+  });
+
+  // FAQPage schema — generated from FAQ sections for rich results and LLM optimization
+  const faqSection = sections.find((s) => s.section_type === "faq");
+  const faqItems = faqSection?.content?.items as
+    | { question: string; answer: string }[]
+    | undefined;
+
+  if (faqItems && faqItems.length > 0) {
+    schemas.push({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faqItems.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer,
+        },
+      })),
+    });
+  }
+
+  return schemas;
+}
+
 export default async function LandingPage({ params }: PageProps) {
   const { slug } = await params;
   const data = await getPageData(slug);
@@ -158,82 +423,27 @@ export default async function LandingPage({ params }: PageProps) {
   const language = (page.language || "he") as Language;
   const isRtl = language === "he" || language === "ar";
 
-  // Build JSON-LD schemas
-  const schemas: Record<string, unknown>[] = [
-    // Organization
-    {
-      "@context": "https://schema.org",
-      "@type": "EducationalOrganization",
-      name: "הקריה האקדמית אונו",
-      alternateName: "Ono Academic College",
-      url: "https://www.ono.ac.il",
-      description: "המכללה המומלצת בישראל",
-      logo: "https://www.ono.ac.il/wp-content/uploads/2025/12/לוגו-אונו.png",
-      address: {
-        "@type": "PostalAddress",
-        addressLocality: "קריית אונו",
-        addressCountry: "IL",
-      },
-    },
-  ];
+  // Resolve title and description for JSON-LD (mirrors generateMetadata logic)
+  const title = page.seo_title || page.title_he || "הקריה האקדמית אונו";
+  const description =
+    page.seo_description ||
+    (program?.description_he
+      ? program.description_he.substring(0, 160)
+      : isRtl
+        ? "הקריה האקדמית אונו - המכללה המומלצת בישראל. השאירו פרטים ונחזור אליכם."
+        : "Ono Academic College - Israel's most recommended college.");
 
-  // Course schema for program pages
-  if (program) {
-    schemas.push({
-      "@context": "https://schema.org",
-      "@type": "Course",
-      name: program.name_he,
-      description: program.description_he || `לימודי ${program.name_he} בהקריה האקדמית אונו`,
-      provider: {
-        "@type": "EducationalOrganization",
-        name: "הקריה האקדמית אונו",
-        url: "https://www.ono.ac.il",
-      },
-      educationalCredentialAwarded: program.degree_type,
-      ...(program.duration_semesters && {
-        timeRequired: `P${Math.ceil(program.duration_semesters / 2)}Y`,
-      }),
-      ...(program.campuses && program.campuses.length > 0 && {
-        locationCreated: program.campuses.map((campus) => ({
-          "@type": "Place",
-          name: campus,
-        })),
-      }),
-    });
-  }
+  // Build all JSON-LD structured data schemas
+  const schemas = buildJsonLdSchemas(slug, page, sections, program, title, description);
 
   return (
     <html
       lang={language}
       dir={isRtl ? "rtl" : "ltr"}
-      style={
-        {
-          "--font-heading": "'Rubik', sans-serif",
-          "--font-heebo": "'Heebo', sans-serif",
-        } as React.CSSProperties
-      }
+      className={`${heebo.variable} ${rubik.variable}`}
     >
       <head>
-        {/* Fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Heebo:wght@300;400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-        {/* Force Rubik as the heading font — belt-and-suspenders since LP pages bypass root layout */}
-        <style dangerouslySetInnerHTML={{ __html: `
-          :root, html {
-            --font-heading: 'Rubik', sans-serif;
-            --font-heebo: 'Heebo', sans-serif;
-          }
-          .font-heading, h1.font-heading, h2.font-heading, h3.font-heading {
-            font-family: 'Rubik', sans-serif !important;
-          }
-        ` }} />
-
-        {/* JSON-LD Schemas */}
+        {/* JSON-LD Schemas — one script tag per schema for clean parsing */}
         {schemas.map((schema, i) => (
           <script
             key={i}

@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
 
@@ -109,13 +110,15 @@ export function HeroSection({ content, language }: HeroSectionProps) {
       <div className="absolute inset-0 z-0 overflow-hidden">
         {bgImage ? (
           <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={bgImage}
               alt=""
-              className="w-full h-full md:h-[120%] object-cover will-change-transform"
+              fill
+              priority
+              className="object-cover will-change-transform"
               style={{ transform: `translateY(-${parallaxY}px)` }}
-              loading="eager"
+              sizes="100vw"
+              quality={80}
             />
             <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/45 to-black/85" />
           </>

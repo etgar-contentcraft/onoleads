@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
 
@@ -121,12 +122,14 @@ export function AboutSection({ content, language }: AboutSectionProps) {
                 {/* Decorative accent shape behind image */}
                 <div className="absolute -top-4 -right-4 w-full h-full rounded-2xl bg-[#B8D900]/10 -z-10" />
                 <div className="relative rounded-2xl overflow-hidden shadow-[0_12px_50px_rgba(0,0,0,0.12)]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={imageUrl}
                     alt={heading}
+                    width={600}
+                    height={450}
                     className="w-full h-auto object-cover aspect-[4/3]"
-                    loading="lazy"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    quality={80}
                   />
                   {/* Green accent corner overlay */}
                   <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-[#B8D900]/25 to-transparent" />

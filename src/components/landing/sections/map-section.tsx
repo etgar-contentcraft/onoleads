@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 
 interface MapSectionProps {
@@ -259,13 +260,14 @@ export function MapSection({ content, language }: MapSectionProps) {
           {/* Optional venue photo — shown beside the map on large screens */}
           {imageUrl && (
             <div className="lg:w-72 xl:w-80 shrink-0">
-              <div className="rounded-2xl overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.10)] border border-gray-200 h-64 lg:h-full min-h-[280px]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+              <div className="relative rounded-2xl overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.10)] border border-gray-200 h-64 lg:h-full min-h-[280px]">
+                <Image
                   src={imageUrl}
                   alt={venueName || heading}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 320px"
+                  quality={80}
                 />
               </div>
               {/* Venue name caption below photo */}

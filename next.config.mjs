@@ -48,19 +48,47 @@ const securityHeaders = [
   },
 ];
 
+/** Cache TTL for optimized images: 30 days in seconds */
+const IMAGE_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30;
+
+/** Cache-Control for landing pages: 1 hour fresh, 24 hours stale-while-revalidate */
+const LP_CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=86400";
+
+/** Cache-Control for immutable Next.js image assets: 1 year */
+const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
+
 const nextConfig = {
-  /* Apply security headers to all routes */
+  /* Enable gzip compression for responses */
+  compress: true,
+
+  /* Apply security + caching headers to all routes */
   async headers() {
     return [
       {
         source: "/(.*)",
         headers: securityHeaders,
       },
+      {
+        source: "/lp/:slug*",
+        headers: [
+          { key: "Cache-Control", value: LP_CACHE_CONTROL },
+        ],
+      },
+      {
+        source: "/_next/image(.*)",
+        headers: [
+          { key: "Cache-Control", value: IMMUTABLE_CACHE_CONTROL },
+        ],
+      },
     ];
   },
 
-  /* Restrict allowed image domains */
+  /* Image optimization with modern formats and caching */
   images: {
+    formats: ["image/avif", "image/webp"],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: IMAGE_CACHE_TTL_SECONDS,
     remotePatterns: [
       {
         protocol: "https",
@@ -69,6 +97,14 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "*.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "img.youtube.com",
+      },
+      {
+        protocol: "https",
+        hostname: "i.ytimg.com",
       },
     ],
   },

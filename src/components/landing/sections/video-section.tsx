@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 
 interface VideoItem {
@@ -191,12 +192,13 @@ function VideoCard({
             aria-label={`הפעל: ${video.title_he}`}
           >
             {thumbnailUrl && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
+              <Image
                 src={thumbnailUrl}
                 alt=""
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                loading="lazy"
+                fill
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                quality={80}
                 onError={(e) => handleThumbnailError(e, video.youtube_id)}
               />
             )}
@@ -330,12 +332,13 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                     aria-label={`הפעל: ${activeVideo.title_he}`}
                   >
                     {getThumbnailUrl(activeVideo.youtube_id, activeVideo.thumbnail_url) && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={getThumbnailUrl(activeVideo.youtube_id, activeVideo.thumbnail_url)!}
                         alt=""
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        loading="lazy"
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        sizes="(max-width: 1024px) 100vw, 70vw"
+                        quality={80}
                         onError={(e) => handleThumbnailError(e, activeVideo.youtube_id)}
                       />
                     )}
@@ -379,12 +382,13 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                     {/* Thumbnail */}
                     <div className="relative shrink-0 w-24 h-14 rounded-lg overflow-hidden bg-[#2a2628]">
                       {getThumbnailUrl(video.youtube_id, video.thumbnail_url) && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <Image
                           src={getThumbnailUrl(video.youtube_id, video.thumbnail_url)!}
                           alt=""
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          sizes="96px"
+                          quality={60}
                           onError={(e) => handleThumbnailError(e, video.youtube_id)}
                         />
                       )}

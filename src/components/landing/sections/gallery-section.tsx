@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 
 interface GalleryImage {
@@ -113,13 +114,17 @@ function Lightbox({
       )}
 
       {/* Main image */}
-      <div className="w-full h-full flex flex-col items-center justify-center px-20 py-16 animate-scale-in">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={current.url}
-          alt={current.alt_he || ""}
-          className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
-        />
+      <div className="relative w-full h-full flex flex-col items-center justify-center px-20 py-16 animate-scale-in">
+        <div className="relative w-full max-w-5xl" style={{ height: "80vh" }}>
+          <Image
+            src={current.url}
+            alt={current.alt_he || ""}
+            fill
+            className="object-contain rounded-lg shadow-2xl"
+            sizes="90vw"
+            quality={85}
+          />
+        </div>
         {/* Caption */}
         {current.caption_he && (
           <p className="mt-5 text-white/70 text-sm font-heebo text-center max-w-xl">
@@ -144,8 +149,7 @@ function Lightbox({
             }`}
             aria-label={`תמונה ${i + 1}`}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={img.url} alt="" className="w-full h-full object-cover" loading="lazy" />
+            <Image src={img.url} alt="" width={48} height={48} className="w-full h-full object-cover" sizes="48px" quality={60} />
           </button>
         ))}
       </div>
@@ -182,12 +186,13 @@ function GalleryTile({
       }}
       aria-label={image.alt_he || "פתח תמונה"}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <Image
         src={image.url}
         alt={image.alt_he || ""}
-        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-        loading="lazy"
+        fill
+        className="object-cover transition-transform duration-500 group-hover:scale-105"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        quality={80}
       />
 
       {/* Hover overlay */}

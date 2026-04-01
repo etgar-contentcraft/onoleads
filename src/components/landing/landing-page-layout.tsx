@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import type { Language, PageSection, Program } from "@/lib/types/database";
 import { useUrlParams } from "@/hooks/use-url-params";
 import { replaceDynamicContent } from "@/lib/dynamic-text";
@@ -8,23 +9,28 @@ import { CtaModalProvider, CtaModal, FloatingCtaButton, useCtaModal } from "./ct
 import { CookieConsent } from "../compliance/cookie-consent";
 import { AccessibilityWidget } from "../compliance/accessibility-widget";
 import { usePageTracking } from "@/hooks/use-page-tracking";
+
+// Above-fold sections — loaded eagerly for fast first paint
 import { HeroSection } from "./sections/hero-section";
 import { ProgramInfoBar } from "./sections/program-info-bar";
-import { AboutSection } from "./sections/about-section";
-import { BenefitsSection } from "./sections/benefits-section";
-import { CurriculumSection } from "./sections/curriculum-section";
-import { CareerSection } from "./sections/career-section";
-import { FacultySection as FacultySectionComponent } from "./sections/faculty-section";
-import { StatsSection } from "./sections/stats-section";
-import { TestimonialsSection } from "./sections/testimonials-section";
-import { VideoSection } from "./sections/video-section";
-import { FaqSection } from "./sections/faq-section";
-import { CtaSection } from "./sections/cta-section";
-import { WhatsappSection } from "./sections/whatsapp-section";
-import { AdmissionSection } from "./sections/admission-section";
-import { GallerySection } from "./sections/gallery-section";
-import { MapSection } from "./sections/map-section";
-import { CountdownSection } from "./sections/countdown-section";
+
+// Below-fold sections — dynamically imported to reduce initial JS bundle
+const AboutSection = dynamic(() => import("./sections/about-section").then(mod => ({ default: mod.AboutSection })));
+const BenefitsSection = dynamic(() => import("./sections/benefits-section").then(mod => ({ default: mod.BenefitsSection })));
+const CurriculumSection = dynamic(() => import("./sections/curriculum-section").then(mod => ({ default: mod.CurriculumSection })));
+const CareerSection = dynamic(() => import("./sections/career-section").then(mod => ({ default: mod.CareerSection })));
+const FacultySectionComponent = dynamic(() => import("./sections/faculty-section").then(mod => ({ default: mod.FacultySection })));
+const StatsSection = dynamic(() => import("./sections/stats-section").then(mod => ({ default: mod.StatsSection })));
+const TestimonialsSection = dynamic(() => import("./sections/testimonials-section").then(mod => ({ default: mod.TestimonialsSection })));
+const VideoSection = dynamic(() => import("./sections/video-section").then(mod => ({ default: mod.VideoSection })));
+const FaqSection = dynamic(() => import("./sections/faq-section").then(mod => ({ default: mod.FaqSection })));
+const CtaSection = dynamic(() => import("./sections/cta-section").then(mod => ({ default: mod.CtaSection })));
+const WhatsappSection = dynamic(() => import("./sections/whatsapp-section").then(mod => ({ default: mod.WhatsappSection })));
+const AdmissionSection = dynamic(() => import("./sections/admission-section").then(mod => ({ default: mod.AdmissionSection })));
+const GallerySection = dynamic(() => import("./sections/gallery-section").then(mod => ({ default: mod.GallerySection })));
+const MapSection = dynamic(() => import("./sections/map-section").then(mod => ({ default: mod.MapSection })));
+const CountdownSection = dynamic(() => import("./sections/countdown-section").then(mod => ({ default: mod.CountdownSection })));
+
 import { SocialProofToast } from "./social-proof-toast";
 import { PopupManager } from "./popup-manager";
 import type { PopupCampaign } from "@/lib/types/popup-campaigns";
