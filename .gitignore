@@ -39,3 +39,7 @@ next-env.d.ts
 .claude/settings.local.json
 
 .vercel
+
+# sensitive files — never commit
+users.txt
+scraped_program_data.json

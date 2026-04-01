@@ -7,6 +7,7 @@ import { replaceDynamicContent } from "@/lib/dynamic-text";
 import { CtaModalProvider, CtaModal, FloatingCtaButton, useCtaModal } from "./cta-modal";
 import { CookieConsent } from "../compliance/cookie-consent";
 import { AccessibilityWidget } from "../compliance/accessibility-widget";
+import { usePageTracking } from "@/hooks/use-page-tracking";
 import { HeroSection } from "./sections/hero-section";
 import { ProgramInfoBar } from "./sections/program-info-bar";
 import { AboutSection } from "./sections/about-section";
@@ -296,6 +297,9 @@ function InnerLayout({
   const isRtl = language === "he" || language === "ar";
   const urlParams = useUrlParams();
 
+  /* Track anonymous page view */
+  usePageTracking(pageId || null);
+
   const visibleSections = sections.filter((s) => s.is_visible);
   const whatsappSection = visibleSections.find((s) => s.section_type === "whatsapp");
   const mainSections = visibleSections.filter(
@@ -481,3 +485,4 @@ export function LandingPageLayout(props: LandingPageLayoutProps) {
     </CtaModalProvider>
   );
 }
+

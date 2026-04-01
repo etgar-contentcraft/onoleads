@@ -1,11 +1,16 @@
+/**
+ * Database setup check endpoint.
+ * Verifies that required tables exist in Supabase.
+ * Auth via Authorization header (not query string — query strings are logged by CDNs).
+ * POST /api/setup  (Authorization: Bearer <SERVICE_ROLE_KEY>)
+ */
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-// This endpoint runs the database migration
-// Call it once after deployment: POST /api/setup?key=SERVICE_ROLE_KEY
 export async function POST(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const key = searchParams.get('key')
+  /* Read key from Authorization header — never from query string */
+  const authHeader = request.headers.get('authorization') || ''
+  const key = authHeader.replace(/^Bearer\s+/i, '').trim()
 
   if (!key || key !== process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -16,41 +21,17 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const migrations: string[] = []
-  const errors: string[] = []
+  const { data, error } = await supabaseAdmin.from('pages').select('id').limit(1)
 
-  // We'll create tables using the Supabase REST API approach
-  // Since we can't run raw DDL via REST, we'll use the pg connection
-  // via the Supabase project's built-in pg-meta API
-
-  // For now, let's test connectivity
-  const { data, error } = await supabaseAdmin.from('faculties').select('count').limit(1)
-
-  if (error && error.code === 'PGRST204') {
-    // Table doesn't exist - we need migration
+  if (error && (error.code === 'PGRST204' || error.code === 'PGRST205')) {
     return NextResponse.json({
       status: 'needs_migration',
-      message: 'Tables do not exist yet. Please run the migration SQL in the Supabase SQL Editor.',
-      sql_file: '/supabase/migrations/001_initial_schema.sql'
-    })
-  }
-
-  if (error && error.code === 'PGRST205') {
-    return NextResponse.json({
-      status: 'needs_migration',
-      message: 'Tables do not exist yet. Please run the migration SQL in the Supabase SQL Editor.',
+      message: 'Tables do not exist yet. Run the migration SQL in the Supabase SQL Editor.',
     })
   }
 
   return NextResponse.json({
     status: 'ok',
     message: 'Database tables exist',
-    data
-  })
-}
-
-export async function GET() {
-  return NextResponse.json({
-    message: 'POST to this endpoint with ?key=SERVICE_ROLE_KEY to check DB status'
   })
 }

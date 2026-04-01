@@ -1,13 +1,11 @@
 /**
- * Social Proof API — returns lead count for a page over a given time window.
- * Used by the SocialProofToast component to show "X people registered this week".
- * Anonymous read — only exposes aggregate count, never PII.
+ * Social Proof API — returns anonymous form submission count for a page.
+ * Uses analytics_events table (no PII). Only exposes aggregate count.
  */
-
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
-/** Minimum count to show — avoids showing "1 person registered" */
+/** Minimum count to show — avoids displaying "1 person registered" */
 const MIN_COUNT = 3;
 
 export async function GET(request: NextRequest) {
@@ -24,16 +22,17 @@ export async function GET(request: NextRequest) {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
     const { count, error } = await supabase
-      .from("leads")
+      .from("analytics_events")
       .select("id", { count: "exact", head: true })
       .eq("page_id", pageId)
+      .eq("event_type", "form_submit")
       .gte("created_at", since);
 
     if (error) throw error;
 
     const safeCount = (count ?? 0) >= MIN_COUNT ? count! : 0;
     return NextResponse.json({ count: safeCount }, {
-      headers: { "Cache-Control": "public, max-age=300" }, // cache 5 min
+      headers: { "Cache-Control": "public, max-age=300" },
     });
   } catch {
     return NextResponse.json({ count: 0 });

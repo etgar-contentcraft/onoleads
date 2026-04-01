@@ -42,7 +42,6 @@ const BC_KEY_MAP: Record<string, string> = {
   "/dashboard/programs": "bc_programs",
   "/dashboard/pages": "bc_pages",
   "/dashboard/builder": "bc_builder",
-  "/dashboard/leads": "bc_leads",
   "/dashboard/events": "bc_events",
   "/dashboard/media": "bc_media",
   "/dashboard/analytics": "bc_analytics",

@@ -49,6 +49,7 @@ import {
   CheckCircle2,
   XCircle,
   Settings,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -496,6 +497,12 @@ export default function PagesManagementPage() {
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem>
+                        <Link href={`/dashboard/pages/${page.id}/analytics`} className="gap-2 flex items-center w-full">
+                          <BarChart3 className="w-4 h-4" />
+                          אנליטיקס
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
                         <Link href={`/dashboard/pages/${page.id}/settings`} className="gap-2 flex items-center w-full">
                           <Settings className="w-4 h-4" />
                           הגדרות עמוד
@@ -608,6 +615,12 @@ export default function PagesManagementPage() {
                               <Link href={`/dashboard/pages/${page.id}/builder`} className="gap-2 flex items-center w-full">
                                 <Pencil className="w-4 h-4" />
                                 עריכה
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Link href={`/dashboard/pages/${page.id}/analytics`} className="gap-2 flex items-center w-full">
+                                <BarChart3 className="w-4 h-4" />
+                                אנליטיקס
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>

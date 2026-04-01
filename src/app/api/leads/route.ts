@@ -1,7 +1,7 @@
 /**
- * Lead submission API endpoint.
- * Handles form submissions with input validation, rate limiting,
- * CSRF protection, bot detection, and audit logging.
+ * Lead submission API endpoint (privacy-first).
+ * PII is forwarded ONLY via webhook to Make.com — never stored in the database.
+ * An anonymous form_submit event is logged for analytics.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -14,6 +14,15 @@ import { sendWebhookWithRetry } from "@/lib/security/webhook";
 
 /** Maximum lead submissions per IP per minute */
 const MAX_SUBMISSIONS_PER_MINUTE = 5;
+
+/** Allowed webhook destination hosts — prevents SSRF via settings table manipulation */
+const ALLOWED_WEBHOOK_HOSTS = [
+  "hook.eu1.make.com",
+  "hook.eu2.make.com",
+  "hook.us1.make.com",
+  "hook.us2.make.com",
+  "hook.make.com",
+];
 
 /** Zod schema for validating lead submission payloads */
 const leadSchema = z.object({
@@ -32,18 +41,31 @@ const leadSchema = z.object({
   cookie_id: z.string().optional().nullable(),
   device_type: z.enum(["desktop", "mobile", "tablet"]).optional().nullable(),
   csrf_token: z.string().optional().nullable(),
-  /* Honeypot field - should always be empty for real users */
+  /* Honeypot field — should always be empty for real users */
   website: z.string().optional().nullable(),
 });
 
 /**
+ * Extracts the domain from a full URL or referrer string.
+ * Returns only the hostname — never the full path (which may contain PII).
+ * @param referrer - Full referrer URL
+ * @returns Domain string or null
+ */
+function extractDomain(referrer: string | null | undefined): string | null {
+  if (!referrer) return null;
+  try {
+    return new URL(referrer).hostname;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Handles POST requests for lead form submissions.
- * Validates input, checks rate limits, verifies CSRF, detects bots,
- * sanitizes data, stores in Supabase, and fires webhook.
+ * Validates, sanitizes, fires webhook with PII, logs anonymous analytics event.
  */
 export async function POST(request: NextRequest) {
   const clientIp = getClientIp(request.headers);
-  const userAgent = request.headers.get("user-agent") || "";
 
   try {
     /* --- Rate limiting --- */
@@ -51,8 +73,6 @@ export async function POST(request: NextRequest) {
     if (!rateResult.allowed) {
       writeAuditLog({
         action: "rate_limit_exceeded",
-        ip_address: clientIp,
-        user_agent: userAgent,
         metadata: { remaining: rateResult.remaining },
       }).catch(() => {});
 
@@ -94,8 +114,6 @@ export async function POST(request: NextRequest) {
     if (isBot(data.website)) {
       writeAuditLog({
         action: "bot_detected",
-        ip_address: clientIp,
-        user_agent: userAgent,
         metadata: { honeypot_value: data.website },
       }).catch(() => {});
 
@@ -111,8 +129,6 @@ export async function POST(request: NextRequest) {
     if (!validateCsrfToken(csrfCookie, data.csrf_token)) {
       writeAuditLog({
         action: "csrf_validation_failed",
-        ip_address: clientIp,
-        user_agent: userAgent,
       }).catch(() => {});
 
       return NextResponse.json(
@@ -154,65 +170,78 @@ export async function POST(request: NextRequest) {
       sanitizedEmail = emailResult.value;
     }
 
-    /* --- Build sanitized payload --- */
+    /* --- Prepare anonymous analytics data (NO PII) --- */
     const supabase = createAdminClient();
-
     const cookieId = data.cookie_id || crypto.randomUUID();
+    const pageId = data.page_id ? sanitizeGeneral(data.page_id) : null;
+    const referrerDomain = extractDomain(data.referrer);
 
-    const insertPayload = {
+    const utmSource = data.utm_source ? sanitizeGeneral(data.utm_source) : null;
+    const utmMedium = data.utm_medium ? sanitizeGeneral(data.utm_medium) : null;
+    const utmCampaign = data.utm_campaign ? sanitizeGeneral(data.utm_campaign) : null;
+    const utmContent = data.utm_content ? sanitizeGeneral(data.utm_content) : null;
+    const utmTerm = data.utm_term ? sanitizeGeneral(data.utm_term) : null;
+
+    /* --- Fire webhook with full PII (transient — not stored) --- */
+    const webhookPayload = {
       full_name: nameResult.value,
       phone: sanitizedPhone,
       email: sanitizedEmail,
-      page_id: data.page_id ? sanitizeGeneral(data.page_id) : null,
+      page_id: pageId,
       program_id: data.program_id ? sanitizeGeneral(data.program_id) : null,
       program_interest: data.program_interest ? sanitizeGeneral(data.program_interest) : null,
-      utm_source: data.utm_source ? sanitizeGeneral(data.utm_source) : null,
-      utm_medium: data.utm_medium ? sanitizeGeneral(data.utm_medium) : null,
-      utm_campaign: data.utm_campaign ? sanitizeGeneral(data.utm_campaign) : null,
-      utm_content: data.utm_content ? sanitizeGeneral(data.utm_content) : null,
-      utm_term: data.utm_term ? sanitizeGeneral(data.utm_term) : null,
+      utm_source: utmSource,
+      utm_medium: utmMedium,
+      utm_campaign: utmCampaign,
+      utm_content: utmContent,
+      utm_term: utmTerm,
       referrer: data.referrer ? sanitizeGeneral(data.referrer) : null,
-      cookie_id: cookieId,
       device_type: data.device_type || null,
-      webhook_status: "pending" as const,
+      created_at: new Date().toISOString(),
     };
 
-    /* --- Insert lead into database --- */
-    const { data: lead, error: insertError } = await supabase
-      .from("leads")
-      .insert(insertPayload)
-      .select()
-      .single();
-
-    if (insertError) {
-      console.error("Lead insert error:", insertError);
-      return NextResponse.json(
-        { error: "אירעה שגיאה בשמירת הפרטים. אנא נסו שוב." },
-        { status: 500 }
-      );
+    let webhookStatus = "sent";
+    try {
+      const result = await fireWebhook(supabase, webhookPayload);
+      webhookStatus = result ? "sent" : "failed";
+    } catch {
+      webhookStatus = "failed";
     }
 
-    /* --- Audit log: successful submission --- */
+    /* --- Insert anonymous analytics event (NO PII stored) --- */
+    const { error: insertError } = await supabase
+      .from("analytics_events")
+      .insert({
+        event_type: "form_submit",
+        page_id: pageId,
+        cookie_id: cookieId,
+        utm_source: utmSource,
+        utm_medium: utmMedium,
+        utm_campaign: utmCampaign,
+        utm_content: utmContent,
+        utm_term: utmTerm,
+        referrer_domain: referrerDomain,
+        device_type: data.device_type || null,
+        webhook_status: webhookStatus,
+      });
+
+    if (insertError) {
+      console.error("Analytics event insert error:", insertError);
+    }
+
+    /* --- Audit log (no PII — only page_id and status) --- */
     writeAuditLog({
       action: "lead_submitted",
-      resource_type: "lead",
-      resource_id: lead.id,
-      ip_address: clientIp,
-      user_agent: userAgent,
+      resource_type: "analytics_event",
       metadata: {
-        page_id: insertPayload.page_id,
-        program_id: insertPayload.program_id,
+        page_id: pageId,
+        webhook_status: webhookStatus,
       },
     }).catch(() => {});
 
-    /* --- Fire webhook asynchronously --- */
-    fireWebhookSecure(supabase, lead, clientIp, userAgent).catch((err) =>
-      console.error("Webhook fire failed:", err)
-    );
-
     /* --- Build response with first-party cookie --- */
     const response = NextResponse.json(
-      { success: true, id: lead.id },
+      { success: true },
       {
         status: 201,
         headers: {
@@ -240,7 +269,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * CSRF token endpoint - generates a fresh token for forms.
+ * CSRF token endpoint — generates a fresh token for forms.
  * Returns the token so the client can include it in form submissions.
  */
 export async function GET(request: NextRequest) {
@@ -258,17 +287,15 @@ export async function GET(request: NextRequest) {
 
 /**
  * Fires webhook with HMAC signing and retry logic.
+ * PII is sent transiently — never stored in our database.
  * @param supabase - Supabase admin client
- * @param lead - Lead record from database
- * @param clientIp - Client IP for audit logging
- * @param userAgent - User-Agent for audit logging
+ * @param payload - Webhook payload with lead data
+ * @returns true if webhook succeeded, false otherwise
  */
-async function fireWebhookSecure(
+async function fireWebhook(
   supabase: ReturnType<typeof createAdminClient>,
-  lead: Record<string, unknown>,
-  clientIp: string,
-  userAgent: string
-) {
+  payload: Record<string, unknown>
+): Promise<boolean> {
   try {
     /* Get webhook URL from settings */
     const { data: settings } = await supabase
@@ -279,11 +306,20 @@ async function fireWebhookSecure(
 
     const webhookUrl = settings?.value;
     if (!webhookUrl || typeof webhookUrl !== "string") {
-      await supabase
-        .from("leads")
-        .update({ webhook_status: "sent" })
-        .eq("id", lead.id);
-      return;
+      /* No webhook configured — skip silently */
+      return true;
+    }
+
+    /* Validate webhook URL against allowlist to prevent SSRF */
+    try {
+      const parsed = new URL(webhookUrl);
+      if (!ALLOWED_WEBHOOK_HOSTS.includes(parsed.hostname)) {
+        console.error("Webhook URL host not in allowlist:", parsed.hostname);
+        return false;
+      }
+    } catch {
+      console.error("Invalid webhook URL:", webhookUrl);
+      return false;
     }
 
     /* Get optional webhook secret for HMAC signing */
@@ -298,49 +334,10 @@ async function fireWebhookSecure(
         ? secretSetting.value
         : process.env.WEBHOOK_SECRET || null;
 
-    const webhookPayload = {
-      lead_id: lead.id,
-      full_name: lead.full_name,
-      phone: lead.phone,
-      email: lead.email,
-      page_id: lead.page_id,
-      program_id: lead.program_id,
-      program_interest: lead.program_interest,
-      utm_source: lead.utm_source,
-      utm_medium: lead.utm_medium,
-      utm_campaign: lead.utm_campaign,
-      utm_content: lead.utm_content,
-      utm_term: lead.utm_term,
-      referrer: lead.referrer,
-      device_type: lead.device_type,
-      created_at: lead.created_at,
-    };
-
-    const result = await sendWebhookWithRetry(webhookUrl, webhookPayload, webhookSecret);
-
-    const newStatus = result.success ? "sent" : "failed";
-    await supabase
-      .from("leads")
-      .update({ webhook_status: newStatus })
-      .eq("id", lead.id);
-
-    /* Audit log webhook outcome */
-    writeAuditLog({
-      action: result.success ? "lead_webhook_sent" : "lead_webhook_failed",
-      resource_type: "lead",
-      resource_id: lead.id as string,
-      ip_address: clientIp,
-      user_agent: userAgent,
-      metadata: {
-        status_code: result.statusCode,
-        attempts: result.attempts,
-      },
-    }).catch(() => {});
+    const result = await sendWebhookWithRetry(webhookUrl, payload, webhookSecret);
+    return result.success;
   } catch (err) {
     console.error("Webhook error:", err);
-    await supabase
-      .from("leads")
-      .update({ webhook_status: "failed" })
-      .eq("id", lead.id);
+    return false;
   }
 }

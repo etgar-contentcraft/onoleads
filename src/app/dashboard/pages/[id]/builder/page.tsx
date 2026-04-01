@@ -2842,6 +2842,18 @@ export default function PageBuilderPage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => router.push(`/dashboard/pages/${params.id}/analytics`)}
+            className="h-9 w-9 p-0 border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900] hover:text-[#4A4648]"
+            title="אנליטיקס עמוד"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13h2v8H3zm6-4h2v12H9zm6-6h2v18h-2zm6 10h2v8h-2z" />
+            </svg>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setPageSettingsOpen(true)}
             className="h-9 gap-2 border-[#E5E5E5] text-[#4A4648] hover:border-[#B8D900]"
           >

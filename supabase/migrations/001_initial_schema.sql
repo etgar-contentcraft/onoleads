@@ -14,7 +14,7 @@ CREATE TYPE page_type AS ENUM ('degree', 'event', 'sales', 'specialization');
 CREATE TYPE page_language AS ENUM ('he', 'en', 'ar');
 CREATE TYPE template_type AS ENUM ('degree_program', 'event', 'sales_event', 'specialization');
 CREATE TYPE event_type AS ENUM ('open_day', 'webinar', 'sales', 'info_session');
-CREATE TYPE webhook_status AS ENUM ('pending', 'sent', 'failed');
+-- NOTE: webhook_status enum removed — no longer needed (leads table removed)
 
 -- ============================================
 -- CORE TABLES
@@ -131,31 +131,8 @@ CREATE TABLE page_sections (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Leads
-CREATE TABLE leads (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  page_id UUID REFERENCES pages(id) ON DELETE SET NULL,
-  program_id UUID REFERENCES programs(id) ON DELETE SET NULL,
-  full_name TEXT NOT NULL,
-  phone TEXT NOT NULL,
-  email TEXT,
-  program_interest TEXT,
-  utm_source TEXT,
-  utm_medium TEXT,
-  utm_campaign TEXT,
-  utm_content TEXT,
-  utm_term TEXT,
-  referrer TEXT,
-  cookie_id TEXT,
-  ip_address INET,
-  user_agent TEXT,
-  language TEXT,
-  device_type TEXT,
-  extra_data JSONB DEFAULT '{}',
-  webhook_status webhook_status DEFAULT 'pending',
-  webhook_response JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- NOTE: leads table removed in 20260401_privacy_analytics migration (privacy-first approach)
+-- PII is no longer stored. See analytics_events table instead.
 
 -- Media Library
 CREATE TABLE media (
@@ -233,11 +210,7 @@ CREATE INDEX idx_pages_type ON pages(page_type);
 
 CREATE INDEX idx_page_sections_page_order ON page_sections(page_id, sort_order);
 
-CREATE INDEX idx_leads_page ON leads(page_id);
-CREATE INDEX idx_leads_program ON leads(program_id);
-CREATE INDEX idx_leads_created ON leads(created_at DESC);
-CREATE INDEX idx_leads_cookie ON leads(cookie_id);
-CREATE INDEX idx_leads_webhook ON leads(webhook_status);
+-- NOTE: leads indexes removed — table no longer exists
 
 CREATE INDEX idx_analytics_page ON analytics_events(page_id);
 CREATE INDEX idx_analytics_created ON analytics_events(created_at DESC);
@@ -253,7 +226,7 @@ ALTER TABLE specializations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE page_sections ENABLE ROW LEVEL SECURITY;
-ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
+-- NOTE: leads RLS removed — table no longer exists
 ALTER TABLE media ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analytics_events ENABLE ROW LEVEL SECURITY;
@@ -267,8 +240,7 @@ CREATE POLICY "Public read templates" ON templates FOR SELECT USING (is_active =
 CREATE POLICY "Public read published pages" ON pages FOR SELECT USING (status = 'published');
 CREATE POLICY "Public read visible sections" ON page_sections FOR SELECT USING (is_visible = true);
 
--- Anon insert for leads and analytics
-CREATE POLICY "Anon insert leads" ON leads FOR INSERT WITH CHECK (true);
+-- NOTE: leads insert policy removed — table no longer exists
 CREATE POLICY "Anon insert analytics" ON analytics_events FOR INSERT WITH CHECK (true);
 
 -- Admin full access (authenticated users)
@@ -278,8 +250,7 @@ CREATE POLICY "Admin all specializations" ON specializations FOR ALL USING (auth
 CREATE POLICY "Admin all templates" ON templates FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Admin all pages" ON pages FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Admin all sections" ON page_sections FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin read leads" ON leads FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin update leads" ON leads FOR UPDATE USING (auth.role() = 'authenticated');
+-- NOTE: leads read/update policies removed — table no longer exists
 CREATE POLICY "Admin all media" ON media FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Admin all events" ON events FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Admin read analytics" ON analytics_events FOR SELECT USING (auth.role() = 'authenticated');
