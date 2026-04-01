@@ -24,6 +24,12 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    /* --- Verify caller has admin role --- */
+    const userRole = user.user_metadata?.role;
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
+      return NextResponse.json({ error: "Forbidden — admin access required" }, { status: 403 });
+    }
+
     /* --- Fetch all users via admin client --- */
     const adminClient = createAdminClient();
     const { data, error } = await adminClient.auth.admin.listUsers();

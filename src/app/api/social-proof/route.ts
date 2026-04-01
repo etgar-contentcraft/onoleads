@@ -2,7 +2,7 @@
  * Social Proof API — returns anonymous form submission count for a page.
  * Uses analytics_events table (no PII). Only exposes aggregate count.
  */
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 /** Minimum count to show — avoids displaying "1 person registered" */
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
     const { count, error } = await supabase

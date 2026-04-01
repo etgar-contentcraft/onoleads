@@ -102,7 +102,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-screen flex items-center overflow-hidden"
+      className="relative min-h-[80vh] md:min-h-screen flex items-center overflow-hidden"
       dir={isRtl ? "rtl" : "ltr"}
     >
       {/* Background with parallax */}
@@ -113,7 +113,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
             <img
               src={bgImage}
               alt=""
-              className="w-full h-[120%] object-cover will-change-transform"
+              className="w-full h-full md:h-[120%] object-cover will-change-transform"
               style={{ transform: `translateY(-${parallaxY}px)` }}
               loading="eager"
             />
@@ -137,7 +137,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-5 md:px-8 py-32 md:py-40">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-5 md:px-8 py-20 md:py-32 lg:py-40">
         <div className="max-w-3xl">
           {/* College branding pill */}
           <div
@@ -176,7 +176,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
 
           {/* Main Heading */}
           <h1
-            className="font-heading text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold text-white leading-[1.05] mb-6 opacity-0"
+            className="font-heading text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold text-white leading-[1.05] mb-6 opacity-0"
             style={{ animation: visible ? "fade-in-up 0.8s ease-out 0.3s forwards" : "none" }}
           >
             {heading}
@@ -236,7 +236,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
       </div>
 
       {/* Bottom gradient fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent z-10" />
+      <div className="absolute bottom-0 left-0 right-0 h-16 md:h-32 bg-gradient-to-t from-white to-transparent z-10" />
     </section>
   );
 }

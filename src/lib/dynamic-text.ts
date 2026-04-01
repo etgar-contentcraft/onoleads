@@ -32,7 +32,9 @@ export function replaceDynamicText(text: string, params: URLSearchParams): strin
 
   return text.replace(TOKEN_REGEX, (_match, key: string, fallback: string = "") => {
     if (!SUPPORTED_KEYS.has(key)) return _match; // leave unknown tokens untouched
-    return params.get(key) || fallback;
+    const value = params.get(key) || fallback;
+    // Strip HTML tags to prevent XSS via URL params
+    return value.replace(/<[^>]*>/g, "");
   });
 }
 

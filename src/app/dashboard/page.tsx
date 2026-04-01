@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -121,6 +121,7 @@ interface DashboardData {
   prevWeekSubmissions: number;
   prevMonthSubmissions: number;
   todayUniqueVisitors: number;
+  monthViews: number;
   conversionRate: number;
   dailyData: { day: string; views: number; submissions: number }[];
   topPages: { id: string; title: string; submissions: number }[];
@@ -130,7 +131,7 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
 
   useEffect(() => {
     setMounted(true);
@@ -155,18 +156,20 @@ export default function DashboardPage() {
       prevWeekSubsRes,
       monthSubsRes,
       prevMonthSubsRes,
+      monthViewsRes,
       dailyRes,
       topPagesRes,
     ] = await Promise.all([
-      supabase.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "page_view").gte("created_at", todayStart),
-      supabase.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "form_submit").gte("created_at", todayStart),
-      supabase.from("analytics_events").select("cookie_id").eq("event_type", "page_view").gte("created_at", todayStart),
-      supabase.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "form_submit").gte("created_at", weekStart),
-      supabase.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "form_submit").gte("created_at", prevWeekStart).lt("created_at", weekStart),
-      supabase.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "form_submit").gte("created_at", monthStart),
-      supabase.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "form_submit").gte("created_at", prevMonthStart).lt("created_at", prevMonthEnd),
-      supabase.from("analytics_events").select("event_type, created_at").gte("created_at", weekStart).in("event_type", ["page_view", "form_submit"]).order("created_at", { ascending: true }),
-      supabase.from("analytics_events").select("page_id").eq("event_type", "form_submit").gte("created_at", monthStart).not("page_id", "is", null),
+      supabaseRef.current.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "page_view").gte("created_at", todayStart),
+      supabaseRef.current.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "form_submit").gte("created_at", todayStart),
+      supabaseRef.current.from("analytics_events").select("cookie_id").eq("event_type", "page_view").gte("created_at", todayStart),
+      supabaseRef.current.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "form_submit").gte("created_at", weekStart),
+      supabaseRef.current.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "form_submit").gte("created_at", prevWeekStart).lt("created_at", weekStart),
+      supabaseRef.current.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "form_submit").gte("created_at", monthStart),
+      supabaseRef.current.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "form_submit").gte("created_at", prevMonthStart).lt("created_at", prevMonthEnd),
+      supabaseRef.current.from("analytics_events").select("id", { count: "exact", head: true }).eq("event_type", "page_view").gte("created_at", monthStart),
+      supabaseRef.current.from("analytics_events").select("event_type, created_at").gte("created_at", weekStart).in("event_type", ["page_view", "form_submit"]).order("created_at", { ascending: true }),
+      supabaseRef.current.from("analytics_events").select("page_id").eq("event_type", "form_submit").gte("created_at", monthStart).not("page_id", "is", null),
     ]);
 
     /* Unique visitors today */
@@ -213,7 +216,7 @@ export default function DashboardPage() {
     /* Fetch page titles */
     let topPages: { id: string; title: string; submissions: number }[] = [];
     if (topPageIds.length > 0) {
-      const { data: pages } = await supabase.from("pages").select("id, title_he").in("id", topPageIds.map(p => p[0]));
+      const { data: pages } = await supabaseRef.current.from("pages").select("id, title_he").in("id", topPageIds.map(p => p[0]));
       const titleMap = new Map((pages || []).map(p => [p.id, p.title_he || "ללא שם"]));
       topPages = topPageIds.map(([id, count]) => ({ id, title: titleMap.get(id) || "ללא שם", submissions: count }));
     }
@@ -225,6 +228,7 @@ export default function DashboardPage() {
       monthSubmissions: monthSubsRes.count ?? 0,
       prevWeekSubmissions: prevWeekSubsRes.count ?? 0,
       prevMonthSubmissions: prevMonthSubsRes.count ?? 0,
+      monthViews: monthViewsRes.count ?? 0,
       todayUniqueVisitors,
       conversionRate,
       dailyData,
@@ -237,15 +241,21 @@ export default function DashboardPage() {
     fetchData();
   }, [fetchData]);
 
-  /* Realtime subscription for new events */
+  /* Realtime subscription for new events — debounced to avoid rapid re-fetches */
   useEffect(() => {
-    const channel = supabase
-      .channel("realtime-analytics")
+    let debounceTimer: NodeJS.Timeout;
+    const channel = supabaseRef.current
+      .channel("dashboard-events")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "analytics_events" }, () => {
-        fetchData();
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => fetchData(), 2000);
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    return () => {
+      clearTimeout(debounceTimer);
+      supabaseRef.current.removeChannel(channel);
+    };
   }, [fetchData]);
 
   /** Calculates percentage change between current and previous periods */
@@ -553,7 +563,7 @@ export default function DashboardPage() {
             <CardContent className="space-y-3">
               {[
                 { icon: MousePointerClick, label: "טפסים שנשלחו", value: (data?.monthSubmissions ?? 0).toLocaleString("he-IL"), iconBg: "bg-[#B8D900]/15 text-[#8BA300]" },
-                { icon: Eye, label: "צפיות בדפים", value: "—", iconBg: "bg-blue-500/15 text-blue-600" },
+                { icon: Eye, label: "צפיות בדפים", value: data?.monthViews?.toLocaleString("he-IL") ?? "0", iconBg: "bg-blue-500/15 text-blue-600" },
                 { icon: Zap, label: "שיעור המרה", value: `${(data?.conversionRate ?? 0).toFixed(1)}%`, iconBg: "bg-emerald-500/15 text-emerald-600" },
               ].map((item) => {
                 const Icon = item.icon;

@@ -587,6 +587,16 @@ export function getDateRange(
   if (preset === "today") {
     start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     end = now;
+
+    /* Previous period = yesterday full day (00:00:00 – 23:59:59.999) */
+    const prevEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+    const prevStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    return {
+      startISO: start.toISOString(),
+      endISO: end.toISOString(),
+      prevStartISO: prevStart.toISOString(),
+      prevEndISO: prevEnd.toISOString(),
+    };
   } else if (preset === "yesterday") {
     end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     start = new Date(end);

@@ -94,17 +94,26 @@ export function ProgramInfoBar({ content, language }: ProgramInfoBarProps) {
   if (displayItems.length === 0) return null;
 
   return (
-    <section ref={barRef} className="relative -mt-8 z-20 pb-8" dir={isRtl ? "rtl" : "ltr"}>
+    <section ref={barRef} className="relative -mt-4 md:-mt-8 z-20 pb-8" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-4xl mx-auto px-5">
         <div
           className="bg-white rounded-2xl shadow-[0_4px_40px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden opacity-0"
           style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
         >
-          <div className={`grid grid-cols-2 md:grid-cols-${Math.min(displayItems.length, 4)} divide-x divide-gray-100 ${isRtl ? "divide-x-reverse" : ""}`}>
+          <div className={`grid grid-cols-2 ${(() => {
+              const cols = Math.min(displayItems.length, 4);
+              const map: Record<number, string> = {
+                1: "md:grid-cols-1",
+                2: "md:grid-cols-2",
+                3: "md:grid-cols-3",
+                4: "md:grid-cols-4",
+              };
+              return map[cols] || "md:grid-cols-4";
+            })()} divide-x divide-gray-100 ${isRtl ? "divide-x-reverse" : ""}`}>
             {displayItems.map((item, index) => (
               <div
                 key={index}
-                className="group flex flex-col items-center gap-2 py-6 px-4 text-center hover:bg-[#B8D900]/[0.03] transition-colors duration-300"
+                className="group flex flex-col items-center gap-2 py-3 px-2 md:py-6 md:px-4 text-center hover:bg-[#B8D900]/[0.03] transition-colors duration-300"
               >
                 <div className="w-11 h-11 rounded-xl bg-[#B8D900]/10 flex items-center justify-center text-[#9ab800] mb-1 group-hover:bg-[#B8D900] group-hover:text-[#2a2628] transition-all duration-300">
                   {ICONS[item.icon] || ICONS.degree}

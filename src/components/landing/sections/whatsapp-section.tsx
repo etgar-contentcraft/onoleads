@@ -27,7 +27,7 @@ export function WhatsappSection({ content, language }: WhatsappSectionProps) {
 
   return (
     <div
-      className={`fixed z-50 transition-all duration-700 ${isRtl ? "left-6 bottom-[88px]" : "right-6 bottom-[88px]"} ${
+      className={`fixed z-50 transition-all duration-700 ${isRtl ? "left-6 bottom-[72px] md:bottom-[88px]" : "right-6 bottom-[72px] md:bottom-[88px]"} ${
         visible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
       }`}
       dir={isRtl ? "rtl" : "ltr"}

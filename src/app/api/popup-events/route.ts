@@ -6,42 +6,70 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { z } from "zod";
 
 /** Valid event types for popup campaigns */
 const VALID_EVENT_TYPES = ["view", "dismiss", "cta_click", "form_submit"] as const;
 
-/** Maximum allowed length for string fields to prevent abuse */
-const MAX_FIELD_LENGTH = 100;
+/** Maximum allowed events per IP per minute */
+const MAX_EVENTS_PER_MINUTE = 30;
+
+/** Zod schema for validating the request body */
+const popupEventSchema = z.object({
+  campaign_id: z.string().uuid("campaign_id must be a valid UUID"),
+  event_type: z.enum(VALID_EVENT_TYPES),
+});
 
 /**
  * POST /api/popup-events
  * Records a popup event and increments the relevant campaign counter.
  *
- * Body: { campaign_id: string, page_id?: string, event_type: string, device_type?: string }
+ * Body: { campaign_id: string (UUID), event_type: string }
  */
 export async function POST(request: Request) {
   try {
+    /* --- Rate limiting --- */
+    const clientIp = getClientIp(request.headers);
+    const rateLimitResult = checkRateLimit(clientIp, MAX_EVENTS_PER_MINUTE);
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
-    const { campaign_id, page_id, event_type, device_type } = body;
 
-    // Validate required fields
-    if (!campaign_id || typeof campaign_id !== "string" || campaign_id.length > MAX_FIELD_LENGTH) {
-      return NextResponse.json({ error: "Invalid campaign_id" }, { status: 400 });
+    /* --- Validate request body with zod --- */
+    const parsed = popupEventSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message || "Invalid request body" },
+        { status: 400 }
+      );
     }
 
-    if (!event_type || !VALID_EVENT_TYPES.includes(event_type)) {
-      return NextResponse.json({ error: "Invalid event_type" }, { status: 400 });
-    }
+    const { campaign_id, event_type } = parsed.data;
 
     const supabase = await createClient();
 
-    // Increment the appropriate counter on the campaign
+    /* --- Increment the appropriate counter on the campaign --- */
     if (event_type === "view") {
-      await supabase.rpc("increment_campaign_views", { cid: campaign_id });
+      const { error } = await supabase.rpc("increment_campaign_views", { cid: campaign_id });
+      if (error) {
+        console.error("increment_campaign_views RPC error:", error);
+        return NextResponse.json({ error: "Failed to record event" }, { status: 500 });
+      }
     } else if (event_type === "cta_click" || event_type === "form_submit") {
-      await supabase.rpc("increment_campaign_conversions", { cid: campaign_id });
+      const { error } = await supabase.rpc("increment_campaign_conversions", { cid: campaign_id });
+      if (error) {
+        console.error("increment_campaign_conversions RPC error:", error);
+        return NextResponse.json({ error: "Failed to record event" }, { status: 500 });
+      }
     }
-    // "dismiss" events are tracked but don't increment counters
+    /* "dismiss" events are tracked but don't increment counters */
 
     return NextResponse.json({ ok: true });
   } catch {
