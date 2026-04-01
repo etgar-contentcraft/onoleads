@@ -832,7 +832,7 @@ function AnalyticsDashboardPage() {
                     className={`aspect-square rounded-lg flex items-center justify-center text-[10px] font-medium transition-all hover:scale-110 cursor-default ${bg} ${
                       intensity > 0.5 ? "text-white" : "text-[#716C70]"
                     }`}
-                    title={`${h.hour}:00 — ${h.count} צפיות`}
+                    title={`${h.hour}:00 — ${h.count} צפיות | ${h.submissions} לידים`}
                   >
                     {h.hour}
                   </div>
@@ -908,7 +908,10 @@ function AnalyticsDashboardPage() {
                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: DEVICE_COLORS[device.type] || "#9CA3AF" }} />
                             <span className="text-sm text-[#716C70]">{DEVICE_LABELS[device.type] || device.type}</span>
                           </div>
-                          <span className="text-sm font-bold text-[#2a2628] tabular-nums">{pct}%</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-[#9A969A]">{device.submissions} לידים · {device.conversion}%</span>
+                            <span className="text-sm font-bold text-[#2a2628] tabular-nums">{pct}%</span>
+                          </div>
                         </div>
                         <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                           <div
@@ -998,7 +1001,10 @@ function AnalyticsDashboardPage() {
                     <div key={source.source} className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-[#716C70]">{source.source}</span>
-                        <span className="font-bold text-[#2a2628] tabular-nums">{source.count.toLocaleString("he-IL")}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-[#9A969A]">{source.submissions} לידים · {source.conversion}%</span>
+                          <span className="font-bold text-[#2a2628] tabular-nums">{source.count.toLocaleString("he-IL")}</span>
+                        </div>
                       </div>
                       <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div
@@ -1062,6 +1068,7 @@ function AnalyticsDashboardPage() {
                     <Globe size={14} className="text-[#9A969A] shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-[#2a2628] truncate">{ref.domain}</p>
+                      <p className="text-[10px] text-[#9A969A]">{ref.submissions} לידים · {ref.conversion}% המרה</p>
                     </div>
                     <span className="text-sm font-bold text-[#2a2628] tabular-nums">{ref.count.toLocaleString("he-IL")}</span>
                   </div>
@@ -1094,7 +1101,10 @@ function AnalyticsDashboardPage() {
                     <div key={med.medium} className="space-y-1">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-[#716C70]">{med.medium}</span>
-                        <span className="font-bold text-[#2a2628] tabular-nums">{med.count.toLocaleString("he-IL")}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-[#9A969A]">{med.submissions} לידים · {med.conversion}%</span>
+                          <span className="font-bold text-[#2a2628] tabular-nums">{med.count.toLocaleString("he-IL")}</span>
+                        </div>
                       </div>
                       <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div

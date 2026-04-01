@@ -360,31 +360,47 @@ export function computePageStats(
 }
 
 /**
- * Computes UTM source breakdown.
+ * Computes UTM source breakdown with views, submissions, and conversion rate.
  */
-export function computeUtmSources(events: AnalyticsEvent[]): { source: string; count: number }[] {
-  const map = new Map<string, number>();
+export function computeUtmSources(events: AnalyticsEvent[]): { source: string; count: number; submissions: number; conversion: number }[] {
+  const viewMap = new Map<string, number>();
+  const subMap = new Map<string, number>();
   for (const e of events) {
     if (!e.utm_source) continue;
-    map.set(e.utm_source, (map.get(e.utm_source) || 0) + 1);
+    if (e.event_type === "page_view") viewMap.set(e.utm_source, (viewMap.get(e.utm_source) || 0) + 1);
+    if (e.event_type === "form_submit") subMap.set(e.utm_source, (subMap.get(e.utm_source) || 0) + 1);
   }
-  return Array.from(map.entries())
-    .map(([source, count]) => ({ source, count }))
+  const all = new Set([...Array.from(viewMap.keys()), ...Array.from(subMap.keys())]);
+  return Array.from(all)
+    .map((source) => {
+      const count = viewMap.get(source) || 0;
+      const submissions = subMap.get(source) || 0;
+      const conversion = count > 0 ? Math.round((submissions / count) * 1000) / 10 : 0;
+      return { source, count, submissions, conversion };
+    })
     .sort((a, b) => b.count - a.count)
     .slice(0, TOP_N);
 }
 
 /**
- * Computes UTM medium breakdown.
+ * Computes UTM medium breakdown with views, submissions, and conversion rate.
  */
-export function computeUtmMediums(events: AnalyticsEvent[]): { medium: string; count: number }[] {
-  const map = new Map<string, number>();
+export function computeUtmMediums(events: AnalyticsEvent[]): { medium: string; count: number; submissions: number; conversion: number }[] {
+  const viewMap = new Map<string, number>();
+  const subMap = new Map<string, number>();
   for (const e of events) {
     if (!e.utm_medium) continue;
-    map.set(e.utm_medium, (map.get(e.utm_medium) || 0) + 1);
+    if (e.event_type === "page_view") viewMap.set(e.utm_medium, (viewMap.get(e.utm_medium) || 0) + 1);
+    if (e.event_type === "form_submit") subMap.set(e.utm_medium, (subMap.get(e.utm_medium) || 0) + 1);
   }
-  return Array.from(map.entries())
-    .map(([medium, count]) => ({ medium, count }))
+  const all = new Set([...Array.from(viewMap.keys()), ...Array.from(subMap.keys())]);
+  return Array.from(all)
+    .map((medium) => {
+      const count = viewMap.get(medium) || 0;
+      const submissions = subMap.get(medium) || 0;
+      const conversion = count > 0 ? Math.round((submissions / count) * 1000) / 10 : 0;
+      return { medium, count, submissions, conversion };
+    })
     .sort((a, b) => b.count - a.count)
     .slice(0, TOP_N);
 }
@@ -419,45 +435,62 @@ export function computeUtmCampaigns(events: AnalyticsEvent[]): UtmCampaignRow[] 
 }
 
 /**
- * Computes device breakdown.
+ * Computes device breakdown with views, submissions, and conversion rate.
  */
-export function computeDeviceBreakdown(events: AnalyticsEvent[]): { type: string; count: number }[] {
-  const map = new Map<string, number>();
+export function computeDeviceBreakdown(events: AnalyticsEvent[]): { type: string; count: number; submissions: number; conversion: number }[] {
+  const viewMap = new Map<string, number>();
+  const subMap = new Map<string, number>();
   for (const e of events) {
     if (!e.device_type) continue;
-    map.set(e.device_type, (map.get(e.device_type) || 0) + 1);
+    if (e.event_type === "page_view") viewMap.set(e.device_type, (viewMap.get(e.device_type) || 0) + 1);
+    if (e.event_type === "form_submit") subMap.set(e.device_type, (subMap.get(e.device_type) || 0) + 1);
   }
-  return Array.from(map.entries())
-    .map(([type, count]) => ({ type, count }))
+  const all = new Set([...Array.from(viewMap.keys()), ...Array.from(subMap.keys())]);
+  return Array.from(all)
+    .map((type) => {
+      const count = viewMap.get(type) || 0;
+      const submissions = subMap.get(type) || 0;
+      const conversion = count > 0 ? Math.round((submissions / count) * 1000) / 10 : 0;
+      return { type, count, submissions, conversion };
+    })
     .sort((a, b) => b.count - a.count);
 }
 
 /**
- * Computes referrer domain breakdown.
+ * Computes referrer domain breakdown with views, submissions, and conversion rate.
  */
-export function computeReferrerDomains(events: AnalyticsEvent[]): { domain: string; count: number }[] {
-  const map = new Map<string, number>();
+export function computeReferrerDomains(events: AnalyticsEvent[]): { domain: string; count: number; submissions: number; conversion: number }[] {
+  const viewMap = new Map<string, number>();
+  const subMap = new Map<string, number>();
   for (const e of events) {
     if (!e.referrer_domain) continue;
-    map.set(e.referrer_domain, (map.get(e.referrer_domain) || 0) + 1);
+    if (e.event_type === "page_view") viewMap.set(e.referrer_domain, (viewMap.get(e.referrer_domain) || 0) + 1);
+    if (e.event_type === "form_submit") subMap.set(e.referrer_domain, (subMap.get(e.referrer_domain) || 0) + 1);
   }
-  return Array.from(map.entries())
-    .map(([domain, count]) => ({ domain, count }))
+  const all = new Set([...Array.from(viewMap.keys()), ...Array.from(subMap.keys())]);
+  return Array.from(all)
+    .map((domain) => {
+      const count = viewMap.get(domain) || 0;
+      const submissions = subMap.get(domain) || 0;
+      const conversion = count > 0 ? Math.round((submissions / count) * 1000) / 10 : 0;
+      return { domain, count, submissions, conversion };
+    })
     .sort((a, b) => b.count - a.count)
     .slice(0, TOP_N);
 }
 
 /**
- * Computes hourly heatmap (aggregated hour-of-day distribution).
+ * Computes hourly heatmap with views and submissions per hour.
  */
 export function computeHourlyHeatmap(events: AnalyticsEvent[]): HourlyEntry[] {
-  const hours = new Array(24).fill(0);
+  const views = new Array(24).fill(0);
+  const subs = new Array(24).fill(0);
   for (const e of events) {
-    if (e.event_type !== "page_view") continue;
     const hour = new Date(e.created_at).getHours();
-    hours[hour]++;
+    if (e.event_type === "page_view") views[hour]++;
+    if (e.event_type === "form_submit") subs[hour]++;
   }
-  return hours.map((count, hour) => ({ hour, count }));
+  return views.map((count, hour) => ({ hour, count, submissions: subs[hour] }));
 }
 
 /**

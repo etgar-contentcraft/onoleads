@@ -105,18 +105,23 @@ export interface UtmCampaignRow {
 export interface DeviceEntry {
   type: string;
   count: number;
+  submissions: number;
+  conversion: number;
 }
 
 /** Referrer entry */
 export interface ReferrerEntry {
   domain: string;
   count: number;
+  submissions: number;
+  conversion: number;
 }
 
 /** Hourly heatmap entry (hour of day → event count) */
 export interface HourlyEntry {
   hour: number;
   count: number;
+  submissions: number;
 }
 
 /** Full computed analytics data passed to the dashboard */
@@ -128,8 +133,8 @@ export interface AnalyticsData {
   /* Breakdowns */
   dailyTimeline: DailyPoint[];
   topPages: PageStats[];
-  utmSources: { source: string; count: number }[];
-  utmMediums: { medium: string; count: number }[];
+  utmSources: { source: string; count: number; submissions: number; conversion: number }[];
+  utmMediums: { medium: string; count: number; submissions: number; conversion: number }[];
   utmCampaigns: UtmCampaignRow[];
   deviceBreakdown: DeviceEntry[];
   referrerDomains: ReferrerEntry[];
