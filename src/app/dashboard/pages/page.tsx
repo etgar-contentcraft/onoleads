@@ -497,7 +497,7 @@ export default function PagesManagementPage() {
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem>
-                        <Link href={`/dashboard/pages/${page.id}/analytics`} className="gap-2 flex items-center w-full">
+                        <Link href={`/dashboard/analytics?page=${page.id}`} className="gap-2 flex items-center w-full">
                           <BarChart3 className="w-4 h-4" />
                           אנליטיקס
                         </Link>
@@ -618,7 +618,7 @@ export default function PagesManagementPage() {
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
-                              <Link href={`/dashboard/pages/${page.id}/analytics`} className="gap-2 flex items-center w-full">
+                              <Link href={`/dashboard/analytics?page=${page.id}`} className="gap-2 flex items-center w-full">
                                 <BarChart3 className="w-4 h-4" />
                                 אנליטיקס
                               </Link>

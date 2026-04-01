@@ -8,7 +8,8 @@
 
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { Suspense, useEffect, useState, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   Card,
@@ -317,7 +318,20 @@ function PageFilterDropdown({
 /*  Main Page Component                                                         */
 /* ============================================================================ */
 
-export default function AnalyticsDashboardPage() {
+/** Wrapper with Suspense boundary for useSearchParams */
+export default function AnalyticsDashboardWrapper() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#B8D900]" /></div>}>
+      <AnalyticsDashboardPage />
+    </Suspense>
+  );
+}
+
+function AnalyticsDashboardPage() {
+  /* ─── URL query params (for deep-linking from page list) ─── */
+  const searchParams = useSearchParams();
+  const initialPageId = searchParams.get("page");
+
   /* ─── State ─── */
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -328,7 +342,9 @@ export default function AnalyticsDashboardPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [showComparison, setShowComparison] = useState(true);
-  const [selectedPageIds, setSelectedPageIds] = useState<string[]>([]);
+  const [selectedPageIds, setSelectedPageIds] = useState<string[]>(
+    initialPageId ? [initialPageId] : []
+  );
   const [viewMode, setViewMode] = useState<ViewMode>("users");
   const [attributionModel, setAttributionModel] = useState<AttributionModel>("last_touch");
 
