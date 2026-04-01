@@ -24,6 +24,7 @@ export function CtaSection({ content, language }: CtaSectionProps) {
   const description = (content[`description_${language}`] as string) || (content.description_he as string) || (isRtl ? "השאירו פרטים ויועץ לימודים יחזור אליכם" : "");
   const buttonText = (content[`button_text_${language}`] as string) || (content.button_text_he as string) || (isRtl ? "לפרטים נוספים" : "Get info");
   const phone = (content.phone as string) || "*2899";
+  const ctaEnabled = content.cta_enabled !== false;
 
   const [inView, setInView] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -89,15 +90,17 @@ export function CtaSection({ content, language }: CtaSectionProps) {
           style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.3s forwards" : "none" }}
         >
           {/* Primary CTA - opens modal */}
-          <button
-            onClick={open}
-            className="group inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#2a2628] text-white font-heading font-bold text-lg transition-all duration-300 hover:bg-[#3a3638] hover:shadow-[0_8px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] active:scale-[0.98]"
-          >
-            {buttonText}
-            <svg className="w-5 h-5 transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6l6 6-6 6" />
-            </svg>
-          </button>
+          {ctaEnabled && buttonText && (
+            <button
+              onClick={open}
+              className="group inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#2a2628] text-white font-heading font-bold text-lg transition-all duration-300 hover:bg-[#3a3638] hover:shadow-[0_8px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] active:scale-[0.98]"
+            >
+              {buttonText}
+              <svg className={`w-5 h-5 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={isRtl ? "M14 18l-6-6 6-6" : "M10 6l6 6-6 6"} />
+              </svg>
+            </button>
+          )}
 
           {/* Phone link */}
           {phone && (

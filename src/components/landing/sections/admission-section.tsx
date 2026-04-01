@@ -95,7 +95,7 @@ function TrackCard({
     >
       {/* Recommended badge */}
       {track.badge_he && (
-        <div className="absolute -top-3.5 right-6">
+        <div className="absolute -top-3.5 end-6">
           <span className="inline-flex items-center px-4 py-1 rounded-full bg-[#B8D900] text-[#2a2628] font-heading font-bold text-xs shadow-sm">
             {track.badge_he}
           </span>
@@ -114,7 +114,7 @@ function TrackCard({
 
       {/* Requirements list */}
       <ul className="space-y-3 flex-1">
-        {track.requirements.map((req, i) => (
+        {(track.requirements || []).map((req, i) => (
           <li key={i} className="flex items-start gap-3">
             <span className="mt-0.5 shrink-0 w-5 h-5 rounded-full bg-[#B8D900]/15 flex items-center justify-center">
               <svg
@@ -173,6 +173,7 @@ export function AdmissionSection({ content, language }: AdmissionSectionProps) {
     (content[`cta_text_${language}`] as string) ||
     (content.cta_text_he as string) ||
     (isRtl ? "קבלו מידע על תנאי הקבלה" : "Get Admission Info");
+  const ctaEnabled = content.cta_enabled !== false;
 
   const isMultiTrack = tracks && tracks.length > 0;
 
@@ -269,7 +270,7 @@ export function AdmissionSection({ content, language }: AdmissionSectionProps) {
         )}
 
         {/* CTA button */}
-        {ctaText && (
+        {ctaEnabled && ctaText && (
           <div
             className="mt-12 text-center opacity-0"
             style={{
@@ -284,14 +285,14 @@ export function AdmissionSection({ content, language }: AdmissionSectionProps) {
             >
               {ctaText}
               <svg
-                className="w-5 h-5 transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1"
+                className={`w-5 h-5 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
                 strokeWidth={2.5}
                 aria-hidden="true"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6l6 6-6 6" />
+                <path strokeLinecap="round" strokeLinejoin="round" d={isRtl ? "M14 18l-6-6 6-6" : "M10 6l6 6-6 6"} />
               </svg>
             </button>
           </div>

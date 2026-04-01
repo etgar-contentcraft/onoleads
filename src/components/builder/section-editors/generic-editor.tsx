@@ -571,9 +571,122 @@ function StickyHeaderEditorFields({ content, onChange }: { content: GenericConte
   );
 }
 
+// ─── Title & CTA Panel ──────────────────────────────────────────────────────
+
+/** Section types that should not show the universal title & CTA panel */
+const NO_TITLE_SECTIONS = new Set(["whatsapp", "program_info_bar", "sticky_header"]);
+
+/** CTA icon options for the dropdown selector */
+const CTA_ICON_OPTIONS = [
+  { value: "none", label: "ללא אייקון" },
+  { value: "arrow", label: "חץ ←" },
+  { value: "phone", label: "טלפון ☎" },
+  { value: "whatsapp", label: "וואטסאפ 💬" },
+  { value: "lock", label: "מנעול 🔒" },
+  { value: "checkmark", label: "וי ✓" },
+  { value: "chat", label: "צ׳אט 💭" },
+] as const;
+
+/** Maximum character limits for title and CTA fields */
+const MAX_HEADING_CHARS = 80;
+const MAX_CTA_TEXT_CHARS = 40;
+
+/** Universal Title & CTA panel — shown at top of every section editor */
+function TitleCtaPanel({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
+  const ctaEnabled = content.cta_enabled !== false;
+
+  return (
+    <div className="space-y-4 pb-4 mb-4 border-b border-border">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-1.5 h-4 bg-[#B8D900] rounded-full" />
+        <span className="text-xs font-bold text-[#2A2628]">כותרת וקריאה לפעולה</span>
+      </div>
+
+      {/* Section title — Hebrew */}
+      <F label="כותרת הסקשן (עברית)" tip="הכותרת הראשית שמוצגת בראש הסקשן" max={MAX_HEADING_CHARS} value={(content.heading_he as string) || ""}>
+        <Input
+          value={(content.heading_he as string) || ""}
+          onChange={(e) => onChange({ ...content, heading_he: e.target.value })}
+          placeholder="הכנס כותרת..."
+          dir="rtl"
+        />
+        <p className="text-[10px] text-[#B8D900]/80 mt-0.5 font-mono" dir="ltr">
+          {"ⓘ תומך בטקסט דינמי: {{utm_source}} {{utm_campaign|ברירת מחדל}}"}
+        </p>
+      </F>
+
+      {/* Section title — English */}
+      <F label="כותרת הסקשן (אנגלית)" tip="Section title for English pages" max={MAX_HEADING_CHARS} value={(content.heading_en as string) || ""}>
+        <Input
+          value={(content.heading_en as string) || ""}
+          onChange={(e) => onChange({ ...content, heading_en: e.target.value })}
+          placeholder="Enter section title..."
+          dir="ltr"
+        />
+      </F>
+
+      {/* CTA enabled toggle */}
+      <div className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg bg-muted/30">
+        <div>
+          <Label className="text-xs font-semibold">הצג כפתור קריאה לפעולה</Label>
+          <p className="text-[10px] text-[#9A969A] mt-0.5">כבה כדי להסתיר את הכפתור מהסקשן</p>
+        </div>
+        <Switch
+          checked={ctaEnabled}
+          onCheckedChange={(checked) => onChange({ ...content, cta_enabled: checked })}
+        />
+      </div>
+
+      {/* CTA fields — only visible when enabled */}
+      {ctaEnabled && (
+        <div className="space-y-3 pr-3 border-r-2 border-[#B8D900]/30">
+          <F label="טקסט כפתור (עברית)" tip="הטקסט שיופיע על כפתור הקריאה לפעולה" max={MAX_CTA_TEXT_CHARS} value={(content.cta_text_he as string) || ""}>
+            <Input
+              value={(content.cta_text_he as string) || ""}
+              onChange={(e) => onChange({ ...content, cta_text_he: e.target.value })}
+              placeholder="השאירו פרטים"
+              dir="rtl"
+            />
+          </F>
+
+          <F label="טקסט כפתור (אנגלית)" tip="CTA button text for English pages" max={MAX_CTA_TEXT_CHARS} value={(content.cta_text_en as string) || ""}>
+            <Input
+              value={(content.cta_text_en as string) || ""}
+              onChange={(e) => onChange({ ...content, cta_text_en: e.target.value })}
+              placeholder="Get Info"
+              dir="ltr"
+            />
+          </F>
+
+          {/* CTA icon picker */}
+          <F label="אייקון כפתור" tip="בחר אייקון שיופיע ליד טקסט הכפתור">
+            <select
+              value={(content.cta_icon as string) || "none"}
+              onChange={(e) => onChange({ ...content, cta_icon: e.target.value })}
+              className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+              dir="rtl"
+            >
+              {CTA_ICON_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </F>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 
-export function GenericEditor({ sectionType, content, onChange }: GenericEditorProps) {
+/**
+ * Resolves the section-specific editor fields for a given section type.
+ * @param sectionType - the type key (e.g. "video", "stats")
+ * @param content - current section content object
+ * @param onChange - callback to update section content
+ * @returns JSX element with the section-specific fields, or a fallback message
+ */
+function SectionFields({ sectionType, content, onChange }: GenericEditorProps) {
   switch (sectionType) {
     case "video":
       return <VideoEditorFields content={content} onChange={onChange} />;
@@ -602,4 +715,19 @@ export function GenericEditor({ sectionType, content, onChange }: GenericEditorP
         </div>
       );
   }
+}
+
+/**
+ * GenericEditor — renders the universal Title & CTA panel (when applicable)
+ * followed by the section-specific editor fields.
+ */
+export function GenericEditor({ sectionType, content, onChange }: GenericEditorProps) {
+  const showTitleCta = !NO_TITLE_SECTIONS.has(sectionType);
+
+  return (
+    <div className="space-y-6">
+      {showTitleCta && <TitleCtaPanel content={content} onChange={onChange} />}
+      <SectionFields sectionType={sectionType} content={content} onChange={onChange} />
+    </div>
+  );
 }

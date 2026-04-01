@@ -66,6 +66,8 @@ export function CareerSection({ content, language }: CareerSectionProps) {
   const isRtl = language === "he" || language === "ar";
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "לאן תגיעו אחרי התואר?" : "Career Outcomes");
   const subheading = (content[`subheading_${language}`] as string) || (content.subheading_he as string) || "";
+  const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || "";
+  const ctaEnabled = content.cta_enabled !== false;
   const items = normalizeItems(content.items);
 
   const [inView, setInView] = useState(false);
@@ -151,20 +153,22 @@ export function CareerSection({ content, language }: CareerSectionProps) {
         </div>
 
         {/* CTA */}
-        <div
-          className="text-center opacity-0"
-          style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.5s forwards" : "none" }}
-        >
-          <button
-            onClick={open}
-            className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_40px_rgba(184,217,0,0.35)] hover:scale-[1.02] active:scale-[0.98]"
+        {ctaEnabled && (
+          <div
+            className="text-center opacity-0"
+            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.5s forwards" : "none" }}
           >
-            {isRtl ? "רוצים לשמוע עוד?" : "Want to learn more?"}
-            <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6l6 6-6 6" />
-            </svg>
-          </button>
-        </div>
+            <button
+              onClick={open}
+              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_40px_rgba(184,217,0,0.35)] hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {ctaText || (isRtl ? "רוצים לשמוע עוד?" : "Want to learn more?")}
+              <svg className={`w-4 h-4 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={isRtl ? "M14 18l-6-6 6-6" : "M10 6l6 6-6 6"} />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

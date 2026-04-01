@@ -8,6 +8,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { DtrGuideModal } from "@/components/builder/dtr-guide-modal";
 import { useParams, useRouter } from "next/navigation";
 import {
   DndContext,
@@ -87,6 +88,8 @@ interface PageOverrideSettings {
   social_proof_enabled?: string;
   /** Days window for social proof count, stored as string */
   social_proof_days?: string;
+  /** Optional short title for the sticky header bar */
+  sticky_header_title?: string;
 }
 
 /** A shared (global) section from the shared_sections library */
@@ -259,61 +262,167 @@ const SECTION_LIBRARY: SectionLibraryItem[] = [
   },
 ];
 
-/** Default content per section type */
+/** Default content per section type — includes Hebrew CTA best practices */
 function getDefaultContent(type: string): Record<string, unknown> {
   switch (type) {
     case "hero":
       return {
         heading_he: "כותרת ראשית",
+        heading_en: "Main Heading",
         subheading_he: "כותרת משנה",
+        subheading_en: "Subheading",
         cta_text_he: "השאירו פרטים",
+        cta_text_en: "Get Info",
+        cta_enabled: true,
+        cta_icon: "none",
         stat_value: "",
         stat_label_he: "",
         background_image_url: "",
+        background_video_url: "",
       };
     case "program_info_bar":
       return { duration: "", campus: "", format: "", degree: "" };
     case "about":
-      return { heading_he: "אודות התוכנית", description_he: "", image_url: "", bullets: [] };
+      return {
+        heading_he: "אודות התוכנית",
+        heading_en: "About the Program",
+        description_he: "",
+        description_en: "",
+        image_url: "",
+        bullets: [],
+        cta_text_he: "גלו עוד",
+        cta_text_en: "Learn More",
+        cta_enabled: true,
+        cta_icon: "arrow",
+      };
     case "benefits":
-      return { heading_he: "למה ללמוד אצלנו", items: [] };
+      return {
+        heading_he: "למה ללמוד אצלנו",
+        heading_en: "Why Study With Us",
+        items: [],
+        cta_text_he: "בואו נתחיל",
+        cta_text_en: "Let's Start",
+        cta_enabled: true,
+        cta_icon: "none",
+      };
     case "curriculum":
-      return { heading_he: "תוכנית הלימודים", years: [] };
+      return {
+        heading_he: "תוכנית הלימודים",
+        heading_en: "Curriculum",
+        years: [],
+        cta_text_he: "",
+        cta_enabled: false,
+      };
     case "career":
-      return { heading_he: "אפשרויות קריירה", items: [] };
+      return {
+        heading_he: "אפשרויות קריירה",
+        heading_en: "Career Outcomes",
+        items: [],
+        cta_text_he: "",
+        cta_enabled: false,
+      };
     case "testimonials":
-      return { heading_he: "מה אומרים הסטודנטים", items: [] };
+      return {
+        heading_he: "מה אומרים הסטודנטים",
+        heading_en: "Student Testimonials",
+        items: [],
+        cta_text_he: "הצטרפו גם אתם",
+        cta_text_en: "Join Us Too",
+        cta_enabled: true,
+        cta_icon: "none",
+      };
     case "faculty":
-      return { heading_he: "הסגל האקדמי", members: [] };
+      return {
+        heading_he: "הסגל האקדמי",
+        heading_en: "Faculty",
+        members: [],
+        cta_text_he: "",
+        cta_enabled: false,
+      };
     case "stats":
-      return { heading_he: "אנו במספרים", stats: [] };
+      return {
+        heading_he: "אנו במספרים",
+        heading_en: "By the Numbers",
+        stats: [],
+        cta_text_he: "",
+        cta_enabled: false,
+      };
     case "faq":
-      return { heading_he: "שאלות נפוצות", items: [] };
+      return {
+        heading_he: "שאלות נפוצות",
+        heading_en: "FAQ",
+        items: [],
+        cta_text_he: "לא מצאתם תשובה? דברו איתנו",
+        cta_text_en: "Didn't find an answer? Contact us",
+        cta_enabled: true,
+        cta_icon: "chat",
+      };
     case "video":
-      return { heading_he: "צפו בסרטון", videos: [] };
+      return {
+        heading_he: "צפו בסרטון",
+        heading_en: "Watch Video",
+        videos: [],
+        cta_text_he: "",
+        cta_enabled: false,
+      };
     case "gallery":
-      return { heading_he: "גלריה", images: [] };
+      return {
+        heading_he: "גלריה",
+        heading_en: "Gallery",
+        images: [],
+        cta_text_he: "",
+        cta_enabled: false,
+      };
     case "admission":
-      return { heading_he: "תנאי קבלה", requirements: [] };
+      return {
+        heading_he: "תנאי קבלה",
+        heading_en: "Admission Requirements",
+        requirements: [],
+        cta_text_he: "בדקו התאמה",
+        cta_text_en: "Check Eligibility",
+        cta_enabled: true,
+        cta_icon: "none",
+      };
     case "map":
-      return { heading_he: "מיקום", address: "", map_url: "" };
+      return {
+        heading_he: "מיקום",
+        heading_en: "Location",
+        address: "",
+        map_url: "",
+        cta_text_he: "",
+        cta_enabled: false,
+      };
     case "countdown":
       return {
         heading_he: "הרשמה מוקדמת מסתיימת בקרוב",
+        heading_en: "Early Registration Ending Soon",
         subheading_he: "אל תפספסו את ההזדמנות",
         badge_he: "⏰ הצעה מוגבלת בזמן",
         mode: "evergreen",
         interval_days: "7",
         target_date: "",
         expired_text_he: "ההרשמה הסתיימה. צרו קשר לבדיקת מקומות",
+        cta_text_he: "",
+        cta_enabled: false,
       };
     case "cta":
-      return { heading_he: "מוכנים להתחיל?", description_he: "", button_text_he: "להרשמה", phone: "" };
+      return {
+        heading_he: "מוכנים להתחיל?",
+        heading_en: "Ready to Start?",
+        description_he: "השאירו פרטים ויועץ לימודים יחזור אליכם",
+        description_en: "Leave your details and a counselor will contact you",
+        button_text_he: "השאירו פרטים",
+        button_text_en: "Get Info",
+        cta_enabled: true,
+        cta_icon: "none",
+        phone: "",
+      };
     case "whatsapp":
-      return { phone: "", message_he: "היי, אשמח לקבל פרטים" };
+      return { phone: "", message_he: "היי, אשמח לקבל פרטים", message_en: "Hi, I'd like more info" };
     case "event":
       return {
         heading_he: "יום פתוח",
+        heading_en: "Open Day",
         description_he: "",
         event_type: "event_physical",
         event_date: "",
@@ -536,12 +645,25 @@ function SortableSectionRow({
 // unmount/remount and lose focus on every keystroke.
 // ---------------------------------------------------------------------------
 
-/** Tooltip hint showing supported DTR variables — shown below text fields */
-const DTR_HINT = (
-  <p className="text-[10px] text-[#B8D900]/80 mt-0.5 font-mono leading-relaxed" dir="ltr">
-    ⓘ תומך ב: {"{{utm_source}}"} {"{{utm_campaign}}"} {"{{utm_medium}}"} {"{{utm_term}}"} {"{{utm_content}}"} {"{{referrer}}"} &#8203;| fallback: {"{{utm_source|Google}}"}
-  </p>
-);
+/** Tooltip hint showing supported DTR variables + link to full guide */
+function DtrHint() {
+  const [guideOpen, setGuideOpen] = useState(false);
+  return (
+    <div className="flex items-center justify-between gap-2 mt-0.5">
+      <p className="text-[10px] text-[#B8D900]/80 font-mono leading-relaxed" dir="ltr">
+        {"ⓘ"} {"{{utm_source}}"} {"{{utm_campaign}}"} {"{{utm_medium}}"} {"{{utm_term}}"} {"{{utm_content}}"} {"{{referrer}}"} &#8203;| fallback: {"{{utm_source|Google}}"}
+      </p>
+      <button
+        type="button"
+        onClick={() => setGuideOpen(true)}
+        className="shrink-0 text-[10px] text-[#B8D900] hover:text-[#9AB800] transition-colors font-medium whitespace-nowrap"
+      >
+        {"📖"} מדריך מפורט
+      </button>
+      <DtrGuideModal open={guideOpen} onOpenChange={setGuideOpen} />
+    </div>
+  );
+}
 
 /** Props shared by simple field helpers */
 interface FieldProps {
@@ -567,7 +689,7 @@ function Field({ label, fieldKey, placeholder = "", dir = "rtl", dtrHint, draft,
         dir={dir}
         className="h-9 text-sm"
       />
-      {dtrHint && DTR_HINT}
+      {dtrHint && <DtrHint />}
     </div>
   );
 }
@@ -589,7 +711,7 @@ function TextareaField({ label, fieldKey, placeholder = "", rows = 3, dir = "rtl
         rows={rows}
         className="text-sm resize-none"
       />
-      {dtrHint && DTR_HINT}
+      {dtrHint && <DtrHint />}
     </div>
   );
 }
@@ -1392,6 +1514,8 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
               <Field label="תווית נתון" fieldKey="stat_label_he" placeholder="בוגרים" draft={draft} set={set} />
             </div>
             <ImageField label="תמונת רקע" fieldKey="background_image_url" recommendedSize="1920×1080px" draft={draft} set={set} />
+            <Field label="סרטון רקע (אופציונלי)" fieldKey="background_video_url" placeholder="https://example.com/video.mp4" dir="ltr" draft={draft} set={set} />
+            <p className="text-xs text-[#716C70] mt-1">קישור ישיר לקובץ MP4. הסרטון יופעל אוטומטית ללא סאונד. התמונה תשמש כ-poster.</p>
           </div>
         );
 
@@ -1947,6 +2071,7 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
                 <SettingField label="כתובת Webhook" fieldKey="webhook_url" placeholder="https://hooks.zapier.com/... (מהגדרות הכלליות)" hint="לשליחת לידים מעמוד זה ל-CRM ספציפי" settings={settings} onChange={onChange} />
                 <SettingField label="מספר WhatsApp" fieldKey="whatsapp_number" placeholder="972501234567 (מהגדרות הכלליות)" hint="מספר בפורמט בינלאומי ללא מקף" settings={settings} onChange={onChange} />
                 <SettingField label="מספר טלפון לתצוגה" fieldKey="phone_number" placeholder="*2899 (מהגדרות הכלליות)" hint="יוצג בכותרת ובתחתית העמוד" settings={settings} onChange={onChange} />
+                <SettingField label="כותרת סרגל עליון (אופציונלי)" fieldKey="sticky_header_title" placeholder="כותרת מקוצרת לסרגל — אם ריק, ייעשה שימוש בשם העמוד" hint="כותרת חלופית קצרה שתוצג בסרגל העליון הנעוץ. אם ריק — שם העמוד המלא." dir="rtl" settings={settings} onChange={onChange} />
               </div>
             </div>
 

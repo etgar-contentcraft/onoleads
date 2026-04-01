@@ -32,7 +32,9 @@ export function HeroSection({ content, language }: HeroSectionProps) {
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || "";
   const subheading = (content[`subheading_${language}`] as string) || (content.subheading_he as string) || "";
   const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || (isRtl ? "קבלו מידע מלא" : "Get full info");
+  const ctaEnabled = content.cta_enabled !== false;
   const bgImage = (content.background_image_url as string) || (content.background_image as string) || "";
+  const bgVideo = (content.background_video_url as string) || "";
   const statValue = (content.stat_value as string) || "";
   const statLabel = (content[`stat_label_${language}`] as string) || (content.stat_label_he as string) || "";
   const facultyName = (content[`faculty_name_${language}`] as string) || (content.faculty_name_he as string) || "";
@@ -108,7 +110,22 @@ export function HeroSection({ content, language }: HeroSectionProps) {
     >
       {/* Background with parallax */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        {bgImage ? (
+        {bgVideo ? (
+          <>
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              poster={bgImage || undefined}
+              className="absolute inset-0 w-full h-full object-cover will-change-transform"
+              style={{ transform: `translateY(-${parallaxY}px)` }}
+            >
+              <source src={bgVideo} type="video/mp4" />
+            </video>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/45 to-black/85" />
+          </>
+        ) : bgImage ? (
           <>
             <Image
               src={bgImage}
@@ -178,12 +195,14 @@ export function HeroSection({ content, language }: HeroSectionProps) {
           )}
 
           {/* Main Heading */}
-          <h1
-            className="font-heading text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold text-white leading-[1.05] mb-6 opacity-0"
-            style={{ animation: visible ? "fade-in-up 0.8s ease-out 0.3s forwards" : "none" }}
-          >
-            {heading}
-          </h1>
+          {heading && (
+            <h1
+              className="font-heading text-3xl sm:text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold text-white leading-[1.05] mb-6 opacity-0"
+              style={{ animation: visible ? "fade-in-up 0.8s ease-out 0.3s forwards" : "none" }}
+            >
+              {heading}
+            </h1>
+          )}
 
           {/* Subheading */}
           {subheading && (
@@ -200,14 +219,14 @@ export function HeroSection({ content, language }: HeroSectionProps) {
             className="flex flex-wrap items-center gap-6 md:gap-8 opacity-0"
             style={{ animation: visible ? "fade-in-up 0.8s ease-out 0.6s forwards" : "none" }}
           >
-            {ctaText && (
+            {ctaEnabled && ctaText && (
               <button
                 onClick={open}
                 className="group relative inline-flex items-center justify-center gap-3 px-10 py-5 md:px-12 md:py-6 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg md:text-xl transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_60px_rgba(184,217,0,0.5)] hover:scale-[1.03] active:scale-[0.98] animate-pulse-glow"
               >
                 {ctaText}
-                <svg className="w-5 h-5 md:w-6 md:h-6 transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6l6 6-6 6" />
+                <svg className={`w-5 h-5 md:w-6 md:h-6 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d={isRtl ? "M14 18l-6-6 6-6" : "M10 6l6 6-6 6"} />
                 </svg>
               </button>
             )}

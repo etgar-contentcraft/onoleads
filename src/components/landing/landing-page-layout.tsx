@@ -30,6 +30,7 @@ const AdmissionSection = dynamic(() => import("./sections/admission-section").th
 const GallerySection = dynamic(() => import("./sections/gallery-section").then(mod => ({ default: mod.GallerySection })));
 const MapSection = dynamic(() => import("./sections/map-section").then(mod => ({ default: mod.MapSection })));
 const CountdownSection = dynamic(() => import("./sections/countdown-section").then(mod => ({ default: mod.CountdownSection })));
+const FormSection = dynamic(() => import("./sections/form-section").then(mod => ({ default: mod.FormSection })));
 
 import { SocialProofToast } from "./social-proof-toast";
 import { PopupManager } from "./popup-manager";
@@ -58,6 +59,8 @@ export interface PageSettings {
   social_proof_enabled?: boolean;
   /** Days window for social proof count (default: 7) */
   social_proof_days?: number;
+  /** Optional short title for the sticky header bar */
+  sticky_header_title?: string;
 }
 
 interface LandingPageLayoutProps {
@@ -79,13 +82,16 @@ interface LandingPageLayoutProps {
 
 function StickyHeader({
   programName,
+  stickyTitle,
   language,
   phone,
 }: {
   programName?: string;
+  stickyTitle?: string;
   language: Language;
   phone?: string;
 }) {
+  const displayName = stickyTitle || programName;
   const { open } = useCtaModal();
   const isRtl = language === "he" || language === "ar";
   const displayPhone = phone || "*2899";
@@ -116,9 +122,14 @@ function StickyHeader({
               className="h-8 object-contain"
               loading="lazy"
             />
-            {programName && (
-              <span className="hidden md:block text-[#2a2628] font-heading font-bold text-sm truncate max-w-[240px]">
-                {programName}
+            {displayName && (
+              <span
+                className={`hidden md:block text-[#2a2628] font-heading font-bold leading-tight max-w-[200px] md:max-w-[350px] lg:max-w-[450px] ${
+                  displayName.length > 50 ? "text-[11px] truncate" : displayName.length > 35 ? "text-xs" : "text-sm"
+                }`}
+                title={displayName}
+              >
+                {displayName}
               </span>
             )}
             <a
@@ -193,6 +204,8 @@ function renderSection(
       return <MapSection content={content} language={language} />;
     case "countdown":
       return <CountdownSection content={content} language={language} />;
+    case "form":
+      return <FormSection content={content} language={language} pageId={pageId} programId={programId} />;
     default:
       return null;
   }
@@ -342,6 +355,7 @@ function InnerLayout({
       {/* Sticky Header */}
       <StickyHeader
         programName={pageTitle || program?.name_he}
+        stickyTitle={settings?.sticky_header_title}
         language={language}
         phone={settings?.phone_number}
       />

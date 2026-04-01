@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "@/lib/types/database";
+import { useCtaModal } from "../cta-modal";
 
 interface BenefitItem {
   icon?: string;
@@ -95,8 +96,11 @@ function normalizeItems(raw: unknown): BenefitItem[] {
 }
 
 export function BenefitsSection({ content, language }: BenefitsSectionProps) {
+  const { open } = useCtaModal();
   const isRtl = language === "he" || language === "ar";
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "למה ללמוד באונו?" : "Why choose Ono?");
+  const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || "";
+  const ctaEnabled = content.cta_enabled !== false;
   const items = normalizeItems(content.items);
 
   const [inView, setInView] = useState(false);
@@ -163,6 +167,24 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
             );
           })}
         </div>
+
+        {/* CTA Button */}
+        {ctaEnabled && ctaText && (
+          <div
+            className="text-center mt-14 opacity-0"
+            style={{ animation: inView ? `fade-in-up 0.6s ease-out ${0.2 + items.length * 0.08}s forwards` : "none" }}
+          >
+            <button
+              onClick={open}
+              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#2a2628] text-white font-heading font-bold text-base transition-all duration-300 hover:bg-[#3a3638] hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {ctaText}
+              <svg className={`w-4 h-4 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={isRtl ? "M14 18l-6-6 6-6" : "M10 6l6 6-6 6"} />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

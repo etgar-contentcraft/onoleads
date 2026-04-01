@@ -66,13 +66,25 @@ const HELP_SECTIONS: HelpSection[] = [
         name: "הגדרות עמוד",
         description: "לחצו 'הגדרות עמוד' לפתח אפשרויות ייחודיות לכל עמוד: exit intent popup, social proof toast, webhook, מספר טלפון, לוגו מותאם, ועמוד תודה.",
       },
+      {
+        name: "כותרות וקריאה לפעולה מותאמות",
+        description: "כל סקשן מאפשר עריכת כותרת וטקסט כפתור CTA בעברית ובאנגלית. ניתן להסתיר את הכפתור לחלוטין או לבחור אייקון מתאים.",
+      },
+      {
+        name: "סרטון רקע",
+        description: "ניתן להוסיף סרטון MP4 כרקע לסקשן Hero. הסרטון מופעל אוטומטית ללא סאונד בלופ.",
+      },
+      {
+        name: "כותרת סרגל עליון",
+        description: "ניתן להגדיר כותרת מקוצרת שתוצג בסרגל העליון הנעוץ. אם לא מוגדרת — שם העמוד המלא יוצג.",
+      },
     ],
   },
   {
     id: "sections",
     icon: Layers,
     title: "סוגי סקציות",
-    description: "13 סוגי סקציות שניתן לשלב בכל דף נחיתה.",
+    description: "18 סוגי סקציות שניתן לשלב בכל דף נחיתה.",
     color: "bg-blue-50 text-blue-700 border-blue-200",
     features: [
       { name: "Hero", description: "כותרת ראשית עם רקע, כותרת משנה, CTA, וסטטיסטיקה מונפשת." },
@@ -238,6 +250,11 @@ const HELP_SECTIONS: HelpSection[] = [
     color: "bg-orange-50 text-orange-700 border-orange-200",
     features: [
       {
+        name: "טקסט דינמי (DTR) — מדריך מלא",
+        description: "התאמת תוכן אוטומטית לפי UTM parameters. השתמשו ב-{{utm_source}}, {{utm_campaign}} וכו' בכל שדה טקסט. הוסיפו fallback עם תו |, למשל: {{utm_source|Google}}. לחצו על 'מדריך מפורט' ליד כל שדה טקסט דינמי לקבלת הנחיות מפורטות.",
+        tip: "משתנים זמינים: utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer. דוגמה: כותרת 'קורס מ-{{utm_source|אונו}}' תוצג כ-'קורס מ-Facebook' למבקר עם utm_source=Facebook",
+      },
+      {
         name: "שימוש",
         description: "כתבו {{utm_source}} בכל שדה טקסט בבילדר — יוחלף אוטומטית.",
       },
@@ -333,6 +350,56 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         name: "שימוש בבילדר",
         description: "בכל שדה תמונה בעורכי הסקציות — ניתן להשתמש ב-URL ישיר מהספרייה.",
+      },
+    ],
+  },
+  {
+    id: "cta-best-practices",
+    icon: Target,
+    title: "שיטות עבודה מומלצות — קריאה לפעולה",
+    description: "טיפים ליצירת כפתורי CTA אפקטיביים בעברית.",
+    color: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    features: [
+      {
+        name: "כיוון חץ בעברית",
+        description: "בממשק עברי, חצים מצביעים שמאלה (← כיוון ההתקדמות). המערכת מטפלת בזה אוטומטית.",
+      },
+      {
+        name: "טקסט קצר וישיר",
+        description: "2-4 מילים מספיקות. השתמשו בפועל ציווי: 'השאירו פרטים', 'הצטרפו', 'גלו עוד'.",
+      },
+      {
+        name: "אייקון מתאים",
+        description: "בחרו אייקון שמתאים לפעולה: חץ ל'גלו עוד', טלפון ל'התקשרו', מנעול ל'הרשמה מאובטחת'. או השאירו ללא אייקון.",
+      },
+      {
+        name: "לא כל סקשן צריך כפתור",
+        description: "ניתן לכבות את כפתור ה-CTA בסקשנים מסוימים (כמו גלריה, סטטיסטיקות) כדי לא להעמיס. השתמשו במתג 'הצג כפתור קריאה לפעולה'.",
+      },
+      {
+        name: "בדיקה בנייד",
+        description: "כפתורי CTA צריכים להיות גדולים מספיק ללחיצה בנייד (מינימום 48x48px). המערכת מטפלת בזה אוטומטית.",
+      },
+    ],
+  },
+  {
+    id: "languages",
+    icon: Globe,
+    title: "שפות וכיוון טקסט",
+    description: "תמיכה בעברית (RTL), אנגלית (LTR) וערבית (RTL).",
+    color: "bg-purple-50 text-purple-700 border-purple-200",
+    features: [
+      {
+        name: "עברית וערבית — RTL",
+        description: "בשפות אלו כל הממשק והעמוד מוצגים מימין לשמאל. חצי CTA מצביעים שמאלה.",
+      },
+      {
+        name: "אנגלית — LTR",
+        description: "כשהעמוד מוגדר כאנגלית, כל הטקסטים מיושרים שמאלה וחצים מצביעים ימינה.",
+      },
+      {
+        name: "שדות כפולים",
+        description: "כל שדה טקסט (כותרת, תיאור, CTA) ניתן להזנה בעברית ובאנגלית. השפה שנבחרה בהגדרות העמוד קובעת מה מוצג.",
       },
     ],
   },
@@ -652,7 +719,7 @@ export default function HelpPage() {
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         {[
-          { label: "סוגי סקציות", value: "13+", icon: Layers },
+          { label: "סוגי סקציות", value: "18+", icon: Layers },
           { label: "כלי המרות", value: "6", icon: Target },
           { label: "גרסאות שמורות", value: "20", icon: Eye },
           { label: "משתני DTR", value: "6", icon: Zap },

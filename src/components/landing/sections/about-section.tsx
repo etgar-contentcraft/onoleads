@@ -25,6 +25,7 @@ export function AboutSection({ content, language }: AboutSectionProps) {
   const imageUrl = (content.image_url as string) || (content.image as string) || "";
   const bullets = (content.bullets as string[]) || [];
   const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || (isRtl ? "לפרטים נוספים" : "Learn more");
+  const ctaEnabled = content.cta_enabled !== false;
 
   /* ---- Intersection observer ---- */
   const [inView, setInView] = useState(false);
@@ -96,20 +97,22 @@ export function AboutSection({ content, language }: AboutSectionProps) {
             )}
 
             {/* CTA Button */}
-            <div
-              className="opacity-0"
-              style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.5s forwards" : "none" }}
-            >
-              <button
-                onClick={open}
-                className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#2a2628] text-white font-heading font-bold text-base transition-all duration-300 hover:bg-[#3a3638] hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-[0.98]"
+            {ctaEnabled && ctaText && (
+              <div
+                className="opacity-0"
+                style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.5s forwards" : "none" }}
               >
-                {ctaText}
-                <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 6l6 6-6 6" />
-                </svg>
-              </button>
-            </div>
+                <button
+                  onClick={open}
+                  className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#2a2628] text-white font-heading font-bold text-base transition-all duration-300 hover:bg-[#3a3638] hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  {ctaText}
+                  <svg className={`w-4 h-4 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d={isRtl ? "M14 18l-6-6 6-6" : "M10 6l6 6-6 6"} />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Image column (left in RTL) */}
@@ -120,7 +123,7 @@ export function AboutSection({ content, language }: AboutSectionProps) {
             {imageUrl ? (
               <div className="relative">
                 {/* Decorative accent shape behind image */}
-                <div className="absolute -top-4 -right-4 w-full h-full rounded-2xl bg-[#B8D900]/10 -z-10" />
+                <div className={`absolute -top-4 ${isRtl ? "-right-4" : "-left-4"} w-full h-full rounded-2xl bg-[#B8D900]/10 -z-10`} />
                 <div className="relative rounded-2xl overflow-hidden shadow-[0_12px_50px_rgba(0,0,0,0.12)]">
                   <Image
                     src={imageUrl}
@@ -132,7 +135,7 @@ export function AboutSection({ content, language }: AboutSectionProps) {
                     quality={80}
                   />
                   {/* Green accent corner overlay */}
-                  <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-[#B8D900]/25 to-transparent" />
+                  <div className={`absolute bottom-0 ${isRtl ? "right-0" : "left-0"} w-32 h-32 ${isRtl ? "bg-gradient-to-tl" : "bg-gradient-to-tr"} from-[#B8D900]/25 to-transparent`} />
                 </div>
               </div>
             ) : (

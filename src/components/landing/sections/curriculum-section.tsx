@@ -45,7 +45,7 @@ function normalizeYears(content: Record<string, unknown>, language: Language): {
   if (semesters && Array.isArray(semesters) && semesters.length > 0) {
     return semesters.map((sem) => ({
       label: (sem[`title_${language}` as keyof CurriculumSemester] as string) || sem.title_he,
-      courses: sem.courses.map((c) => (c[`name_${language}` as keyof typeof c] as string) || c.name_he),
+      courses: (sem.courses || []).map((c) => (c[`name_${language}` as keyof typeof c] as string) || c.name_he),
     }));
   }
 
@@ -56,6 +56,8 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
   const { open } = useCtaModal();
   const isRtl = language === "he" || language === "ar";
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "תוכנית הלימודים" : "Curriculum");
+  const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || "";
+  const ctaEnabled = content.cta_enabled !== false;
 
   const years = normalizeYears(content, language);
   const [openIndex, setOpenIndex] = useState<number>(0);
@@ -189,20 +191,22 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
         </div>
 
         {/* CTA at bottom */}
-        <div
-          className="text-center mt-14 opacity-0"
-          style={{ animation: inView ? `fade-in-up 0.6s ease-out ${0.2 + years.length * 0.1}s forwards` : "none" }}
-        >
-          <button
-            onClick={open}
-            className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#2a2628] text-white font-heading font-bold text-base transition-all duration-300 hover:bg-[#3a3638] hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-[0.98]"
+        {ctaEnabled && (
+          <div
+            className="text-center mt-14 opacity-0"
+            style={{ animation: inView ? `fade-in-up 0.6s ease-out ${0.2 + years.length * 0.1}s forwards` : "none" }}
           >
-            {isRtl ? "רוצה לדעת עוד על תוכנית הלימודים?" : "Want to learn more about the curriculum?"}
-            <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1 rtl:group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6l6 6-6 6" />
-            </svg>
-          </button>
-        </div>
+            <button
+              onClick={open}
+              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#2a2628] text-white font-heading font-bold text-base transition-all duration-300 hover:bg-[#3a3638] hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {ctaText || (isRtl ? "רוצה לדעת עוד על תוכנית הלימודים?" : "Want to learn more about the curriculum?")}
+              <svg className={`w-4 h-4 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={isRtl ? "M14 18l-6-6 6-6" : "M10 6l6 6-6 6"} />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
