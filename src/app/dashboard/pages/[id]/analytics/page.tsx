@@ -247,10 +247,10 @@ export default function PageAnalyticsPage() {
     async function fetchPageName() {
       const { data: page } = await supabase
         .from("pages")
-        .select("title")
+        .select("title_he, slug")
         .eq("id", pageId)
         .single();
-      if (page) setPageName(page.title);
+      if (page) setPageName(page.title_he || page.slug);
     }
     fetchPageName();
   }, [pageId]);
