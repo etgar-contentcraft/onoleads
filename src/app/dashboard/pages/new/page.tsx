@@ -29,6 +29,7 @@ import {
   Megaphone,
   Check,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -211,6 +212,20 @@ export default function NewPageWizard() {
           צור דף נחיתה חדש בשלושה שלבים פשוטים
         </p>
       </div>
+
+      {/* AI Import shortcut */}
+      <Link href="/dashboard/ai-import">
+        <div className="flex items-center gap-4 p-4 rounded-xl border border-[#B8D900]/30 bg-[#B8D900]/5 hover:bg-[#B8D900]/10 transition-colors cursor-pointer">
+          <div className="w-10 h-10 rounded-lg bg-[#B8D900]/20 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5 text-[#B8D900]" />
+          </div>
+          <div>
+            <p className="font-semibold text-[#2a2628] text-sm">ייבוא עם AI</p>
+            <p className="text-xs text-[#716C70]">צרו עמוד שלם אוטומטית — הזינו פרטי תוכנית ותנו ל-AI לכתוב את כל התוכן</p>
+          </div>
+          <ArrowLeft className="w-4 h-4 text-[#9A969A] shrink-0" />
+        </div>
+      </Link>
 
       {/* Steps Indicator */}
       <div className="flex items-center gap-2">
