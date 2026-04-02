@@ -10,23 +10,6 @@ import type { Page, PageSection, Language, Program } from "@/lib/types/database"
 import type { PopupCampaign } from "@/lib/types/popup-campaigns";
 import { LandingPageLayout, type PageSettings } from "@/components/landing/landing-page-layout";
 import type { Metadata } from "next";
-import { Heebo, Rubik } from "next/font/google";
-
-/** Heebo — primary body font for Hebrew and Latin text */
-const heebo = Heebo({
-  subsets: ["hebrew", "latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-heebo",
-  display: "swap",
-});
-
-/** Rubik — heading font for Hebrew and Latin text */
-const rubik = Rubik({
-  subsets: ["hebrew", "latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-  variable: "--font-heading",
-  display: "swap",
-});
 
 /** Default OG image used when the program has no hero image */
 const DEFAULT_OG_IMAGE =
@@ -437,35 +420,27 @@ export default async function LandingPage({ params }: PageProps) {
   const schemas = buildJsonLdSchemas(slug, page, sections, program, title, description);
 
   return (
-    <html
-      lang={language}
-      dir={isRtl ? "rtl" : "ltr"}
-      className={`${heebo.variable} ${rubik.variable}`}
-    >
-      <head>
-        {/* JSON-LD Schemas — one script tag per schema for clean parsing */}
-        {schemas.map((schema, i) => (
-          <script
-            key={i}
-            type="application/ld+json"
-            suppressHydrationWarning
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-          />
-        ))}
-      </head>
-      <body className="antialiased">
-        <LandingPageLayout
-          sections={sections}
-          language={language}
-          pageId={page.id}
-          programId={page.program_id || undefined}
-          pageSlug={slug}
-          pageTitle={page.title_he}
-          program={program}
-          settings={settings}
-          campaigns={campaigns}
+    <>
+      {/* JSON-LD Schemas for SEO and LLM optimization */}
+      {schemas.map((schema, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
-      </body>
-    </html>
+      ))}
+      <LandingPageLayout
+        sections={sections}
+        language={language}
+        pageId={page.id}
+        programId={page.program_id || undefined}
+        pageSlug={slug}
+        pageTitle={page.title_he}
+        program={program}
+        settings={settings}
+        campaigns={campaigns}
+      />
+    </>
   );
 }

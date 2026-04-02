@@ -2036,7 +2036,7 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden" dir="rtl">
+      <DialogContent className="max-w-3xl w-[95vw] h-[95vh] max-h-[95vh] flex flex-col gap-0 p-0 overflow-hidden" dir="rtl">
         <DialogHeader className="px-6 py-4 border-b border-[#F0F0F0] shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#B8D900]/15 flex items-center justify-center shrink-0">
@@ -2435,6 +2435,7 @@ export default function PageBuilderPage() {
         if (!error) {
           setSaved(true);
           setTimeout(() => setSaved(false), 2000);
+          fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_page_updated", resource_type: "page_sections", resource_id: pageId, metadata: { sections_count: upserts.length } }) }).catch(() => {});
         }
         setSaving(false);
       }, 600);
@@ -2793,6 +2794,7 @@ export default function PageBuilderPage() {
           body: JSON.stringify({ slug: page.slug }),
         }).catch(() => {/* non-blocking */});
       }
+      fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_page_updated", resource_type: "page", resource_id: pageId, metadata: { slug: page?.slug, sections_count: upserts.length } }) }).catch(() => {});
     } else {
       // Log full error for debugging, show brief message in UI
       console.error("[handleSaveAll] upsert error:", JSON.stringify(error));
@@ -2841,6 +2843,7 @@ export default function PageBuilderPage() {
       setTySettings(cleanedTy);
       setPageSettingsOpen(false);
       showToast("הגדרות העמוד נשמרו");
+      fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_settings_updated", resource_type: "page_settings", resource_id: pageId, metadata: { slug: page?.slug } }) }).catch(() => {});
     } else {
       showToast("שגיאה בשמירת הגדרות", "error");
     }

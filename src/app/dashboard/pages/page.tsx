@@ -301,6 +301,7 @@ export default function PagesManagementPage() {
     const { error } = await supabase.from("pages").delete().eq("id", pageId);
     if (!error) {
       fetchPages();
+      fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_page_deleted", resource_type: "page", resource_id: pageId }) }).catch(() => {});
     }
   }
 

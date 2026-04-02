@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 /**
  * Categories of auditable events
  */
+/** All valid audit action types */
 export type AuditAction =
   | "lead_submitted"
   | "lead_webhook_sent"
