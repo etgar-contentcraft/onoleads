@@ -113,6 +113,7 @@ export function Sidebar({ onNavigate, collapsed = false, onToggleCollapse }: Sid
               key={item.href}
               href={item.href}
               onClick={onNavigate}
+              title={collapsed ? t(item.labelKey) : undefined}
               className={cn(
                 "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative",
                 collapsed && "justify-center px-2",

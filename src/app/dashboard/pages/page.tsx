@@ -10,6 +10,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -172,6 +179,8 @@ export default function PagesManagementPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterLanguage, setFilterLanguage] = useState<string>("all");
   const [toasts, setToasts] = useState<Toast[]>([]);
+  /** ID of the page pending delete confirmation — null when dialog is closed */
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -295,16 +304,24 @@ export default function PagesManagementPage() {
   }
 
   /**
-   * Prompts the user for confirmation then deletes the page.
-   * @param pageId - ID of the page to delete
+   * Opens the styled delete confirmation dialog for a page.
+   * @param pageId - ID of the page to confirm deletion
    */
-  async function handleDelete(pageId: string) {
-    if (!window.confirm("האם אתה בטוח שברצונך למחוק דף זה?")) return;
-    const { error } = await supabase.from("pages").delete().eq("id", pageId);
+  function handleDelete(pageId: string) {
+    setDeleteConfirmId(pageId);
+  }
+
+  /**
+   * Executes the confirmed delete action and closes the dialog.
+   */
+  async function confirmDelete() {
+    if (!deleteConfirmId) return;
+    const { error } = await supabase.from("pages").delete().eq("id", deleteConfirmId);
     if (!error) {
       fetchPages();
-      fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_page_deleted", resource_type: "page", resource_id: pageId }) }).catch(() => {});
+      fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_page_deleted", resource_type: "page", resource_id: deleteConfirmId }) }).catch(() => {});
     }
+    setDeleteConfirmId(null);
   }
 
   /**
@@ -371,7 +388,7 @@ export default function PagesManagementPage() {
             <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9A969A]" />
               <Input
-                placeholder="חיפוש לפי שם או slug..."
+                placeholder="חיפוש לפי שם עמוד או כתובת..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pr-10 h-9"
@@ -457,12 +474,16 @@ export default function PagesManagementPage() {
           <CardContent className="py-12">
             <div className="text-center text-[#9A969A]">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="text-lg font-medium">אין דפי נחיתה</p>
-              <p className="text-sm mt-1">צור את דף הנחיתה הראשון שלך</p>
+              <p className="text-lg font-medium text-[#4A4648]">עדיין לא יצרת דפי נחיתה</p>
+              <p className="text-sm mt-1 max-w-md mx-auto">
+                דפי נחיתה הם עמודים ייעודיים לתוכניות לימוד, אירועים או קמפיינים שיווקיים.
+                <br />
+                צור את הדף הראשון שלך בכמה קליקים פשוטים.
+              </p>
               <Link href="/dashboard/pages/new">
-                <Button className="mt-4 gap-2 bg-[#B8D900] text-[#4A4648] hover:bg-[#9AB800]">
-                  <Plus className="w-4 h-4" />
-                  דף נחיתה חדש
+                <Button className="mt-6 gap-2 bg-[#B8D900] text-[#4A4648] hover:bg-[#9AB800] px-8 py-5 text-base">
+                  <Plus className="w-5 h-5" />
+                  צור דף נחיתה ראשון
                 </Button>
               </Link>
             </div>
@@ -654,6 +675,28 @@ export default function PagesManagementPage() {
           </CardContent>
         </Card>
       )}
+      {/* Delete confirmation dialog — replaces native window.confirm */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-right text-lg">מחיקת דף נחיתה</DialogTitle>
+            <DialogDescription className="text-right text-sm text-[#9A969A] mt-2">
+              פעולה זו תמחק את הדף לצמיתות, כולל כל הסקשנים והתוכן שלו.
+              <br />
+              <strong className="text-red-500">לא ניתן לבטל פעולה זו.</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 justify-end mt-4">
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
+              ביטול
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} className="gap-2">
+              <Trash2 className="w-4 h-4" />
+              מחק לצמיתות
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

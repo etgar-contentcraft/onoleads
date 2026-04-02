@@ -287,7 +287,8 @@ function VideoEditorFields({ content, onChange }: { content: GenericContent; onC
             {loadingPlaylist ? (
               <><Loader2 className="w-3 h-3 animate-spin" /> מייבא...</>
             ) : (
-              <><ListVideo className="w-3 h-3" /> ייבא</>
+              <><ListVideo className="w-3 h-3" /> ייבא פלייליסט</>
+
             )}
           </Button>
         </div>

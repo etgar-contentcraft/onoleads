@@ -365,13 +365,13 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
                       onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                       placeholder={t.namePlaceholder}
                       autoComplete="name"
-                      className="w-full h-13 rounded-xl bg-white/8 border border-white/15 px-4 text-white text-base placeholder:text-white/35 focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
+                      className={`w-full h-13 rounded-xl bg-white/8 border px-4 text-white text-base placeholder:text-white/35 focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors.full_name ? "border-red-400/60" : "border-white/15"}`}
                       aria-required="true"
                       aria-invalid={!!errors.full_name}
                       aria-describedby={errors.full_name ? "full_name_error" : undefined}
                     />
                     {errors.full_name && (
-                      <p id="full_name_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium">{errors.full_name}</p>
+                      <p id="full_name_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{errors.full_name}</p>
                     )}
                   </div>
 
@@ -386,13 +386,13 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
                       placeholder={t.phonePlaceholder}
                       dir="ltr"
                       autoComplete="tel"
-                      className="w-full h-13 rounded-xl bg-white/8 border border-white/15 px-4 text-white text-base placeholder:text-white/35 text-left focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
+                      className={`w-full h-13 rounded-xl bg-white/8 border px-4 text-white text-base placeholder:text-white/35 text-left focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors.phone ? "border-red-400/60" : "border-white/15"}`}
                       aria-required="true"
                       aria-invalid={!!errors.phone}
                       aria-describedby={errors.phone ? "phone_error" : undefined}
                     />
                     {errors.phone && (
-                      <p id="phone_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium">{errors.phone}</p>
+                      <p id="phone_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{errors.phone}</p>
                     )}
                   </div>
 
@@ -407,12 +407,12 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
                       placeholder={t.emailPlaceholder}
                       dir="ltr"
                       autoComplete="email"
-                      className="w-full h-13 rounded-xl bg-white/8 border border-white/15 px-4 text-white text-base placeholder:text-white/35 text-left focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
+                      className={`w-full h-13 rounded-xl bg-white/8 border px-4 text-white text-base placeholder:text-white/35 text-left focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors.email ? "border-red-400/60" : "border-white/15"}`}
                       aria-invalid={!!errors.email}
                       aria-describedby={errors.email ? "email_error" : undefined}
                     />
                     {errors.email && (
-                      <p id="email_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium">{errors.email}</p>
+                      <p id="email_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{errors.email}</p>
                     )}
                   </div>
 

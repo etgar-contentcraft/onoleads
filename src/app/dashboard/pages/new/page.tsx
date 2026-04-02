@@ -353,7 +353,10 @@ export default function NewPageWizard() {
               </>
             )}
           </div>
-          <div className="flex justify-end">
+          <div className="flex flex-col items-end gap-2">
+            {!canGoToStep2 && (
+              <p className="text-sm text-amber-600">יש לבחור סוג עמוד כדי להמשיך</p>
+            )}
             <Button
               onClick={() => setStep(2)}
               disabled={!canGoToStep2}
@@ -441,14 +444,19 @@ export default function NewPageWizard() {
               <ArrowRight className="w-4 h-4" />
               הקודם
             </Button>
-            <Button
-              onClick={() => setStep(3)}
-              disabled={!canGoToStep3}
-              className="gap-2 bg-[#B8D900] text-[#4A4648] hover:bg-[#9AB800]"
-            >
-              הבא
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
+            <div className="flex flex-col items-end gap-2">
+              {!canGoToStep3 && selectedTemplate?.type === "degree_program" && (
+                <p className="text-sm text-amber-600">יש לבחור תוכנית לימוד כדי להמשיך</p>
+              )}
+              <Button
+                onClick={() => setStep(3)}
+                disabled={!canGoToStep3}
+                className="gap-2 bg-[#B8D900] text-[#4A4648] hover:bg-[#9AB800]"
+              >
+                הבא
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -471,7 +479,8 @@ export default function NewPageWizard() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm text-[#4A4648]">Slug (כתובת URL)</Label>
+                <Label className="text-sm text-[#4A4648]">כתובת העמוד באתר</Label>
+                <p className="text-[11px] text-[#9A969A] -mt-1">נוצר אוטומטית מהשם — ניתן לשנות</p>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-[#9A969A] shrink-0">/lp/</span>
                   <Input
@@ -485,7 +494,8 @@ export default function NewPageWizard() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-sm text-[#4A4648]">שפה</Label>
+                <Label className="text-sm text-[#4A4648]">שפת התוכן בעמוד</Label>
+                <p className="text-[11px] text-[#9A969A] -mt-1">השפה בה ייכתב התוכן שמוצג לגולשים</p>
                 <Select value={language} onValueChange={(val) => setLanguage(val as string)}>
                   <SelectTrigger className="h-10 w-full">
                     <SelectValue />
@@ -532,6 +542,13 @@ export default function NewPageWizard() {
               <ArrowRight className="w-4 h-4" />
               הקודם
             </Button>
+            <div className="flex flex-col items-end gap-2">
+              {!canCreate && !creating && (
+                <p className="text-sm text-amber-600">
+                  {!title.trim() ? "יש להזין שם לעמוד" : !slug.trim() ? "יש להזין כתובת לעמוד" : ""}
+                </p>
+              )}
+            </div>
             <Button
               onClick={handleCreate}
               disabled={!canCreate || creating}
