@@ -109,7 +109,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-[80vh] md:min-h-screen flex items-center overflow-hidden"
+      className="relative min-h-[80vh] md:min-h-screen flex flex-col justify-end overflow-hidden"
       dir={isRtl ? "rtl" : "ltr"}
     >
       {/* Background with parallax */}
@@ -117,20 +117,23 @@ export function HeroSection({ content, language }: HeroSectionProps) {
         {/* Auto-detect YouTube URLs even if type is set to mp4 */}
         {bgVideo && (bgVideoType === "youtube" || extractYoutubeId(bgVideo)) && extractYoutubeId(bgVideo) ? (
           <>
-            {/* YouTube background — muted, autoplay, loop, no controls */}
+            {/* YouTube background — muted, autoplay, loop, no controls.
+                Extra bottom extension (220px) prevents gap when parallax shifts the frame up. */}
             <div
               className="absolute inset-0 will-change-transform"
-              style={{ transform: `translateY(-${parallaxY}px)` }}
+              style={{ transform: `translateY(-${parallaxY}px)`, bottom: "-220px" }}
             >
               {/* Cover the container like object-fit:cover — center the 16:9 iframe
                   and make it large enough to always fill the parent, cropping edges */}
+              {/* Scale 10% larger than cover size to crop off YouTube's built-in
+                  UI elements (logo, "More videos") that appear at the edges */}
               <div
                 className="absolute border-0 pointer-events-none"
                 style={{
                   top: "50%",
                   left: "50%",
-                  width: "max(100%, calc(100vh * 16 / 9))",
-                  height: "max(100%, calc(100vw * 9 / 16))",
+                  width: "calc(max(100%, calc(100vh * 16 / 9)) * 1.1)",
+                  height: "calc(max(100%, calc(100vw * 9 / 16)) * 1.1)",
                   transform: "translate(-50%, -50%)",
                 }}
               >
@@ -156,7 +159,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
                 quality={80}
               />
             )}
-            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity}), rgba(0,0,0,${overlayOpacity * 0.75}), rgba(0,0,0,${Math.min(overlayOpacity * 1.4, 1)}))` }} />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity * 0.15}), rgba(0,0,0,${overlayOpacity * 0.5}) 40%, rgba(0,0,0,${overlayOpacity * 0.85}) 70%, rgba(0,0,0,${Math.min(overlayOpacity * 1.2, 0.95)}))` }} />
           </>
         ) : bgVideo ? (
           <>
@@ -167,11 +170,11 @@ export function HeroSection({ content, language }: HeroSectionProps) {
               playsInline
               poster={bgImage || undefined}
               className="absolute inset-0 w-full h-full object-cover will-change-transform"
-              style={{ transform: `translateY(-${parallaxY}px)` }}
+              style={{ transform: `translateY(-${parallaxY}px)`, bottom: "-220px" }}
             >
               <source src={bgVideo} type="video/mp4" />
             </video>
-            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity}), rgba(0,0,0,${overlayOpacity * 0.75}), rgba(0,0,0,${Math.min(overlayOpacity * 1.4, 1)}))` }} />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity * 0.15}), rgba(0,0,0,${overlayOpacity * 0.5}) 40%, rgba(0,0,0,${overlayOpacity * 0.85}) 70%, rgba(0,0,0,${Math.min(overlayOpacity * 1.2, 0.95)}))` }} />
           </>
         ) : bgImage ? (
           <>
@@ -181,11 +184,11 @@ export function HeroSection({ content, language }: HeroSectionProps) {
               fill
               priority
               className="object-cover will-change-transform"
-              style={{ transform: `translateY(-${parallaxY}px)` }}
+              style={{ transform: `translateY(-${parallaxY}px)`, bottom: "-220px" }}
               sizes="100vw"
               quality={80}
             />
-            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity}), rgba(0,0,0,${overlayOpacity * 0.75}), rgba(0,0,0,${Math.min(overlayOpacity * 1.4, 1)}))` }} />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity * 0.15}), rgba(0,0,0,${overlayOpacity * 0.5}) 40%, rgba(0,0,0,${overlayOpacity * 0.85}) 70%, rgba(0,0,0,${Math.min(overlayOpacity * 1.2, 0.95)}))` }} />
           </>
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-[#1a1618] via-[#2a2628] to-[#1a1618]">
@@ -205,7 +208,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-5 md:px-8 py-20 md:py-32 lg:py-40">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-5 md:px-8 pt-24 md:pt-32 pb-28 md:pb-36 lg:pb-40">
         <div className="max-w-3xl">
           {/* College branding pill */}
           <div

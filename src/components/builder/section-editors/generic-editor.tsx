@@ -5,14 +5,16 @@
  * Every text field shows a live character counter and has a tooltip explaining its purpose.
  */
 
+import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Loader2, ListVideo } from "lucide-react";
 import { CharCount } from "../char-count";
+import { extractYoutubeId, fetchVideoMeta, fetchPlaylistMeta, extractPlaylistId } from "@/lib/utils/youtube";
 
 type GenericContent = Record<string, unknown>;
 
@@ -122,6 +124,9 @@ interface VideoItem {
 function VideoEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
   const videos = (content.videos as VideoItem[]) || [];
   const layout = (content.layout as string) || "featured";
+  const [loadingMeta, setLoadingMeta] = useState<Record<number, boolean>>({});
+  const [playlistUrl, setPlaylistUrl] = useState("");
+  const [loadingPlaylist, setLoadingPlaylist] = useState(false);
 
   /** Update a single video in the array */
   const updateVideo = (index: number, field: string, value: string) => {
@@ -129,6 +134,44 @@ function VideoEditorFields({ content, onChange }: { content: GenericContent; onC
     updated[index] = { ...updated[index], [field]: value };
     onChange({ ...content, videos: updated });
   };
+
+  /**
+   * Handles YouTube URL paste/change — extracts the video ID and auto-fetches
+   * title, description, and duration from YouTube as default values.
+   */
+  const handleYoutubeUrlChange = useCallback(async (index: number, rawValue: string) => {
+    const updated = [...videos];
+    updated[index] = { ...updated[index], youtube_id: rawValue };
+    onChange({ ...content, videos: updated });
+
+    // Extract video ID and auto-fetch metadata
+    const videoId = extractYoutubeId(rawValue);
+    if (!videoId) return;
+
+    setLoadingMeta((prev) => ({ ...prev, [index]: true }));
+    try {
+      const meta = await fetchVideoMeta(videoId);
+      if (meta) {
+        // Only fill in empty fields — don't overwrite user edits
+        const current = [...(content.videos as VideoItem[]) || []];
+        const existing = current[index];
+        if (!existing) return;
+
+        const patch: Partial<VideoItem> = {};
+        if (!existing.title_he && meta.title) patch.title_he = meta.title;
+        if (!existing.duration_he && meta.duration) patch.duration_he = meta.duration;
+        if (!existing.thumbnail_url && meta.thumbnail_url) patch.thumbnail_url = meta.thumbnail_url;
+
+        if (Object.keys(patch).length > 0) {
+          current[index] = { ...existing, ...patch };
+          onChange({ ...content, videos: current });
+        }
+      }
+    } finally {
+      setLoadingMeta((prev) => ({ ...prev, [index]: false }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videos, content, onChange]);
 
   /** Add a new empty video slot */
   const addVideo = () => {
@@ -143,6 +186,32 @@ function VideoEditorFields({ content, onChange }: { content: GenericContent; onC
     onChange({ ...content, videos: videos.filter((_, i) => i !== index) });
   };
 
+  /**
+   * Imports all videos from a YouTube playlist URL.
+   * Fetches playlist metadata and appends all videos to the current list.
+   */
+  const importPlaylist = async () => {
+    const listId = extractPlaylistId(playlistUrl);
+    if (!listId) return;
+
+    setLoadingPlaylist(true);
+    try {
+      const data = await fetchPlaylistMeta(listId);
+      if (data && data.videos.length > 0) {
+        const newVideos: VideoItem[] = data.videos.map((v) => ({
+          youtube_id: v.youtube_id,
+          title_he: v.title,
+          duration_he: v.duration,
+          thumbnail_url: v.thumbnail_url,
+        }));
+        onChange({ ...content, videos: [...videos, ...newVideos] });
+        setPlaylistUrl("");
+      }
+    } finally {
+      setLoadingPlaylist(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <F
@@ -155,6 +224,15 @@ function VideoEditorFields({ content, onChange }: { content: GenericContent; onC
           value={(content.heading_he as string) || ""}
           onChange={(e) => onChange({ ...content, heading_he: e.target.value })}
           placeholder="צפו בסרטון הסיור שלנו"
+          dir="rtl"
+        />
+      </F>
+
+      <F label="תיאור (אופציונלי)" tip="תיאור קצר מתחת לכותרת." max={120} value={(content.description_he as string) || ""}>
+        <Input
+          value={(content.description_he as string) || ""}
+          onChange={(e) => onChange({ ...content, description_he: e.target.value })}
+          placeholder="...תיאור קצר"
           dir="rtl"
         />
       </F>
@@ -182,6 +260,39 @@ function VideoEditorFields({ content, onChange }: { content: GenericContent; onC
         </div>
       </F>
 
+      {/* ── Playlist Import ── */}
+      <div className="border border-dashed border-[#B8D900]/40 rounded-lg p-3 space-y-2 bg-[#B8D900]/5">
+        <Label className="text-xs font-semibold flex items-center gap-1.5">
+          <ListVideo className="w-3.5 h-3.5 text-[#B8D900]" />
+          ייבוא פלייליסט מיוטיוב
+        </Label>
+        <p className="text-[10px] text-[#9A969A]">
+          הדביקו קישור לפלייליסט וכל הסרטונים ייובאו אוטומטית עם השמות והזמנים שלהם
+        </p>
+        <div className="flex gap-2">
+          <Input
+            value={playlistUrl}
+            onChange={(e) => setPlaylistUrl(e.target.value)}
+            placeholder="https://www.youtube.com/playlist?list=PLxyz..."
+            className="text-xs flex-1"
+            dir="ltr"
+          />
+          <Button
+            type="button"
+            size="sm"
+            onClick={importPlaylist}
+            disabled={!extractPlaylistId(playlistUrl) || loadingPlaylist}
+            className="gap-1 text-xs h-8 bg-[#B8D900] text-[#2a2628] hover:bg-[#c8e920]"
+          >
+            {loadingPlaylist ? (
+              <><Loader2 className="w-3 h-3 animate-spin" /> מייבא...</>
+            ) : (
+              <><ListVideo className="w-3 h-3" /> ייבא</>
+            )}
+          </Button>
+        </div>
+      </div>
+
       {/* Legacy single-video field for backwards compatibility */}
       {videos.length === 0 && (
         <F label="YouTube URL (סרטון בודד)" tip="קישור YouTube. אם אתה רוצה כמה סרטונים, השתמש ב-'הוסף סרטון' למטה.">
@@ -202,37 +313,63 @@ function VideoEditorFields({ content, onChange }: { content: GenericContent; onC
           </Button>
         </div>
 
-        {videos.map((video, i) => (
-          <div key={i} className="border rounded-lg p-3 space-y-2 bg-gray-50/50">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-[#9A969A]">סרטון {i + 1}</span>
-              <button type="button" onClick={() => removeVideo(i)} className="text-red-400 hover:text-red-600">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+        {videos.map((video, i) => {
+          const ytId = extractYoutubeId(video.youtube_id || "");
+          const thumbUrl = video.thumbnail_url || (ytId ? `https://i.ytimg.com/vi/${ytId}/mqdefault.jpg` : "");
+
+          return (
+            <div key={i} className="border rounded-lg p-3 space-y-2 bg-gray-50/50">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold text-[#9A969A]">סרטון {i + 1}</span>
+                <button type="button" onClick={() => removeVideo(i)} className="text-red-400 hover:text-red-600">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* YouTube thumbnail preview */}
+              {thumbUrl && (
+                <div className="relative w-full aspect-video rounded-md overflow-hidden bg-black/10 mb-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={thumbUrl} alt={video.title_he || "YouTube"} className="w-full h-full object-cover" />
+                  {loadingMeta[i] && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <F label="קישור YouTube או ID" tip="הדביקו קישור והכותרת והמשך ימשכו אוטומטית">
+                <Input
+                  value={video.youtube_id || ""}
+                  onChange={(e) => handleYoutubeUrlChange(i, e.target.value)}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="text-xs"
+                  dir="ltr"
+                />
+              </F>
+              <div className="flex gap-2">
+                <F label="כותרת סרטון" tip="נמשך אוטומטית מיוטיוב, ניתן לשנות">
+                  <Input
+                    value={video.title_he || ""}
+                    onChange={(e) => updateVideo(i, "title_he", e.target.value)}
+                    placeholder={loadingMeta[i] ? "טוען..." : "שם הסרטון..."}
+                    dir="rtl"
+                    className="text-xs"
+                  />
+                </F>
+                <F label="משך (אופציונלי, למשל 3:45)">
+                  <Input
+                    value={video.duration_he || ""}
+                    onChange={(e) => updateVideo(i, "duration_he", e.target.value)}
+                    placeholder={loadingMeta[i] ? "..." : "3:45"}
+                    className="text-xs w-20"
+                  />
+                </F>
+              </div>
             </div>
-            <Input
-              value={video.youtube_id || ""}
-              onChange={(e) => updateVideo(i, "youtube_id", e.target.value)}
-              placeholder="YouTube URL או ID — https://youtube.com/watch?v=..."
-              className="text-xs"
-            />
-            <div className="flex gap-2">
-              <Input
-                value={video.title_he || ""}
-                onChange={(e) => updateVideo(i, "title_he", e.target.value)}
-                placeholder="כותרת הסרטון"
-                dir="rtl"
-                className="text-xs flex-1"
-              />
-              <Input
-                value={video.duration_he || ""}
-                onChange={(e) => updateVideo(i, "duration_he", e.target.value)}
-                placeholder="3:45"
-                className="text-xs w-20"
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

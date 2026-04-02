@@ -30,3 +30,73 @@ export function extractYoutubeId(input: string): string {
 export const DEFAULT_OVERLAY_OPACITY = 70;
 /** Default overlay opacity for hero sections (0-100) */
 export const HERO_OVERLAY_OPACITY = 60;
+
+// ─── YouTube Metadata Fetching ──────────────────────────────────────────────
+
+/** Metadata returned for a single YouTube video */
+export interface YoutubeMeta {
+  title: string;
+  description: string;
+  duration: string;
+  thumbnail_url: string;
+}
+
+/** Single video item from a playlist fetch */
+export interface YoutubePlaylistItem {
+  youtube_id: string;
+  title: string;
+  duration: string;
+  thumbnail_url: string;
+}
+
+/** Metadata returned for a YouTube playlist */
+export interface YoutubePlaylistMeta {
+  title: string;
+  videos: YoutubePlaylistItem[];
+}
+
+/**
+ * Fetches metadata for a single YouTube video via our API route.
+ * @param videoId - 11-char YouTube video ID
+ * @returns Video metadata or null on failure
+ */
+export async function fetchVideoMeta(videoId: string): Promise<YoutubeMeta | null> {
+  try {
+    const res = await fetch(`/api/youtube-meta?v=${encodeURIComponent(videoId)}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetches all videos from a YouTube playlist via our API route.
+ * @param playlistId - YouTube playlist ID (e.g. "PLxyz...")
+ * @returns Playlist metadata or null on failure
+ */
+export async function fetchPlaylistMeta(playlistId: string): Promise<YoutubePlaylistMeta | null> {
+  try {
+    const res = await fetch(`/api/youtube-meta?list=${encodeURIComponent(playlistId)}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Extracts a playlist ID from a YouTube URL or bare ID.
+ * @param input - YouTube URL containing &list= or bare playlist ID
+ * @returns Playlist ID or empty string
+ */
+export function extractPlaylistId(input: string): string {
+  if (!input) return "";
+  if (/^[A-Za-z0-9_-]{10,}$/.test(input) && !input.includes("/")) return input;
+  try {
+    const url = new URL(input);
+    return url.searchParams.get("list") || "";
+  } catch {
+    return "";
+  }
+}

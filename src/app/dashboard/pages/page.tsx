@@ -52,6 +52,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -161,6 +162,7 @@ function ToastContainer({
 // ---------------------------------------------------------------------------
 
 export default function PagesManagementPage() {
+  const router = useRouter();
   const [pages, setPages] = useState<LandingPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
@@ -491,29 +493,21 @@ export default function PagesManagementPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Link href={`/dashboard/pages/${page.id}/builder`} className="gap-2 flex items-center w-full">
+                      <DropdownMenuItem onSelect={() => router.push(`/dashboard/pages/${page.id}/builder`)} className="gap-2">
                           <Pencil className="w-4 h-4" />
                           עריכה
-                        </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Link href={`/dashboard/analytics?page=${page.id}`} className="gap-2 flex items-center w-full">
+                      <DropdownMenuItem onSelect={() => router.push(`/dashboard/analytics?page=${page.id}`)} className="gap-2">
                           <BarChart3 className="w-4 h-4" />
                           אנליטיקס
-                        </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Link href={`/dashboard/pages/${page.id}/settings`} className="gap-2 flex items-center w-full">
+                      <DropdownMenuItem onSelect={() => router.push(`/dashboard/pages/${page.id}/settings`)} className="gap-2">
                           <Settings className="w-4 h-4" />
                           הגדרות עמוד
-                        </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Link href={`/lp/${page.slug}`} target="_blank" className="gap-2 flex items-center w-full">
+                      <DropdownMenuItem onSelect={() => window.open(`/lp/${page.slug}`, "_blank")} className="gap-2">
                           <Eye className="w-4 h-4" />
                           תצוגה מקדימה
-                        </Link>
                       </DropdownMenuItem>
                       {page.status !== "published" && (
                         <DropdownMenuItem onClick={() => handlePublish(page.id)} className="gap-2">
@@ -612,29 +606,21 @@ export default function PagesManagementPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Link href={`/dashboard/pages/${page.id}/builder`} className="gap-2 flex items-center w-full">
+                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/pages/${page.id}/builder`)} className="gap-2">
                                 <Pencil className="w-4 h-4" />
                                 עריכה
-                              </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Link href={`/dashboard/analytics?page=${page.id}`} className="gap-2 flex items-center w-full">
+                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/analytics?page=${page.id}`)} className="gap-2">
                                 <BarChart3 className="w-4 h-4" />
                                 אנליטיקס
-                              </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Link href={`/dashboard/pages/${page.id}/settings`} className="gap-2 flex items-center w-full">
+                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/pages/${page.id}/settings`)} className="gap-2">
                                 <Settings className="w-4 h-4" />
                                 הגדרות עמוד
-                              </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Link href={`/lp/${page.slug}`} target="_blank" className="gap-2 flex items-center w-full">
+                            <DropdownMenuItem onSelect={() => window.open(`/lp/${page.slug}`, "_blank")} className="gap-2">
                                 <Eye className="w-4 h-4" />
                                 תצוגה מקדימה
-                              </Link>
                             </DropdownMenuItem>
                             {page.status !== "published" && (
                               <DropdownMenuItem onClick={() => handlePublish(page.id)} className="gap-2">

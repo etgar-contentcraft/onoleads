@@ -319,6 +319,12 @@ function InnerLayout({
   /* Track anonymous page view */
   usePageTracking(pageId || null);
 
+  /* Only pass CTA text override when it matches the page language.
+     Global settings may store Hebrew text — don't show it on English pages. */
+  const rawCtaText = settings?.default_cta_text;
+  const hasHebrew = rawCtaText ? /[\u0590-\u05FF]/.test(rawCtaText) : false;
+  const localizedCtaText = rawCtaText && (isRtl === hasHebrew) ? rawCtaText : undefined;
+
   const visibleSections = sections.filter((s) => s.is_visible);
   const whatsappSection = visibleSections.find((s) => s.section_type === "whatsapp");
   const mainSections = visibleSections.filter(
@@ -405,7 +411,7 @@ function InnerLayout({
               <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
             </div>
             <h3 className="font-heading text-xl text-white/90 font-bold">
-              הקריה האקדמית אונו
+              {isRtl ? "הקריה האקדמית אונו" : "Ono Academic College"}
             </h3>
           </div>
 
@@ -457,13 +463,13 @@ function InnerLayout({
           language={language}
         />
       )}
-      <FloatingCtaButton ctaText={settings?.default_cta_text} />
+      <FloatingCtaButton ctaText={localizedCtaText} />
       <CtaModal
         pageId={pageId}
         programId={programId}
         pageSlug={pageSlug}
         programName={pageTitle || (language === "en" ? (program?.name_en || program?.name_he) : program?.name_he)}
-        ctaText={settings?.default_cta_text}
+        ctaText={localizedCtaText}
       />
 
       {/* Popup campaigns — managed via /dashboard/campaigns */}
