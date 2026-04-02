@@ -86,7 +86,7 @@ export function DtrGuideModal({ open, onOpenChange, onInsert }: DtrGuideModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[98vw] h-[95vh] max-h-[95vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="max-w-none w-screen h-screen max-h-screen overflow-y-auto rounded-none" dir="rtl">
         <DialogHeader>
           <DialogTitle className="text-lg font-heading font-bold text-[#2A2628]">
             כותרות דינמיות (DTR)

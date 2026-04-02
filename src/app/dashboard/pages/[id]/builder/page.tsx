@@ -118,6 +118,7 @@ interface PageData {
   title_he: string | null;
   slug: string;
   status: string;
+  language?: "he" | "en" | "ar";
   custom_styles?: Record<string, unknown> | null;
 }
 
@@ -1518,9 +1519,11 @@ interface SectionEditModalProps {
   onClose: () => void;
   onSave: (id: string, content: Record<string, unknown>) => Promise<void>;
   saving: boolean;
+  /** Page language — determines which field suffix to edit (_he vs _en vs _ar) */
+  pageLanguage?: "he" | "en" | "ar";
 }
 
-function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModalProps) {
+function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he" }: SectionEditModalProps) {
   const [draft, setDraft] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
@@ -1533,55 +1536,92 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
 
   const set = (key: string, value: unknown) => setDraft((prev) => ({ ...prev, [key]: value }));
 
+  /** Language-aware field key — returns "heading_en" for English pages, "heading_he" for Hebrew */
+  const lang = pageLanguage || "he";
+  const lk = (base: string) => `${base}_${lang}`;
+  const isEn = lang === "en";
+
   /** Render the appropriate editor form per section type */
   const renderForm = () => {
     switch (section.section_type) {
       case "hero":
         return (
           <div className="space-y-4">
-            <Field label="כותרת ראשית" fieldKey="heading_he" placeholder="כותרת ראשית..." dtrHint draft={draft} set={set} />
-            <TextareaField label="כותרת משנה" fieldKey="subheading_he" placeholder="פרטים נוספים..." dtrHint draft={draft} set={set} />
-            <Field label="טקסט כפתור" fieldKey="cta_text_he" placeholder="השאירו פרטים" draft={draft} set={set} />
+            <Field label={isEn ? "Main Heading" : "כותרת ראשית"} fieldKey={lk("heading")} placeholder={isEn ? "Main heading..." : "כותרת ראשית..."} dtrHint draft={draft} set={set} />
+            <TextareaField label={isEn ? "Subheading" : "כותרת משנה"} fieldKey={lk("subheading")} placeholder={isEn ? "Additional details..." : "פרטים נוספים..."} dtrHint draft={draft} set={set} />
+            <Field label={isEn ? "Button Text" : "טקסט כפתור"} fieldKey={lk("cta_text")} placeholder={isEn ? "Get Info" : "השאירו פרטים"} draft={draft} set={set} />
             <div className="grid grid-cols-2 gap-3">
-              <Field label="ערך נתון (למשל 50,000+)" fieldKey="stat_value" placeholder="50,000+" dir="ltr" draft={draft} set={set} />
-              <Field label="תווית נתון" fieldKey="stat_label_he" placeholder="בוגרים" draft={draft} set={set} />
+              <Field label={isEn ? "Stat Value (e.g. 50,000+)" : "ערך נתון (למשל 50,000+)"} fieldKey="stat_value" placeholder="50,000+" dir="ltr" draft={draft} set={set} />
+              <Field label={isEn ? "Stat Label" : "תווית נתון"} fieldKey={lk("stat_label")} placeholder={isEn ? "Graduates" : "בוגרים"} draft={draft} set={set} />
             </div>
-            <ImageField label="תמונת רקע" fieldKey="background_image_url" recommendedSize="1920×1080px" draft={draft} set={set} />
-            <Field label="סרטון רקע (אופציונלי)" fieldKey="background_video_url" placeholder="https://example.com/video.mp4" dir="ltr" draft={draft} set={set} />
-            <p className="text-xs text-[#716C70] mt-1">קישור ישיר לקובץ MP4. הסרטון יופעל אוטומטית ללא סאונד. התמונה תשמש כ-poster.</p>
+            <ImageField label={isEn ? "Background Image" : "תמונת רקע"} fieldKey="background_image_url" recommendedSize="1920×1080px" draft={draft} set={set} />
+            <Field label={isEn ? "Background Video (optional)" : "סרטון רקע (אופציונלי)"} fieldKey="background_video_url" placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX" dir="ltr" draft={draft} set={set} />
+            <div className="space-y-1 -mt-1">
+              <p className="text-[10px] text-[#9A969A]">
+                <span className="font-semibold text-[#716C70]">{isEn ? "Supported format:" : "פורמט נתמך:"}</span>{" "}
+                {isEn ? "Regular YouTube link — example:" : "לינק YouTube רגיל — לדוגמה:"}
+              </p>
+              <code className="block text-[10px] bg-[#F3F4F6] rounded px-2 py-1 font-mono text-[#716C70]" dir="ltr">
+                https://www.youtube.com/watch?v=dQw4w9WgXcQ
+              </code>
+              <p className="text-[10px] text-[#9A969A]">
+                {isEn ? "Video will autoplay muted in a loop. Image serves as poster." : "הסרטון יוטמע ברקע ללא שליטות, מושתק ובלולאה אינסופית. התמונה תשמש כפוסטר."}
+              </p>
+            </div>
+            {/* Overlay opacity slider */}
+            {((draft.background_image_url as string) || (draft.background_video_url as string)) && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">
+                  {isEn ? `Overlay Opacity: ${(draft.background_overlay_opacity as number) ?? 60}%` : `שקיפות שכבת הכהיה: ${(draft.background_overlay_opacity as number) ?? 60}%`}
+                </Label>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={(draft.background_overlay_opacity as number) ?? 60}
+                  onChange={(e) => set("background_overlay_opacity", parseInt(e.target.value, 10))}
+                  className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#B8D900]"
+                />
+                <div className="flex justify-between text-[10px] text-[#9A969A]">
+                  <span>{isEn ? "Transparent" : "שקוף"}</span>
+                  <span>{isEn ? "Dark" : "כהה"}</span>
+                </div>
+              </div>
+            )}
           </div>
         );
 
       case "program_info_bar":
         return (
           <div className="space-y-4">
-            <Field label="משך התוכנית" fieldKey="duration" placeholder="3 שנים" draft={draft} set={set} />
-            <Field label="קמפוס" fieldKey="campus" placeholder="קריית אונו, תל אביב..." draft={draft} set={set} />
-            <Field label="מסגרת לימודים" fieldKey="format" placeholder="יום / ערב / שבת" draft={draft} set={set} />
-            <Field label="תואר" fieldKey="degree" placeholder="B.A., M.A., LL.B..." draft={draft} set={set} />
+            <Field label={isEn ? "Duration" : "משך התוכנית"} fieldKey="duration" placeholder={isEn ? "3 Years" : "3 שנים"} draft={draft} set={set} />
+            <Field label={isEn ? "Campus" : "קמפוס"} fieldKey="campus" placeholder={isEn ? "Kiryat Ono, Tel Aviv..." : "קריית אונו, תל אביב..."} draft={draft} set={set} />
+            <Field label={isEn ? "Study Format" : "מסגרת לימודים"} fieldKey="format" placeholder={isEn ? "Day / Evening / Saturday" : "יום / ערב / שבת"} draft={draft} set={set} />
+            <Field label={isEn ? "Degree" : "תואר"} fieldKey="degree" placeholder="B.A., M.A., LL.B..." draft={draft} set={set} />
           </div>
         );
 
       case "about":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="אודות התוכנית" draft={draft} set={set} />
-            <TextareaField label="תיאור" fieldKey="description_he" rows={4} placeholder="פסקת תיאור..." draft={draft} set={set} />
-            <ImageField label="תמונה" fieldKey="image_url" recommendedSize="800×600px" draft={draft} set={set} />
-            <StringListField label="נקודות מפתח" fieldKey="bullets" placeholder="נקודה מפתח..." draft={draft} set={set} />
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "About the Program" : "אודות התוכנית"} draft={draft} set={set} />
+            <TextareaField label={isEn ? "Description" : "תיאור"} fieldKey={lk("description")} rows={4} placeholder={isEn ? "Program description..." : "פסקת תיאור..."} draft={draft} set={set} />
+            <ImageField label={isEn ? "Image" : "תמונה"} fieldKey="image_url" recommendedSize="800×600px" draft={draft} set={set} />
+            <StringListField label={isEn ? "Key Points" : "נקודות מפתח"} fieldKey="bullets" placeholder={isEn ? "Key point..." : "נקודה מפתח..."} draft={draft} set={set} />
           </div>
         );
 
       case "benefits":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="למה ללמוד אצלנו" draft={draft} set={set} />
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "Why Study With Us" : "למה ללמוד אצלנו"} draft={draft} set={set} />
             <ObjectListField
-              label="יתרונות"
+              label={isEn ? "Benefits" : "יתרונות"}
               fieldKey="items"
               fields={[
-                { key: "title_he", label: "כותרת יתרון" },
-                { key: "description_he", label: "תיאור", type: "textarea" },
+                { key: lk("title"), label: isEn ? "Benefit Title" : "כותרת יתרון" },
+                { key: lk("description"), label: isEn ? "Description" : "תיאור", type: "textarea" },
               ]}
               draft={draft}
               set={set}
@@ -1592,13 +1632,13 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "curriculum":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="תוכנית הלימודים" draft={draft} set={set} />
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "Curriculum" : "תוכנית הלימודים"} draft={draft} set={set} />
             <ObjectListField
-              label="שנים / סמסטרים"
+              label={isEn ? "Years / Semesters" : "שנים / סמסטרים"}
               fieldKey="years"
               fields={[
-                { key: "title_he", label: "כותרת שנה / סמסטר" },
-                { key: "courses", label: "קורסים (מופרדים בפסיק)", type: "textarea" },
+                { key: lk("title"), label: isEn ? "Year / Semester Title" : "כותרת שנה / סמסטר" },
+                { key: "courses", label: isEn ? "Courses (comma-separated)" : "קורסים (מופרדים בפסיק)", type: "textarea" },
               ]}
               draft={draft}
               set={set}
@@ -1609,23 +1649,23 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "career":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="אפשרויות קריירה" draft={draft} set={set} />
-            <StringListField label="תפקידים ומשרות" fieldKey="items" placeholder="יועץ משפטי..." draft={draft} set={set} />
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "Career Outcomes" : "אפשרויות קריירה"} draft={draft} set={set} />
+            <StringListField label={isEn ? "Job Titles" : "תפקידים ומשרות"} fieldKey="items" placeholder={isEn ? "Legal Advisor..." : "יועץ משפטי..."} draft={draft} set={set} />
           </div>
         );
 
       case "testimonials":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="מה אומרים הסטודנטים" draft={draft} set={set} />
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "What Students Say" : "מה אומרים הסטודנטים"} draft={draft} set={set} />
             <ObjectListField
-              label="המלצות"
+              label={isEn ? "Testimonials" : "המלצות"}
               fieldKey="items"
               fields={[
-                { key: "name", label: "שם" },
-                { key: "role", label: "תפקיד / שנה" },
-                { key: "quote", label: "ציטוט", type: "textarea" },
-                { key: "image_url", label: "תמונה (URL)", type: "image" },
+                { key: "name", label: isEn ? "Name" : "שם" },
+                { key: "role", label: isEn ? "Role / Year" : "תפקיד / שנה" },
+                { key: "quote", label: isEn ? "Quote" : "ציטוט", type: "textarea" },
+                { key: "image_url", label: isEn ? "Photo (URL)" : "תמונה (URL)", type: "image" },
               ]}
               draft={draft}
               set={set}
@@ -1636,7 +1676,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "faculty":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="הסגל האקדמי" draft={draft} set={set} />
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "Faculty" : "הסגל האקדמי"} draft={draft} set={set} />
             <FacultyMemberEditor draft={draft} set={set} />
           </div>
         );
@@ -1644,13 +1684,13 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "stats":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="אנו במספרים" draft={draft} set={set} />
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "By the Numbers" : "אנו במספרים"} draft={draft} set={set} />
             <ObjectListField
-              label="נתונים"
+              label={isEn ? "Statistics" : "נתונים"}
               fieldKey="stats"
               fields={[
-                { key: "value", label: "ערך (למשל 50,000+)" },
-                { key: "label_he", label: "תווית" },
+                { key: "value", label: isEn ? "Value (e.g. 50,000+)" : "ערך (למשל 50,000+)" },
+                { key: lk("label"), label: isEn ? "Label" : "תווית" },
               ]}
               draft={draft}
               set={set}
@@ -1661,13 +1701,13 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "faq":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="שאלות נפוצות" draft={draft} set={set} />
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "FAQ" : "שאלות נפוצות"} draft={draft} set={set} />
             <ObjectListField
-              label="שאלות ותשובות"
+              label={isEn ? "Questions & Answers" : "שאלות ותשובות"}
               fieldKey="items"
               fields={[
-                { key: "question_he", label: "שאלה" },
-                { key: "answer_he", label: "תשובה", type: "textarea" },
+                { key: lk("question"), label: isEn ? "Question" : "שאלה" },
+                { key: lk("answer"), label: isEn ? "Answer" : "תשובה", type: "textarea" },
               ]}
               draft={draft}
               set={set}
@@ -1678,8 +1718,8 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "video":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="צפו בסרטון" draft={draft} set={set} />
-            <TextareaField label="תיאור (אופציונלי)" fieldKey="description_he" rows={2} placeholder="תיאור קצר..." draft={draft} set={set} />
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "Watch Video" : "צפו בסרטון"} draft={draft} set={set} />
+            <TextareaField label={isEn ? "Description (optional)" : "תיאור (אופציונלי)"} fieldKey={lk("description")} rows={2} placeholder={isEn ? "Short description..." : "תיאור קצר..."} draft={draft} set={set} />
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-[#716C70]">פריסה</Label>
               <div className="flex gap-2">
@@ -1702,13 +1742,13 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
       case "gallery":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="גלריה" draft={draft} set={set} />
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "Gallery" : "גלריה"} draft={draft} set={set} />
             <ObjectListField
-              label="תמונות"
+              label={isEn ? "Images" : "תמונות"}
               fieldKey="images"
               fields={[
-                { key: "url", label: "URL תמונה", type: "image" },
-                { key: "caption_he", label: "כיתוב" },
+                { key: "url", label: isEn ? "Image URL" : "URL תמונה", type: "image" },
+                { key: lk("caption"), label: isEn ? "Caption" : "כיתוב" },
               ]}
               draft={draft}
               set={set}
@@ -1731,7 +1771,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
 
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="תנאי קבלה" draft={draft} set={set} />
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "Admission Requirements" : "תנאי קבלה"} draft={draft} set={set} />
 
             {/* Toggle between single/multi track */}
             <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[#F3F4F6] border border-[#E5E5E5]">
@@ -1740,7 +1780,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
                 onClick={() => { set("tracks", undefined); }}
                 className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all ${!hasTracks ? "bg-white shadow text-[#2A2628]" : "text-[#9A969A] hover:text-[#4A4648]"}`}
               >
-                מסלול אחד
+                {isEn ? "Single Track" : "מסלול אחד"}
               </button>
               <button
                 type="button"
@@ -2075,7 +2115,7 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-[95vw] h-[95vh] max-h-[95vh] flex flex-col gap-0 p-0 overflow-hidden" dir="rtl">
+      <DialogContent className="max-w-none w-screen h-screen max-h-screen flex flex-col gap-0 p-0 overflow-hidden rounded-none" dir="rtl">
         <DialogHeader className="px-6 py-4 border-b border-[#F0F0F0] shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#B8D900]/15 flex items-center justify-center shrink-0">
@@ -2471,7 +2511,7 @@ export default function PageBuilderPage() {
     async function load() {
       setLoading(true);
       const [pageRes, sectionsRes] = await Promise.all([
-        supabase.from("pages").select("id, title_he, slug, status, custom_styles").eq("id", pageId).single(),
+        supabase.from("pages").select("id, title_he, slug, status, language, custom_styles").eq("id", pageId).single(),
         supabase.from("page_sections").select("*").eq("page_id", pageId).order("sort_order"),
       ]);
       if (pageRes.data) {
@@ -3466,6 +3506,7 @@ export default function PageBuilderPage() {
         onClose={() => setEditingSection(null)}
         onSave={saveEditSection}
         saving={editSaving}
+        pageLanguage={page?.language || "he"}
       />
 
       {/* ── Delete Confirmation ── */}

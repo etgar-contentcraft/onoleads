@@ -11,16 +11,21 @@ import { useRouter } from "next/navigation";
 // CTA Modal Context - allows any component to open/close the form modal
 // ============================================================================
 
+/** Supported language codes */
+type Lang = "he" | "en" | "ar";
+
 interface CtaModalContextType {
   isOpen: boolean;
   open: () => void;
   close: () => void;
+  language: Lang;
 }
 
 const CtaModalContext = createContext<CtaModalContextType>({
   isOpen: false,
   open: () => {},
   close: () => {},
+  language: "he",
 });
 
 /**
@@ -31,19 +36,89 @@ export function useCtaModal() {
 }
 
 /**
- * Provider component that manages CTA modal state.
+ * Provider component that manages CTA modal state and language.
  */
-export function CtaModalProvider({ children }: { children: React.ReactNode }) {
+export function CtaModalProvider({ children, language = "he" }: { children: React.ReactNode; language?: Lang }) {
   const [isOpen, setIsOpen] = useState(false);
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => setIsOpen(false), []);
 
   return (
-    <CtaModalContext.Provider value={{ isOpen, open, close }}>
+    <CtaModalContext.Provider value={{ isOpen, open, close, language }}>
       {children}
     </CtaModalContext.Provider>
   );
 }
+
+// ============================================================================
+// Localized UI strings for form
+// ============================================================================
+
+const FORM_STRINGS: Record<Lang, {
+  title: string;
+  namePlaceholder: string;
+  phonePlaceholder: string;
+  emailPlaceholder: string;
+  privacyPrefix: string;
+  termsLink: string;
+  privacyLink: string;
+  privacyAnd: string;
+  submit: string;
+  submitting: string;
+  noCommitment: string;
+  privacyGuaranteed: string;
+  floatingCta: string;
+  honeypotLabel: string;
+}> = {
+  he: {
+    title: "קבלו מידע מלא",
+    namePlaceholder: "שם מלא *",
+    phonePlaceholder: "טלפון *",
+    emailPlaceholder: "אימייל",
+    privacyPrefix: "בלחיצה על \"שלחו לי מידע\" אני מסכים/ה ל",
+    termsLink: "תנאי השימוש",
+    privacyLink: "מדיניות הפרטיות",
+    privacyAnd: "ול",
+    submit: "שלחו לי מידע",
+    submitting: "שולח...",
+    noCommitment: "ללא התחייבות",
+    privacyGuaranteed: "פרטיותכם מובטחת",
+    floatingCta: "השאירו פרטים",
+    honeypotLabel: "אל תמלאו שדה זה",
+  },
+  en: {
+    title: "Get Full Info",
+    namePlaceholder: "Full Name *",
+    phonePlaceholder: "Phone *",
+    emailPlaceholder: "Email",
+    privacyPrefix: "By clicking \"Send\" I agree to the ",
+    termsLink: "Terms of Service",
+    privacyLink: "Privacy Policy",
+    privacyAnd: " and the ",
+    submit: "Send Me Info",
+    submitting: "Sending...",
+    noCommitment: "No commitment",
+    privacyGuaranteed: "Your privacy is protected",
+    floatingCta: "Get Info",
+    honeypotLabel: "Do not fill this field",
+  },
+  ar: {
+    title: "احصل على معلومات كاملة",
+    namePlaceholder: "الاسم الكامل *",
+    phonePlaceholder: "هاتف *",
+    emailPlaceholder: "بريد إلكتروني",
+    privacyPrefix: "بالنقر على \"أرسل\" أوافق على ",
+    termsLink: "شروط الاستخدام",
+    privacyLink: "سياسة الخصوصية",
+    privacyAnd: " و",
+    submit: "أرسل لي معلومات",
+    submitting: "جاري الإرسال...",
+    noCommitment: "بدون التزام",
+    privacyGuaranteed: "خصوصيتك محمية",
+    floatingCta: "اترك تفاصيل",
+    honeypotLabel: "Do not fill this field",
+  },
+};
 
 // ============================================================================
 // CTA Modal Component
@@ -64,7 +139,9 @@ interface CtaModalProps {
  * Displayed as a bottom sheet on mobile and centered modal on desktop.
  */
 export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: CtaModalProps) {
-  const { isOpen, close } = useCtaModal();
+  const { isOpen, close, language } = useCtaModal();
+  const t = FORM_STRINGS[language] || FORM_STRINGS.he;
+  const isRtl = language === "he" || language === "ar";
   const router = useRouter();
   const [formData, setFormData] = useState({ full_name: "", phone: "", email: "" });
   const [honeypot, setHoneypot] = useState("");
@@ -246,7 +323,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
               <>
                 <div className="text-center mb-6">
                   <h3 className="font-heading text-2xl font-extrabold text-white mb-1">
-                    קבלו מידע מלא
+                    {t.title}
                   </h3>
                   {programName && (
                     <p className="text-[#B8D900] font-medium text-sm">
@@ -262,10 +339,10 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-4" dir="rtl" noValidate>
+                <form onSubmit={handleSubmit} className="space-y-4" dir={isRtl ? "rtl" : "ltr"} noValidate>
                   {/* Honeypot field - hidden from real users, bots will fill it */}
                   <div aria-hidden="true" className="absolute -left-[9999px] -top-[9999px]">
-                    <label htmlFor="website">אל תמלאו שדה זה</label>
+                    <label htmlFor="website">{t.honeypotLabel}</label>
                     <input
                       id="website"
                       name="website"
@@ -279,13 +356,13 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
 
                   {/* Full Name */}
                   <div>
-                    <label htmlFor="full_name" className="sr-only">שם מלא</label>
+                    <label htmlFor="full_name" className="sr-only">{t.namePlaceholder}</label>
                     <input
                       id="full_name"
                       type="text"
                       value={formData.full_name}
                       onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                      placeholder="שם מלא *"
+                      placeholder={t.namePlaceholder}
                       autoComplete="name"
                       className="w-full h-13 rounded-xl bg-white/8 border border-white/15 px-4 text-white text-base placeholder:text-white/35 focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
                       aria-required="true"
@@ -299,13 +376,13 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
 
                   {/* Phone */}
                   <div>
-                    <label htmlFor="phone" className="sr-only">טלפון</label>
+                    <label htmlFor="phone" className="sr-only">{t.phonePlaceholder}</label>
                     <input
                       id="phone"
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="טלפון *"
+                      placeholder={t.phonePlaceholder}
                       dir="ltr"
                       autoComplete="tel"
                       className="w-full h-13 rounded-xl bg-white/8 border border-white/15 px-4 text-white text-base placeholder:text-white/35 text-left focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
@@ -320,13 +397,13 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
 
                   {/* Email */}
                   <div>
-                    <label htmlFor="email" className="sr-only">אימייל</label>
+                    <label htmlFor="email" className="sr-only">{t.emailPlaceholder}</label>
                     <input
                       id="email"
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="אימייל"
+                      placeholder={t.emailPlaceholder}
                       dir="ltr"
                       autoComplete="email"
                       className="w-full h-13 rounded-xl bg-white/8 border border-white/15 px-4 text-white text-base placeholder:text-white/35 text-left focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
@@ -340,13 +417,13 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
 
                   {/* Privacy consent notice */}
                   <p className="text-white/30 text-xs leading-relaxed">
-                    בלחיצה על &quot;שלחו לי מידע&quot; אני מסכים/ה ל
+                    {t.privacyPrefix}
                     <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#B8D900]/70 hover:text-[#B8D900] underline mx-1">
-                      תנאי השימוש
+                      {t.termsLink}
                     </a>
-                    ול
+                    {t.privacyAnd}
                     <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#B8D900]/70 hover:text-[#B8D900] underline mx-1">
-                      מדיניות הפרטיות
+                      {t.privacyLink}
                     </a>
                   </p>
 
@@ -362,10 +439,10 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                         </svg>
-                        שולח...
+                        {t.submitting}
                       </span>
                     ) : (
-                      ctaText || "שלחו לי מידע"
+                      ctaText || t.submit
                     )}
                   </button>
                 </form>
@@ -376,14 +453,14 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    ללא התחייבות
+                    {t.noCommitment}
                   </span>
                   <span className="w-px h-3 bg-white/15" aria-hidden="true" />
                   <span className="flex items-center gap-1">
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    פרטיותכם מובטחת
+                    {t.privacyGuaranteed}
                   </span>
                 </div>
               </>
@@ -405,7 +482,8 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
  * @param ctaText - Optional override for the button label
  */
 export function FloatingCtaButton({ ctaText }: { ctaText?: string }) {
-  const { open } = useCtaModal();
+  const { open, language } = useCtaModal();
+  const t = FORM_STRINGS[language] || FORM_STRINGS.he;
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -424,9 +502,9 @@ export function FloatingCtaButton({ ctaText }: { ctaText?: string }) {
           ? "translate-y-0 opacity-100"
           : "translate-y-20 opacity-0 pointer-events-none"
       }`}
-      aria-label={ctaText || "השאירו פרטים"}
+      aria-label={ctaText || t.floatingCta}
     >
-      <span>{ctaText || "השאירו פרטים"}</span>
+      <span>{ctaText || t.floatingCta}</span>
       <svg className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M10 6l6 6-6 6" />
       </svg>

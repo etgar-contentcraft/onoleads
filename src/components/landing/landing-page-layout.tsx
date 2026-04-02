@@ -354,7 +354,7 @@ function InnerLayout({
     <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-white font-heebo overflow-x-hidden">
       {/* Sticky Header */}
       <StickyHeader
-        programName={pageTitle || program?.name_he}
+        programName={pageTitle || (language === "en" ? (program?.name_en || program?.name_he) : program?.name_he)}
         stickyTitle={settings?.sticky_header_title}
         language={language}
         phone={settings?.phone_number}
@@ -462,7 +462,7 @@ function InnerLayout({
         pageId={pageId}
         programId={programId}
         pageSlug={pageSlug}
-        programName={pageTitle || program?.name_he}
+        programName={pageTitle || (language === "en" ? (program?.name_en || program?.name_he) : program?.name_he)}
         ctaText={settings?.default_cta_text}
       />
 
@@ -500,7 +500,7 @@ function InnerLayout({
 
 export function LandingPageLayout(props: LandingPageLayoutProps) {
   return (
-    <CtaModalProvider>
+    <CtaModalProvider language={props.language}>
       <InnerLayout {...props} />
     </CtaModalProvider>
   );
