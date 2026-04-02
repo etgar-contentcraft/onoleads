@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       slug,
       language: data.page.language || "he",
       status: "draft",
-      page_type: "landing",
+      page_type: "degree",
       seo_title: data.page.seo_title || data.page.title_he || "",
       seo_description: data.page.seo_description || "",
       program_id: data.program_id || null,

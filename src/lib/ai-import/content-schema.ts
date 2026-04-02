@@ -347,7 +347,18 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
 ];
 
 /**
+ * Replaces `_he` suffix in field keys with the target language suffix.
+ * E.g., "heading_he" → "heading_en" when lang is "en".
+ * Keys without `_he` suffix (e.g., "stat_value", "icon") are unchanged.
+ */
+function localizeFieldKey(key: string, lang: string): string {
+  if (lang === "he") return key;
+  return key.replace(/_he$/, `_${lang}`);
+}
+
+/**
  * Generates a comprehensive AI prompt for creating landing page content.
+ * The prompt language and field suffixes adapt to the target page language.
  * @param programInfo - Basic info about the program (name, degree, faculty, etc.)
  * @param referenceUrls - URLs to reference for content (e.g., ono.ac.il pages)
  * @param selectedSections - Which section types to include (defaults to all recommended)
@@ -365,34 +376,128 @@ export function generateAiPrompt(
   referenceUrls: string[],
   selectedSections?: string[],
 ): string {
+  const lang = programInfo.language || "he";
+  const isHe = lang === "he";
+  const isEn = lang === "en";
+  const isAr = lang === "ar";
+
   const sections = selectedSections
     ? SECTION_SCHEMAS.filter((s) => selectedSections.includes(s.type))
     : SECTION_SCHEMAS.filter((s) => s.recommended);
+
+  /** Pick label in target language */
+  const lbl = (he: string, en: string) => isHe ? he : en;
 
   const sectionInstructions = sections
     .map((s) => {
       const fieldList = s.fields
         .map((f) => {
-          let line = `    - "${f.key}": (${f.type}) ${f.label_he}`;
-          if (f.required) line += " [חובה]";
+          const fieldKey = localizeFieldKey(f.key, lang);
+          const fieldLabel = isHe ? f.label_he : f.label_en;
+          let line = `    - "${fieldKey}": (${f.type}) ${fieldLabel}`;
+          if (f.required) line += isHe ? " [חובה]" : " [required]";
           if (f.hint) line += ` — ${f.hint}`;
-          if (f.maxLength) line += ` (מקסימום ${f.maxLength} תווים)`;
+          if (f.maxLength) line += isHe ? ` (מקסימום ${f.maxLength} תווים)` : ` (max ${f.maxLength} chars)`;
           if (f.type === "array" && f.itemFields) {
-            const items = f.itemFields.map((if_) => `      - "${if_.key}": ${if_.label_he}${if_.hint ? ` (${if_.hint})` : ""}`).join("\n");
-            line += `\n    כל פריט במערך:\n${items}`;
+            const itemLabel = isHe ? "כל פריט במערך:" : "Each item in array:";
+            const items = f.itemFields.map((if_) => {
+              const ifKey = localizeFieldKey(if_.key, lang);
+              const ifLabel = isHe ? if_.label_he : if_.label_en;
+              return `      - "${ifKey}": ${ifLabel}${if_.hint ? ` (${if_.hint})` : ""}`;
+            }).join("\n");
+            line += `\n    ${itemLabel}\n${items}`;
           }
           return line;
         })
         .join("\n");
 
-      return `  ## ${s.type} — ${s.label_he}\n  ${s.description_he}\n  שדות:\n${fieldList}`;
+      const sLabel = isHe ? s.label_he : s.label_en;
+      const sDesc = isHe ? s.description_he : s.description_en;
+      const fieldsLabel = isHe ? "שדות:" : "Fields:";
+      return `  ## ${s.type} — ${sLabel}\n  ${sDesc}\n  ${fieldsLabel}\n${fieldList}`;
     })
     .join("\n\n");
 
   const urlList = referenceUrls.length > 0
     ? referenceUrls.map((u) => `  - ${u}`).join("\n")
-    : "  (לא סופקו קישורים — כתוב תוכן שיווקי כללי)";
+    : isHe ? "  (לא סופקו קישורים — כתוב תוכן שיווקי כללי)" : "  (No reference URLs provided — write general marketing content)";
 
+  // ── Language-specific prompt blocks ──
+
+  const langName = isHe ? "עברית" : isAr ? "ערבית" : "English";
+  const writingLang = isHe ? "Hebrew" : isEn ? "English" : "Arabic";
+
+  if (!isHe) {
+    // ── ENGLISH / ARABIC PROMPT ──
+    return `# Landing Page Content Generation Instructions — OnoLeads
+
+## Program Details
+- Program name: ${programInfo.programName}
+- Degree type: ${programInfo.degreeType}
+- Faculty: ${programInfo.faculty}
+${programInfo.campuses ? `- Campuses: ${programInfo.campuses}` : ""}
+${programInfo.duration ? `- Duration: ${programInfo.duration}` : ""}
+- Page language: ${writingLang}
+${programInfo.additionalInfo ? `- Additional info: ${programInfo.additionalInfo}` : ""}
+
+## Reference URLs
+${urlList}
+
+## Writing Guidelines
+1. Write ALL content in ${writingLang} — clear, direct, persuasive marketing copy
+2. Use second person plural ("Join", "Discover", "Get")
+3. Emphasize Ono's unique advantages: flexibility, practical education, job market relevance
+4. Use specific data (success rates, years of experience, number of graduates) when available
+5. Respect recommended field lengths (max characters noted per field)
+6. For testimonial names — use realistic ${isAr ? "Arabic" : "international"} names
+7. Do NOT invent statistics — if unsure, use phrases like "one of the leading", "among the largest"
+
+## CRITICAL: Field Key Suffixes
+All text field keys MUST use the \`_${lang}\` suffix, NOT \`_he\`.
+For example: \`heading_${lang}\`, \`subheading_${lang}\`, \`cta_text_${lang}\`, \`stat_label_${lang}\`, \`description_${lang}\`, etc.
+Fields without a language suffix (like \`stat_value\`, \`icon\`, \`rating\`, \`layout\`) stay as-is.
+
+## Output Format
+Return valid JSON in this exact format:
+\`\`\`json
+{
+  "page": {
+    "title_he": "Page title (used internally)",
+    "seo_title": "SEO title — max 60 chars, in ${writingLang}",
+    "seo_description": "SEO description — max 155 chars, in ${writingLang}",
+    "language": "${lang}"
+  },
+  "sections": [
+    {
+      "section_type": "...",
+      "sort_order": 1,
+      "content": { ... }
+    }
+  ]
+}
+\`\`\`
+
+## Sections to Generate (${sections.length} sections)
+
+${sectionInstructions}
+
+## Example hero content field:
+\`\`\`json
+{
+  "heading_${lang}": "${isAr ? "دراسة القانون في أونو" : "Study Law at Ono"}",
+  "subheading_${lang}": "${isAr ? "أكبر كلية حقوق في إسرائيل — دراسة مرنة تناسب حياتك" : "Israel's largest law program — flexible study that fits your life"}",
+  "cta_text_${lang}": "${isAr ? "احصلوا على معلومات" : "Get Full Info"}",
+  "stat_value": "90%",
+  "stat_label_${lang}": "${isAr ? "نسبة النجاح في امتحان المحاماة" : "Bar exam pass rate"}",
+  "faculty_name_${lang}": "${isAr ? "كلية الحقوق" : "Faculty of Law"}",
+  "degree_type": "LL.B."
+}
+\`\`\`
+
+IMPORTANT: Return ONLY valid JSON, no additional text or markdown around it.`;
+  }
+
+  // ── HEBREW PROMPT ──
   return `# הנחיות ליצירת תוכן עמוד נחיתה — OnoLeads
 
 ## פרטי התוכנית
@@ -401,7 +506,7 @@ export function generateAiPrompt(
 - פקולטה: ${programInfo.faculty}
 ${programInfo.campuses ? `- קמפוסים: ${programInfo.campuses}` : ""}
 ${programInfo.duration ? `- משך לימודים: ${programInfo.duration}` : ""}
-${programInfo.language ? `- שפת עמוד: ${programInfo.language}` : "- שפת עמוד: עברית"}
+- שפת עמוד: עברית
 ${programInfo.additionalInfo ? `- מידע נוסף: ${programInfo.additionalInfo}` : ""}
 
 ## קישורים לעיון
@@ -416,6 +521,11 @@ ${urlList}
 6. שמות אמיתיים של סטודנטים/בוגרים — המצא שמות ישראליים אמינים
 7. אל תמציא נתונים סטטיסטיים — אם לא בטוח, השתמש בניסוחים כמו "מהמובילים", "מהגדולים"
 
+## חשוב: סיומות שדות
+כל שדות הטקסט חייבים להסתיים בסיומת \`_he\`.
+לדוגמה: \`heading_he\`, \`subheading_he\`, \`cta_text_he\`, \`stat_label_he\`, \`description_he\`.
+שדות ללא סיומת שפה (כמו \`stat_value\`, \`icon\`, \`rating\`, \`layout\`) נשארים כמו שהם.
+
 ## פורמט פלט
 החזר JSON חוקי בפורמט הבא:
 \`\`\`json
@@ -424,7 +534,7 @@ ${urlList}
     "title_he": "כותרת העמוד (SEO)",
     "seo_title": "כותרת SEO — עד 60 תווים",
     "seo_description": "תיאור SEO — עד 155 תווים",
-    "language": "${programInfo.language || "he"}"
+    "language": "he"
   },
   "sections": [
     {
