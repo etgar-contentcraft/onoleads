@@ -19,7 +19,7 @@ const securityHeaders = [
       "img-src 'self' data: blob: https://img.youtube.com https://i.ytimg.com https:",
       "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://calendar.google.com https://calendly.com",
       "connect-src 'self' https://*.supabase.co https://api.supabase.co wss://*.supabase.co https://hooks.zapier.com https://www.google-analytics.com",
-      "media-src 'self' https://www.youtube-nocookie.com https://www.youtube.com",
+      "media-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://*.supabase.co https:",
     ].join("; "),
   },
   {

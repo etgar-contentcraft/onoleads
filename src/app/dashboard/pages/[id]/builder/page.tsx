@@ -726,26 +726,52 @@ interface ImageFieldProps {
   set: (key: string, value: unknown) => void;
 }
 
+/** Maximum upload size in bytes (10MB) */
+const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+
 /** Image field with URL input + file upload to Supabase Storage */
 function ImageField({ label, fieldKey, recommendedSize, draft, set }: ImageFieldProps) {
   const url = (draft[fieldKey] as string) || "";
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadError("");
+
+    // Validate file size
+    if (file.size > MAX_UPLOAD_SIZE) {
+      setUploadError("הקובץ גדול מדי — מקסימום 10MB");
+      return;
+    }
+
     setUploading(true);
     try {
       const ext = file.name.split(".").pop() || "jpg";
       const path = `sections/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const supabaseClient = createClient();
-      const { error } = await supabaseClient.storage.from("media").upload(path, file, { upsert: false });
-      if (error) throw error;
+      const { error } = await supabaseClient.storage.from("media").upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+      if (error) {
+        if (error.message.includes("not found") || error.message.includes("Bucket")) {
+          setUploadError("שגיאה: מאגר קבצים לא קיים. יש להריץ את המיגרציה 20260402_storage_bucket.sql");
+        } else if (error.message.includes("security") || error.message.includes("policy")) {
+          setUploadError("שגיאה: אין הרשאה להעלאה. בדקו הגדרות RLS ב-Supabase Storage.");
+        } else {
+          setUploadError(`שגיאה בהעלאה: ${error.message}`);
+        }
+        setUploading(false);
+        return;
+      }
       const { data: urlData } = supabaseClient.storage.from("media").getPublicUrl(path);
       set(fieldKey, urlData.publicUrl);
     } catch (err) {
-      console.error("Upload failed:", err);
+      const msg = err instanceof Error ? err.message : "שגיאה לא ידועה";
+      setUploadError(`שגיאה בהעלאה: ${msg}`);
     }
     setUploading(false);
     if (inputRef.current) inputRef.current.value = "";
@@ -769,11 +795,11 @@ function ImageField({ label, fieldKey, recommendedSize, draft, set }: ImageField
         dir="ltr"
         className="h-9 text-sm font-mono"
       />
-      {/* Upload button */}
+      {/* Upload button + error */}
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
+          onClick={() => { setUploadError(""); inputRef.current?.click(); }}
           disabled={uploading}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[#C8C4C8] bg-[#F8F8F8] text-xs text-[#716C70] hover:border-[#B8D900] hover:text-[#2A2628] hover:bg-[#B8D900]/5 transition-all disabled:opacity-50"
         >
@@ -801,6 +827,11 @@ function ImageField({ label, fieldKey, recommendedSize, draft, set }: ImageField
           className="hidden"
         />
       </div>
+      {uploadError && (
+        <p className="text-[11px] text-red-500 flex items-center gap-1">
+          <AlertTriangle className="w-3 h-3 shrink-0" /> {uploadError}
+        </p>
+      )}
       {/* Preview */}
       {url && (
         <div className="rounded-lg overflow-hidden border border-[#E5E5E5] h-28 bg-[#F3F4F6]">
