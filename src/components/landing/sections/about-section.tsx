@@ -10,6 +10,26 @@ import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
 
+/**
+ * Extracts 11-char YouTube video ID from common URL formats.
+ */
+function extractYoutubeId(input: string): string {
+  if (!input) return "";
+  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
+  try {
+    const url = new URL(input);
+    if (url.hostname === "youtu.be") {
+      const c = url.pathname.slice(1).split("?")[0];
+      if (/^[A-Za-z0-9_-]{11}$/.test(c)) return c;
+    }
+    const m = url.pathname.match(/\/(?:embed|v)\/([A-Za-z0-9_-]{11})/);
+    if (m) return m[1];
+    const v = url.searchParams.get("v");
+    if (v && /^[A-Za-z0-9_-]{11}$/.test(v)) return v;
+  } catch { /* not a URL */ }
+  return "";
+}
+
 interface AboutSectionProps {
   content: Record<string, unknown>;
   language: Language;
@@ -23,6 +43,7 @@ export function AboutSection({ content, language }: AboutSectionProps) {
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "אודות התוכנית" : "About the Program");
   const description = (content[`description_${language}`] as string) || (content.description_he as string) || "";
   const imageUrl = (content.image_url as string) || (content.image as string) || "";
+  const videoUrl = (content.video_url as string) || "";
   const bullets = (content.bullets as string[]) || [];
   const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || (isRtl ? "לפרטים נוספים" : "Learn more");
   const ctaEnabled = content.cta_enabled !== false;
@@ -115,12 +136,26 @@ export function AboutSection({ content, language }: AboutSectionProps) {
             )}
           </div>
 
-          {/* Image column (left in RTL) */}
+          {/* Image / Video column (left in RTL) */}
           <div
             className="order-1 md:order-2 opacity-0"
             style={{ animation: inView ? "fade-in-up 0.7s ease-out 0.2s forwards" : "none" }}
           >
-            {imageUrl ? (
+            {videoUrl && extractYoutubeId(videoUrl) ? (
+              /* YouTube embed in the visual column */
+              <div className="relative">
+                <div className={`absolute -top-4 ${isRtl ? "-right-4" : "-left-4"} w-full h-full rounded-2xl bg-[#B8D900]/10 -z-10`} />
+                <div className="relative rounded-2xl overflow-hidden shadow-[0_12px_50px_rgba(0,0,0,0.12)] aspect-video bg-[#2a2628]">
+                  <iframe
+                    src={`https://www.youtube-nocookie.com/embed/${extractYoutubeId(videoUrl)}?rel=0&modestbranding=1`}
+                    className="absolute inset-0 w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title={heading}
+                  />
+                </div>
+              </div>
+            ) : imageUrl ? (
               <div className="relative">
                 {/* Decorative accent shape behind image */}
                 <div className={`absolute -top-4 ${isRtl ? "-right-4" : "-left-4"} w-full h-full rounded-2xl bg-[#B8D900]/10 -z-10`} />

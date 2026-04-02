@@ -15,6 +15,27 @@ interface HeroSectionProps {
   language: Language;
 }
 
+/**
+ * Extracts an 11-character YouTube video ID from common URL formats.
+ * Returns empty string if extraction fails.
+ */
+function extractYoutubeId(input: string): string {
+  if (!input) return "";
+  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
+  try {
+    const url = new URL(input);
+    if (url.hostname === "youtu.be") {
+      const c = url.pathname.slice(1).split("?")[0];
+      if (/^[A-Za-z0-9_-]{11}$/.test(c)) return c;
+    }
+    const pathMatch = url.pathname.match(/\/(?:embed|v)\/([A-Za-z0-9_-]{11})/);
+    if (pathMatch) return pathMatch[1];
+    const v = url.searchParams.get("v");
+    if (v && /^[A-Za-z0-9_-]{11}$/.test(v)) return v;
+  } catch { /* not a URL */ }
+  return "";
+}
+
 /** Scroll amount before parallax caps out */
 const PARALLAX_MAX_SCROLL = 600;
 /** How much the background shifts relative to scroll (0-1) */
@@ -35,6 +56,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
   const ctaEnabled = content.cta_enabled !== false;
   const bgImage = (content.background_image_url as string) || (content.background_image as string) || "";
   const bgVideo = (content.background_video_url as string) || "";
+  const bgVideoType = (content.background_video_type as string) || "mp4";
   const statValue = (content.stat_value as string) || "";
   const statLabel = (content[`stat_label_${language}`] as string) || (content.stat_label_he as string) || "";
   const facultyName = (content[`faculty_name_${language}`] as string) || (content.faculty_name_he as string) || "";
@@ -110,7 +132,41 @@ export function HeroSection({ content, language }: HeroSectionProps) {
     >
       {/* Background with parallax */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        {bgVideo ? (
+        {/* Auto-detect YouTube URLs even if type is set to mp4 */}
+        {bgVideo && (bgVideoType === "youtube" || extractYoutubeId(bgVideo)) && extractYoutubeId(bgVideo) ? (
+          <>
+            {/* YouTube background — muted, autoplay, loop, no controls */}
+            <div
+              className="absolute inset-0 will-change-transform"
+              style={{ transform: `translateY(-${parallaxY}px)` }}
+            >
+              {/* Scale up to 120% to hide YouTube black bars */}
+              <div className="absolute inset-[-10%] w-[120%] h-[120%]">
+                <iframe
+                  src={`https://www.youtube-nocookie.com/embed/${extractYoutubeId(bgVideo)}?autoplay=1&mute=1&loop=1&playlist=${extractYoutubeId(bgVideo)}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3`}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  title="Background video"
+                />
+              </div>
+            </div>
+            {/* Fallback poster image behind iframe */}
+            {bgImage && (
+              <Image
+                src={bgImage}
+                alt=""
+                fill
+                priority
+                className="object-cover -z-10"
+                sizes="100vw"
+                quality={80}
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/45 to-black/85" />
+          </>
+        ) : bgVideo ? (
           <>
             <video
               autoPlay

@@ -52,19 +52,42 @@ function F({
 
 // ─── Video ────────────────────────────────────────────────────────────────────
 
+interface VideoItem {
+  youtube_id: string;
+  title_he: string;
+  duration_he?: string;
+  thumbnail_url?: string;
+}
+
 function VideoEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
+  const videos = (content.videos as VideoItem[]) || [];
+  const layout = (content.layout as string) || "featured";
+
+  /** Update a single video in the array */
+  const updateVideo = (index: number, field: string, value: string) => {
+    const updated = [...videos];
+    updated[index] = { ...updated[index], [field]: value };
+    onChange({ ...content, videos: updated });
+  };
+
+  /** Add a new empty video slot */
+  const addVideo = () => {
+    onChange({
+      ...content,
+      videos: [...videos, { youtube_id: "", title_he: "", duration_he: "" }],
+    });
+  };
+
+  /** Remove a video by index */
+  const removeVideo = (index: number) => {
+    onChange({ ...content, videos: videos.filter((_, i) => i !== index) });
+  };
+
   return (
     <div className="space-y-4">
-      <F label="Video URL" tip="קישור YouTube או Vimeo. YouTube: youtube.com/watch?v=... | Vimeo: vimeo.com/...">
-        <Input
-          value={(content.video_url as string) || ""}
-          onChange={(e) => onChange({ ...content, video_url: e.target.value })}
-          placeholder="https://youtube.com/watch?v=..."
-        />
-      </F>
       <F
-        label="כותרת (עברית)"
-        tip="כותרת שמוצגת מעל הסרטון. אופציונלי."
+        label="כותרת הסקציה (עברית)"
+        tip="כותרת שמוצגת מעל הסרטונים. אופציונלי."
         max={60}
         value={(content.heading_he as string) || ""}
       >
@@ -75,21 +98,81 @@ function VideoEditorFields({ content, onChange }: { content: GenericContent; onC
           dir="rtl"
         />
       </F>
-      <F label="תמונת פוסטר (אופציונלי)" tip="תמונה שמוצגת לפני שהסרטון מופעל. מידות: 1280×720px (16:9). JPG/WebP.">
-        <Input
-          value={(content.poster_url as string) || ""}
-          onChange={(e) => onChange({ ...content, poster_url: e.target.value })}
-          placeholder="https://..."
-        />
+
+      <F label="תצוגה" tip="featured = סרטון גדול + פלייליסט בצד. grid = גריד שווה.">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => onChange({ ...content, layout: "featured" })}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              layout === "featured" ? "bg-[#B8D900] text-[#2a2628]" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            Featured + פלייליסט
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ ...content, layout: "grid" })}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              layout === "grid" ? "bg-[#B8D900] text-[#2a2628]" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            Grid
+          </button>
+        </div>
       </F>
-      <div className="flex items-center gap-2">
-        <Switch
-          checked={(content.autoplay as boolean) || false}
-          onCheckedChange={(checked) => onChange({ ...content, autoplay: checked })}
-        />
-        <Label title="הסרטון יתחיל לפעול אוטומטית. שים לב: אוטוהפעל ללא קול בלבד בדפדפנים מודרניים.">
-          הפעלה אוטומטית
-        </Label>
+
+      {/* Legacy single-video field for backwards compatibility */}
+      {videos.length === 0 && (
+        <F label="YouTube URL (סרטון בודד)" tip="קישור YouTube. אם אתה רוצה כמה סרטונים, השתמש ב-'הוסף סרטון' למטה.">
+          <Input
+            value={(content.video_url as string) || ""}
+            onChange={(e) => onChange({ ...content, video_url: e.target.value })}
+            placeholder="https://youtube.com/watch?v=..."
+          />
+        </F>
+      )}
+
+      {/* Video list */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold">סרטונים ({videos.length})</Label>
+          <Button type="button" variant="outline" size="sm" onClick={addVideo} className="gap-1 text-xs h-7">
+            <Plus className="w-3 h-3" /> הוסף סרטון
+          </Button>
+        </div>
+
+        {videos.map((video, i) => (
+          <div key={i} className="border rounded-lg p-3 space-y-2 bg-gray-50/50">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-[#9A969A]">סרטון {i + 1}</span>
+              <button type="button" onClick={() => removeVideo(i)} className="text-red-400 hover:text-red-600">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <Input
+              value={video.youtube_id || ""}
+              onChange={(e) => updateVideo(i, "youtube_id", e.target.value)}
+              placeholder="YouTube URL או ID — https://youtube.com/watch?v=..."
+              className="text-xs"
+            />
+            <div className="flex gap-2">
+              <Input
+                value={video.title_he || ""}
+                onChange={(e) => updateVideo(i, "title_he", e.target.value)}
+                placeholder="כותרת הסרטון"
+                dir="rtl"
+                className="text-xs flex-1"
+              />
+              <Input
+                value={video.duration_he || ""}
+                onChange={(e) => updateVideo(i, "duration_he", e.target.value)}
+                placeholder="3:45"
+                className="text-xs w-20"
+              />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -170,7 +253,7 @@ function StatsEditorFields({ content, onChange }: { content: GenericContent; onC
 // ─── Testimonials ─────────────────────────────────────────────────────────────
 
 function TestimonialsEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
-  const items = (content.items as Array<{ name: string; role_he: string; role_en?: string; quote_he: string; quote_en?: string; image_url?: string }>) || [];
+  const items = (content.items as Array<{ name: string; role_he: string; role_en?: string; quote_he: string; quote_en?: string; image_url?: string; video_url?: string }>) || [];
 
   const updateItem = (index: number, item: typeof items[0]) => {
     const newItems = [...items];
@@ -230,6 +313,9 @@ function TestimonialsEditorFields({ content, onChange }: { content: GenericConte
           </div>
           <F label="תמונה (URL)" tip="תמונת פרופיל. מידות: 200×200px לפחות, ריבועית. JPG/PNG/WebP.">
             <Input value={item.image_url || ""} onChange={(e) => updateItem(index, { ...item, image_url: e.target.value })} placeholder="https://..." className="h-8 text-xs" />
+          </F>
+          <F label="סרטון YouTube (אופציונלי)" tip="קישור YouTube לעדות וידאו. הסרטון יוצג מעל הציטוט בכרטיס.">
+            <Input value={item.video_url || ""} onChange={(e) => updateItem(index, { ...item, video_url: e.target.value })} placeholder="https://youtube.com/watch?v=..." className="h-8 text-xs" />
           </F>
         </div>
       ))}
@@ -486,6 +572,59 @@ function CurriculumEditorFields({ content, onChange }: { content: GenericContent
   );
 }
 
+// ─── About ───────────────────────────────────────────────────────────────────
+
+function AboutEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
+  const bullets = (content.bullets as string[]) || [];
+
+  return (
+    <div className="space-y-4">
+      <F label="תיאור (עברית)" tip="טקסט תיאור התוכנית. עד 300 תווים מומלץ." max={300} value={(content.description_he as string) || ""}>
+        <Textarea value={(content.description_he as string) || ""} onChange={(e) => onChange({ ...content, description_he: e.target.value })} dir="rtl" rows={4} placeholder="תיאור קצר של התוכנית..." />
+      </F>
+
+      <F label="תמונה (URL)" tip="תמונה שמוצגת בצד ה-About. מידות: 600×450px לפחות.">
+        <Input value={(content.image_url as string) || ""} onChange={(e) => onChange({ ...content, image_url: e.target.value })} placeholder="https://..." />
+      </F>
+
+      <F label="סרטון YouTube (אופציונלי)" tip="קישור YouTube. אם מוזן — יוצג במקום התמונה.">
+        <Input value={(content.video_url as string) || ""} onChange={(e) => onChange({ ...content, video_url: e.target.value })} placeholder="https://youtube.com/watch?v=..." />
+        {(content.video_url as string) && (
+          <button type="button" onClick={() => onChange({ ...content, video_url: "" })} className="mt-1 text-xs text-red-500 hover:text-red-700">
+            ✕ הסר סרטון
+          </button>
+        )}
+      </F>
+
+      {/* Bullet points */}
+      <div className="space-y-2">
+        <Label className="text-xs font-semibold">נקודות מפתח ({bullets.length})</Label>
+        {bullets.map((bullet, i) => (
+          <div key={i} className="flex gap-2 items-center">
+            <Input
+              value={bullet}
+              onChange={(e) => {
+                const updated = [...bullets];
+                updated[i] = e.target.value;
+                onChange({ ...content, bullets: updated });
+              }}
+              dir="rtl"
+              placeholder={`נקודה ${i + 1}`}
+              className="text-xs h-8"
+            />
+            <button type="button" onClick={() => onChange({ ...content, bullets: bullets.filter((_, idx) => idx !== i) })} className="text-red-400 hover:text-red-600 shrink-0">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+        <Button type="button" variant="outline" size="sm" onClick={() => onChange({ ...content, bullets: [...bullets, ""] })} className="w-full gap-1 text-xs h-7">
+          <Plus className="w-3 h-3" /> הוסף נקודה
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Custom HTML ──────────────────────────────────────────────────────────────
 
 function CustomHtmlEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
@@ -690,6 +829,8 @@ function SectionFields({ sectionType, content, onChange }: GenericEditorProps) {
   switch (sectionType) {
     case "video":
       return <VideoEditorFields content={content} onChange={onChange} />;
+    case "about":
+      return <AboutEditorFields content={content} onChange={onChange} />;
     case "stats":
       return <StatsEditorFields content={content} onChange={onChange} />;
     case "testimonials":

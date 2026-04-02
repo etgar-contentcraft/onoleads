@@ -28,6 +28,8 @@ interface HeroContent {
   subheading_en?: string;
   subheading_ar?: string;
   background_image_url?: string;
+  background_video_url?: string;
+  background_video_type?: "mp4" | "youtube";
   stat_value?: string;
   stat_label_he?: string;
   stat_label_en?: string;
@@ -280,6 +282,60 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
                 className="w-full h-full object-cover"
               />
             </div>
+          )}
+        </Field>
+
+        <Field
+          label="סרטון רקע (אופציונלי)"
+          tooltip="קישור לסרטון שיופעל ברקע ה-Hero. תומך ב-YouTube וב-MP4 ישיר. הסרטון מתנגן אוטומטית, ללא קול, בלולאה."
+        >
+          <div className="flex gap-2 mb-2">
+            <button
+              type="button"
+              onClick={() => onChange({ ...content, background_video_type: "youtube" })}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                (content.background_video_type || "mp4") === "youtube"
+                  ? "bg-[#B8D900] text-[#2a2628]"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              YouTube
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange({ ...content, background_video_type: "mp4" })}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                (content.background_video_type || "mp4") === "mp4"
+                  ? "bg-[#B8D900] text-[#2a2628]"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              MP4 / קובץ ישיר
+            </button>
+          </div>
+          <Input
+            value={content.background_video_url || ""}
+            onChange={(e) => update("background_video_url", e.target.value)}
+            placeholder={
+              (content.background_video_type || "mp4") === "youtube"
+                ? "https://www.youtube.com/watch?v=..."
+                : "https://example.com/video.mp4"
+            }
+            type="url"
+          />
+          <p className="text-[10px] text-[#9A969A] mt-1">
+            {(content.background_video_type || "mp4") === "youtube"
+              ? "הסרטון יוטמע ברקע ללא שליטות, מושתק ובלולאה. התמונה תשמש כפוסטר עד שהסרטון נטען."
+              : "קישור ישיר לקובץ MP4. תמונת הרקע תשמש כפוסטר עד שהסרטון נטען."}
+          </p>
+          {content.background_video_url && (
+            <button
+              type="button"
+              onClick={() => onChange({ ...content, background_video_url: "", background_video_type: undefined })}
+              className="mt-1 text-xs text-red-500 hover:text-red-700"
+            >
+              ✕ הסר סרטון
+            </button>
           )}
         </Field>
 

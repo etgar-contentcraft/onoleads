@@ -21,6 +21,27 @@ interface Testimonial {
   image_url?: string;
   image?: string;
   rating?: number;
+  video_url?: string;
+}
+
+/**
+ * Extracts 11-char YouTube video ID from common URL formats.
+ */
+function extractYoutubeId(input: string): string {
+  if (!input) return "";
+  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
+  try {
+    const url = new URL(input);
+    if (url.hostname === "youtu.be") {
+      const c = url.pathname.slice(1).split("?")[0];
+      if (/^[A-Za-z0-9_-]{11}$/.test(c)) return c;
+    }
+    const m = url.pathname.match(/\/(?:embed|v)\/([A-Za-z0-9_-]{11})/);
+    if (m) return m[1];
+    const v = url.searchParams.get("v");
+    if (v && /^[A-Za-z0-9_-]{11}$/.test(v)) return v;
+  } catch { /* not a URL */ }
+  return "";
 }
 
 interface TestimonialsSectionProps {
@@ -225,6 +246,7 @@ function TestimonialCard({
   const role = (item[`role_${language}` as keyof Testimonial] as string) || item.role_he || "";
   const imageUrl = item.image_url || item.image || "";
   const rating = item.rating || MAX_STARS;
+  const videoId = item.video_url ? extractYoutubeId(item.video_url) : "";
 
   return (
     <div
@@ -232,6 +254,19 @@ function TestimonialCard({
       className={`relative bg-white rounded-2xl p-7 md:p-8 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100 hover:shadow-[0_12px_50px_rgba(0,0,0,0.08)] hover:border-[#B8D900]/20 transition-all duration-300 ${className}`}
       style={style}
     >
+      {/* Video testimonial embed */}
+      {videoId && (
+        <div className="mb-5 rounded-xl overflow-hidden aspect-video bg-[#2a2628]">
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1`}
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            title={`${item.name} - video testimonial`}
+          />
+        </div>
+      )}
+
       {/* Green quote mark */}
       <div className="mb-4">
         <svg className="w-10 h-10 text-[#B8D900] opacity-25" fill="currentColor" viewBox="0 0 24 24">
