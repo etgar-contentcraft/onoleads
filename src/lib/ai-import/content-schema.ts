@@ -1,7 +1,7 @@
 /**
  * AI Import — Content Schema Definitions
- * Documents all section types, their fields, and expected values.
- * Used to generate AI prompts and validate imported content.
+ * Defines every section type, its exact field keys (matching the React components),
+ * and generates precise AI prompts with complete JSON templates.
  */
 
 export interface FieldDef {
@@ -22,43 +22,58 @@ export interface SectionSchema {
   label_en: string;
   description_he: string;
   description_en: string;
-  /** Suggested sort_order position (1 = top, higher = lower) */
   suggestedOrder: number;
-  /** Whether this section is typically required for a good landing page */
   recommended: boolean;
   fields: FieldDef[];
+  /**
+   * A complete JSON example of the `content` object for this section.
+   * Uses `_he` suffixes — the prompt generator localizes them per language.
+   */
+  jsonExample: Record<string, unknown>;
 }
 
-/**
- * Complete schema of every landing page section type and its content fields.
- * This schema drives both the AI prompt generation and the import validation.
- */
+/* ────────────────────────────────────────────────────────────
+ * SECTION SCHEMAS — field keys MUST match the React components
+ * in src/components/landing/sections/*.tsx exactly.
+ * ──────────────────────────────────────────────────────────── */
+
 export const SECTION_SCHEMAS: SectionSchema[] = [
+  // ── 1. Hero ──
   {
     type: "hero",
     label_he: "באנר ראשי",
     label_en: "Hero Banner",
-    description_he: "הסקשן הראשון — תמונת רקע, כותרת, משפט משנה וכפתור CTA",
-    description_en: "Full-screen hero with background image, heading, subheading, and CTA button",
+    description_he: "הסקשן הראשון — כותרת, משפט משנה, כפתור CTA ונתון סטטיסטי",
+    description_en: "First section — heading, subheading, CTA button, and optional stat",
     suggestedOrder: 1,
     recommended: true,
     fields: [
-      { key: "heading_he", type: "string", label_he: "כותרת ראשית", label_en: "Main heading", required: true, maxLength: 35, hint: "כותרת קצרה ושיווקית — עד 35 תווים" },
-      { key: "subheading_he", type: "string", label_he: "כותרת משנה", label_en: "Subheading", required: true, maxLength: 120, hint: "משפט שמסביר את הערך — עד 120 תווים" },
-      { key: "cta_text_he", type: "string", label_he: "טקסט כפתור", label_en: "CTA button text", required: true, maxLength: 22, hint: "פועל פעיל: 'קבלו מידע', 'להרשמה'" },
-      { key: "background_image_url", type: "url", label_he: "תמונת רקע", label_en: "Background image URL", required: false },
-      { key: "stat_value", type: "string", label_he: "נתון סטטיסטי", label_en: "Stat value", required: false, maxLength: 10, hint: "מספר מרשים: '90%', '50,000+'" },
-      { key: "stat_label_he", type: "string", label_he: "תווית הנתון", label_en: "Stat label", required: false, maxLength: 30 },
+      { key: "heading_he", type: "string", label_he: "כותרת ראשית", label_en: "Main heading", required: true, maxLength: 35 },
+      { key: "subheading_he", type: "string", label_he: "כותרת משנה", label_en: "Subheading", required: true, maxLength: 120 },
+      { key: "cta_text_he", type: "string", label_he: "טקסט כפתור CTA", label_en: "CTA button text", required: true, maxLength: 22 },
+      { key: "stat_value", type: "string", label_he: "ערך נתון", label_en: "Stat value", required: false, maxLength: 10 },
+      { key: "stat_label_he", type: "string", label_he: "תווית נתון", label_en: "Stat label", required: false, maxLength: 30 },
       { key: "faculty_name_he", type: "string", label_he: "שם הפקולטה", label_en: "Faculty name", required: false },
-      { key: "degree_type", type: "string", label_he: "סוג תואר", label_en: "Degree type", required: false, hint: "B.A., M.A., B.Sc. וכד'" },
+      { key: "degree_type", type: "string", label_he: "סוג תואר", label_en: "Degree type", required: false },
     ],
+    jsonExample: {
+      heading_he: "לימודי משפטים באונו",
+      subheading_he: "בית הספר הגדול בישראל למשפטים — גמישות, מעשיות, והשמה מובטחת",
+      cta_text_he: "קבלו מידע מלא",
+      stat_value: "90%",
+      stat_label_he: "הצלחה בבחינת הלשכה",
+      faculty_name_he: "הפקולטה למשפטים",
+      degree_type: "LL.B.",
+    },
   },
+
+  // ── 2. Program Info Bar ──
   {
     type: "program_info_bar",
     label_he: "בר מידע תוכנית",
     label_en: "Program Info Bar",
-    description_he: "פס אופקי עם נתונים מהירים: משך, שפה, קמפוס, מלגה",
-    description_en: "Horizontal bar with quick facts: duration, language, campus, scholarship",
+    description_he: "פס אופקי עם 3-5 פריטי מידע מהירים. שימו לב: שדות הפריטים הם label ו-value ללא סיומת שפה",
+    description_en: "Horizontal bar with 3-5 quick facts. Note: item fields are 'label' and 'value' WITHOUT language suffix",
     suggestedOrder: 2,
     recommended: true,
     fields: [
@@ -68,36 +83,57 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
         label_he: "פריטי מידע",
         label_en: "Info items",
         required: true,
+        hint: "3-5 items",
         itemFields: [
-          { key: "icon", type: "string", label_he: "אייקון", label_en: "Icon", required: true, hint: "clock, globe, building, award, users, calendar" },
-          { key: "label_he", type: "string", label_he: "תווית", label_en: "Label", required: true },
-          { key: "value_he", type: "string", label_he: "ערך", label_en: "Value", required: true },
+          { key: "icon", type: "string", label_he: "אייקון", label_en: "Icon", required: true, hint: "clock | globe | building | award | users | calendar" },
+          { key: "label", type: "string", label_he: "תווית", label_en: "Label", required: true },
+          { key: "value", type: "string", label_he: "ערך", label_en: "Value", required: true },
         ],
       },
     ],
+    jsonExample: {
+      items: [
+        { icon: "clock", label: "משך לימודים", value: "3 שנים" },
+        { icon: "globe", label: "שפת הוראה", value: "עברית" },
+        { icon: "building", label: "קמפוס", value: "קריית אונו" },
+        { icon: "award", label: "תואר", value: "LL.B." },
+      ],
+    },
   },
+
+  // ── 3. About ──
   {
     type: "about",
     label_he: "אודות התוכנית",
     label_en: "About the Program",
-    description_he: "תיאור התוכנית עם תמונה/סרטון ונקודות מפתח",
-    description_en: "Program description with image/video and key bullet points",
+    description_he: "תיאור התוכנית עם נקודות מפתח (bullets הוא מערך של מחרוזות פשוטות)",
+    description_en: "Program description with key bullet points (bullets is an array of plain strings)",
     suggestedOrder: 3,
     recommended: true,
     fields: [
       { key: "heading_he", type: "string", label_he: "כותרת", label_en: "Heading", required: true, maxLength: 50 },
-      { key: "description_he", type: "string", label_he: "תיאור", label_en: "Description", required: true, maxLength: 300, hint: "פסקה שיווקית שמסבירה למה התוכנית מיוחדת" },
-      { key: "image_url", type: "url", label_he: "תמונה", label_en: "Image URL", required: false },
-      { key: "video_url", type: "url", label_he: "סרטון YouTube", label_en: "YouTube video URL", required: false },
-      { key: "bullets", type: "array", label_he: "נקודות מפתח", label_en: "Key points", required: true, hint: "3-6 יתרונות מרכזיים" },
+      { key: "description_he", type: "string", label_he: "תיאור", label_en: "Description", required: true, maxLength: 300 },
+      { key: "bullets", type: "array", label_he: "נקודות מפתח", label_en: "Key points", required: true, hint: "3-6 strings" },
     ],
+    jsonExample: {
+      heading_he: "אודות התוכנית",
+      description_he: "התוכנית למשפטים באונו מכשירה את בוגריה לקריירה מעשית ומוצלחת בעולם המשפט. שילוב ייחודי של תיאוריה ופרקטיקה עם סגל מהשורה הראשונה.",
+      bullets: [
+        "סגל אקדמי מוביל מהתעשייה",
+        "קליניקות משפטיות מעשיות מהשנה הראשונה",
+        "שיעור הצלחה גבוה בבחינת הלשכה",
+        "מגוון התמחויות: מסחרי, פלילי, היי-טק",
+      ],
+    },
   },
+
+  // ── 4. Benefits ──
   {
     type: "benefits",
     label_he: "יתרונות",
     label_en: "Benefits",
-    description_he: "כרטיסי יתרונות עם אייקונים",
-    description_en: "Benefit cards with icons",
+    description_he: "כרטיסי יתרונות עם אייקונים (4-8 פריטים)",
+    description_en: "Benefit cards with icons (4-8 items)",
     suggestedOrder: 4,
     recommended: true,
     fields: [
@@ -108,21 +144,32 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
         label_he: "יתרונות",
         label_en: "Benefits",
         required: true,
-        hint: "4-8 יתרונות",
+        hint: "4-8 items",
         itemFields: [
-          { key: "icon", type: "string", label_he: "אייקון", label_en: "Icon", required: true, hint: "briefcase, trophy, users, clock, globe, shield, trending-up, star" },
+          { key: "icon", type: "string", label_he: "אייקון", label_en: "Icon", required: true, hint: "briefcase | trophy | users | clock | globe | shield | trending-up | star | faculty | practical | placement | campuses | scholarship | career" },
           { key: "title_he", type: "string", label_he: "כותרת", label_en: "Title", required: true, maxLength: 30 },
           { key: "description_he", type: "string", label_he: "תיאור", label_en: "Description", required: true, maxLength: 80 },
         ],
       },
     ],
+    jsonExample: {
+      heading_he: "למה ללמוד באונו?",
+      items: [
+        { icon: "faculty", title_he: "סגל אקדמי מוביל", description_he: "מרצים מהשורה הראשונה בתעשייה ובאקדמיה" },
+        { icon: "practical", title_he: "הכשרה מעשית", description_he: "שילוב תיאוריה ופרקטיקה מהיום הראשון" },
+        { icon: "placement", title_he: "שיעור השמה גבוה", description_he: "הבוגרים שלנו מועסקים בחברות המובילות" },
+        { icon: "scholarship", title_he: "מלגות והנחות", description_he: "מגוון מסלולי מימון ומלגות הצטיינות" },
+      ],
+    },
   },
+
+  // ── 5. Curriculum ──
   {
     type: "curriculum",
     label_he: "תוכנית לימודים",
     label_en: "Curriculum",
-    description_he: "טבלת תוכנית לימודים מחולקת לשנים/סמסטרים",
-    description_en: "Curriculum table divided by years/semesters",
+    description_he: "תוכנית לימודים מחולקת לשנים. כל שנה כוללת year_label ו-courses (מערך מחרוזות פשוטות)",
+    description_en: "Curriculum divided by years. Each year has year_label and courses (array of plain strings)",
     suggestedOrder: 5,
     recommended: true,
     fields: [
@@ -134,18 +181,28 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
         label_en: "Years",
         required: true,
         itemFields: [
-          { key: "year_label", type: "string", label_he: "תווית שנה", label_en: "Year label", required: true, hint: "שנה א', סמסטר א'" },
-          { key: "courses", type: "array", label_he: "קורסים", label_en: "Courses", required: true },
+          { key: "year_label", type: "string", label_he: "תווית שנה", label_en: "Year label", required: true },
+          { key: "courses", type: "array", label_he: "קורסים", label_en: "Courses (string array)", required: true },
         ],
       },
     ],
+    jsonExample: {
+      heading_he: "תוכנית הלימודים",
+      years: [
+        { year_label: "שנה א׳", courses: ["מבוא למשפט", "משפט חוקתי", "דיני חוזים", "משפט פלילי", "דיני נזיקין"] },
+        { year_label: "שנה ב׳", courses: ["דיני עבודה", "משפט מנהלי", "דיני תאגידים", "סדר דין אזרחי", "דיני ראיות"] },
+        { year_label: "שנה ג׳", courses: ["קליניקה משפטית", "סמינריון", "התמחות בחירה", "משפט בינלאומי", "אתיקה מקצועית"] },
+      ],
+    },
   },
+
+  // ── 6. Career ──
   {
     type: "career",
     label_he: "קריירה",
     label_en: "Career Outcomes",
-    description_he: "תפקידים ומסלולי קריירה לאחר סיום הלימודים",
-    description_en: "Career paths and job roles after graduation",
+    description_he: "תפקידים ומסלולי קריירה (4-8 פריטים). כל פריט חייב לכלול title_he",
+    description_en: "Career paths and roles (4-8 items). Each item must have title_he",
     suggestedOrder: 6,
     recommended: true,
     fields: [
@@ -156,20 +213,32 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
         label_he: "תפקידים",
         label_en: "Career items",
         required: true,
-        hint: "4-8 תפקידים/תחומים",
+        hint: "4-8 items",
         itemFields: [
           { key: "title_he", type: "string", label_he: "תפקיד", label_en: "Job title", required: true },
-          { key: "description_he", type: "string", label_he: "תיאור", label_en: "Description", required: false },
         ],
       },
     ],
+    jsonExample: {
+      heading_he: "לאן תגיעו אחרי התואר?",
+      items: [
+        { title_he: "עורך/ת דין בתחום המסחרי" },
+        { title_he: "יועץ/ת משפטי/ת בהיי-טק" },
+        { title_he: "תובע/ת פלילי/ת" },
+        { title_he: "שופט/ת בבית משפט" },
+        { title_he: "נוטריון/ית" },
+        { title_he: "מגשר/ת ובורר/ת" },
+      ],
+    },
   },
+
+  // ── 7. Testimonials ──
   {
     type: "testimonials",
     label_he: "המלצות",
     label_en: "Testimonials",
-    description_he: "ציטוטים מסטודנטים ובוגרים",
-    description_en: "Student and alumni quotes",
+    description_he: "ציטוטים מסטודנטים ובוגרים (3-5). שדות: name, role_he, quote_he, rating (1-5)",
+    description_en: "Student and alumni quotes (3-5). Fields: name, role_he, quote_he, rating (1-5)",
     suggestedOrder: 7,
     recommended: true,
     fields: [
@@ -180,23 +249,32 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
         label_he: "המלצות",
         label_en: "Testimonials",
         required: true,
-        hint: "3-5 המלצות",
+        hint: "3-5 items",
         itemFields: [
           { key: "name", type: "string", label_he: "שם", label_en: "Name", required: true },
-          { key: "role_he", type: "string", label_he: "תפקיד", label_en: "Role", required: true, hint: "בוגר/ת 2024, סטודנט/ית שנה ג'" },
+          { key: "role_he", type: "string", label_he: "תפקיד/מעמד", label_en: "Role", required: true },
           { key: "quote_he", type: "string", label_he: "ציטוט", label_en: "Quote", required: true, maxLength: 150 },
-          { key: "rating", type: "number", label_he: "דירוג", label_en: "Rating", required: false, hint: "1-5 כוכבים" },
-          { key: "video_url", type: "url", label_he: "סרטון YouTube", label_en: "Video URL", required: false },
+          { key: "rating", type: "number", label_he: "דירוג", label_en: "Rating", required: false, hint: "1-5" },
         ],
       },
     ],
+    jsonExample: {
+      heading_he: "מה אומרים הסטודנטים שלנו",
+      items: [
+        { name: "דנה כהן", role_he: "בוגרת 2024", quote_he: "הלימודים באונו שינו לי את החיים. הגישה המעשית הכינה אותי לעבודה מהיום הראשון.", rating: 5 },
+        { name: "יוסי לוי", role_he: "סטודנט שנה ג׳", quote_he: "המרצים זמינים, הקמפוס מרשים, והאווירה תומכת. ממליץ בחום!", rating: 5 },
+        { name: "מיכל אברהם", role_he: "בוגרת 2023, עו״ד", quote_he: "בזכות ההכשרה המעשית ורשת הבוגרים, מצאתי עבודה תוך חודשיים מסיום התואר.", rating: 4 },
+      ],
+    },
   },
+
+  // ── 8. FAQ ──
   {
     type: "faq",
     label_he: "שאלות נפוצות",
     label_en: "FAQ",
-    description_he: "שאלות ותשובות נפוצות",
-    description_en: "Frequently asked questions",
+    description_he: "שאלות ותשובות (5-8). חשוב: שדות הם question_he ו-answer_he (עם סיומת _he)",
+    description_en: "Questions and answers (5-8). Important: fields are question_he and answer_he (with _he suffix)",
     suggestedOrder: 8,
     recommended: true,
     fields: [
@@ -207,20 +285,32 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
         label_he: "שאלות",
         label_en: "Questions",
         required: true,
-        hint: "5-8 שאלות",
+        hint: "5-8 items",
         itemFields: [
-          { key: "question", type: "string", label_he: "שאלה", label_en: "Question", required: true },
-          { key: "answer", type: "string", label_he: "תשובה", label_en: "Answer", required: true },
+          { key: "question_he", type: "string", label_he: "שאלה", label_en: "Question", required: true },
+          { key: "answer_he", type: "string", label_he: "תשובה", label_en: "Answer", required: true },
         ],
       },
     ],
+    jsonExample: {
+      heading_he: "שאלות נפוצות",
+      items: [
+        { question_he: "מהם תנאי הקבלה?", answer_he: "נדרשת תעודת בגרות מלאה ופסיכומטרי. ניתן להתקבל גם על בסיס מבחן יע\"ל או SAT." },
+        { question_he: "האם יש לימודים בערב?", answer_he: "כן, התוכנית מציעה מסלולי ערב ובוקר לנוחיות הסטודנטים העובדים." },
+        { question_he: "מהי עלות שכר הלימוד?", answer_he: "שכר הלימוד תחרותי ביותר. ניתן לקבל מלגות הצטיינות והנחות מיוחדות." },
+        { question_he: "האם יש סיוע בהשמה?", answer_he: "מרכז הקריירה שלנו מלווה את הסטודנטים עם סדנאות, נטוורקינג וחיבור למעסיקים." },
+        { question_he: "כמה זמן נמשכים הלימודים?", answer_he: "התוכנית נמשכת 3 שנים בלימודי בוקר, או 3.5 שנים בלימודי ערב." },
+      ],
+    },
   },
+
+  // ── 9. Stats ──
   {
     type: "stats",
     label_he: "נתונים",
     label_en: "Stats",
-    description_he: "מספרים מרשימים באנימציה",
-    description_en: "Animated stat counters",
+    description_he: "מספרים מרשימים (3-4). כל פריט: value (מחרוזת), label_he, suffix (אופציונלי)",
+    description_en: "Impressive numbers (3-4). Each item: value (string), label_he, suffix (optional)",
     suggestedOrder: 9,
     recommended: false,
     fields: [
@@ -231,21 +321,30 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
         label_he: "נתונים",
         label_en: "Stats",
         required: true,
-        hint: "3-4 נתונים",
+        hint: "3-4 items",
         itemFields: [
-          { key: "value", type: "string", label_he: "ערך", label_en: "Value", required: true, hint: "'90%', '50+', '12K'" },
+          { key: "value", type: "string", label_he: "ערך", label_en: "Value", required: true, hint: "'90', '50000', '12'" },
           { key: "label_he", type: "string", label_he: "תווית", label_en: "Label", required: true },
           { key: "suffix", type: "string", label_he: "סיומת", label_en: "Suffix", required: false, hint: "'%', '+', 'K'" },
         ],
       },
     ],
+    jsonExample: {
+      items: [
+        { value: "90", label_he: "אחוז הצלחה בבחינת הלשכה", suffix: "%" },
+        { value: "15000", label_he: "בוגרים בשוק העבודה", suffix: "+" },
+        { value: "30", label_he: "שנות ניסיון", suffix: "+" },
+      ],
+    },
   },
+
+  // ── 10. Admission ──
   {
     type: "admission",
     label_he: "תנאי קבלה",
-    label_en: "Admission",
-    description_he: "תנאי קבלה ותהליך הרשמה",
-    description_en: "Admission requirements and enrollment process",
+    label_en: "Admission Requirements",
+    description_he: "דרישות קבלה. requirements הוא מערך של מחרוזות פשוטות (לא אובייקטים!)",
+    description_en: "Admission requirements. 'requirements' is a plain string array (NOT objects!)",
     suggestedOrder: 10,
     recommended: true,
     fields: [
@@ -255,25 +354,30 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
         key: "requirements",
         type: "array",
         label_he: "דרישות",
-        label_en: "Requirements",
+        label_en: "Requirements (string array)",
         required: true,
-        hint: "3-6 דרישות",
-      },
-      {
-        key: "steps",
-        type: "array",
-        label_he: "שלבי הרשמה",
-        label_en: "Enrollment steps",
-        required: false,
+        hint: "3-6 plain strings",
       },
     ],
+    jsonExample: {
+      heading_he: "תנאי קבלה",
+      description_he: "ההרשמה פתוחה — מספר המקומות מוגבל",
+      requirements: [
+        "תעודת בגרות מלאה",
+        "ציון פסיכומטרי 520 ומעלה (או SAT/יע״ל מקביל)",
+        "ראיון קבלה אישי",
+        "אין דרישת ניסיון מקצועי קודם",
+      ],
+    },
   },
+
+  // ── 11. Video ──
   {
     type: "video",
     label_he: "וידאו",
     label_en: "Video Section",
-    description_he: "סרטוני YouTube — פלייליסט או גריד",
-    description_en: "YouTube videos — playlist or grid layout",
+    description_he: "סרטוני YouTube. שדה youtube_id מקבל URL מלא או ID בלבד",
+    description_en: "YouTube videos. youtube_id accepts full URL or just the video ID",
     suggestedOrder: 11,
     recommended: false,
     fields: [
@@ -288,17 +392,26 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
         itemFields: [
           { key: "youtube_id", type: "string", label_he: "YouTube URL/ID", label_en: "YouTube URL/ID", required: true },
           { key: "title_he", type: "string", label_he: "כותרת", label_en: "Title", required: true },
-          { key: "duration_he", type: "string", label_he: "משך", label_en: "Duration", required: false, hint: "'3:45'" },
+          { key: "duration_he", type: "string", label_he: "משך", label_en: "Duration", required: false },
         ],
       },
     ],
+    jsonExample: {
+      heading_he: "סרטונים",
+      layout: "featured",
+      videos: [
+        { youtube_id: "https://www.youtube.com/watch?v=XXXXX", title_he: "סיור וירטואלי בקמפוס", duration_he: "3:45" },
+      ],
+    },
   },
+
+  // ── 12. Gallery ──
   {
     type: "gallery",
     label_he: "גלריה",
     label_en: "Gallery",
     description_he: "גלריית תמונות",
-    description_en: "Image gallery/carousel",
+    description_en: "Image gallery",
     suggestedOrder: 12,
     recommended: false,
     fields: [
@@ -316,21 +429,36 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
         ],
       },
     ],
+    jsonExample: {
+      heading_he: "גלריית הקמפוס",
+      images: [
+        { url: "https://example.com/campus1.jpg", alt: "קמפוס קריית אונו", caption_he: "הבניין הראשי" },
+      ],
+    },
   },
+
+  // ── 13. CTA ──
   {
     type: "cta",
     label_he: "קריאה לפעולה",
     label_en: "CTA Banner",
-    description_he: "באנר עם כותרת וכפתור הנעה לפעולה",
-    description_en: "Banner with heading and call-to-action button",
+    description_he: "באנר CTA. חשוב: שדה הכפתור הוא button_text_he (לא cta_text_he!)",
+    description_en: "CTA banner. Important: button field is button_text_he (NOT cta_text_he!)",
     suggestedOrder: 13,
     recommended: true,
     fields: [
       { key: "heading_he", type: "string", label_he: "כותרת", label_en: "Heading", required: true },
       { key: "description_he", type: "string", label_he: "תיאור", label_en: "Description", required: false },
-      { key: "cta_text_he", type: "string", label_he: "טקסט כפתור", label_en: "CTA text", required: true },
+      { key: "button_text_he", type: "string", label_he: "טקסט כפתור", label_en: "Button text", required: true },
     ],
+    jsonExample: {
+      heading_he: "מוכנים להתחיל?",
+      description_he: "השאירו פרטים ויועץ לימודים יחזור אליכם תוך 24 שעות",
+      button_text_he: "לפרטים נוספים",
+    },
   },
+
+  // ── 14. Form ──
   {
     type: "form",
     label_he: "טופס לידים",
@@ -343,26 +471,49 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
       { key: "heading_he", type: "string", label_he: "כותרת", label_en: "Heading", required: false },
       { key: "description_he", type: "string", label_he: "תיאור", label_en: "Description", required: false },
     ],
+    jsonExample: {
+      heading_he: "רוצים לשמוע עוד?",
+      description_he: "השאירו פרטים ונחזור אליכם עם כל המידע",
+    },
   },
 ];
 
-/**
- * Replaces `_he` suffix in field keys with the target language suffix.
- * E.g., "heading_he" → "heading_en" when lang is "en".
- * Keys without `_he` suffix (e.g., "stat_value", "icon") are unchanged.
- */
-function localizeFieldKey(key: string, lang: string): string {
+/* ────────────────────────────────────────────────────────────
+ * Helper: localize field keys and example values
+ * ──────────────────────────────────────────────────────────── */
+
+/** Replace `_he` suffix in a key with the target language suffix. */
+function localizeKey(key: string, lang: string): string {
   if (lang === "he") return key;
   return key.replace(/_he$/, `_${lang}`);
 }
 
 /**
- * Generates a comprehensive AI prompt for creating landing page content.
- * The prompt language and field suffixes adapt to the target page language.
- * @param programInfo - Basic info about the program (name, degree, faculty, etc.)
- * @param referenceUrls - URLs to reference for content (e.g., ono.ac.il pages)
- * @param selectedSections - Which section types to include (defaults to all recommended)
+ * Deep-clone a JSON example and rename all `_he` keys to `_${lang}`.
+ * String values that look Hebrew are replaced with a placeholder.
  */
+function localizeExample(obj: Record<string, unknown>, lang: string): Record<string, unknown> {
+  if (lang === "he") return obj;
+  const result: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    const newKey = localizeKey(key, lang);
+    if (Array.isArray(val)) {
+      result[newKey] = val.map((item) =>
+        typeof item === "object" && item !== null
+          ? localizeExample(item as Record<string, unknown>, lang)
+          : item,
+      );
+    } else {
+      result[newKey] = val;
+    }
+  }
+  return result;
+}
+
+/* ────────────────────────────────────────────────────────────
+ * PROMPT GENERATOR — produces the sharpest possible prompt
+ * ──────────────────────────────────────────────────────────── */
+
 export function generateAiPrompt(
   programInfo: {
     programName: string;
@@ -378,198 +529,179 @@ export function generateAiPrompt(
 ): string {
   const lang = programInfo.language || "he";
   const isHe = lang === "he";
-  const isEn = lang === "en";
-  const isAr = lang === "ar";
 
   const sections = selectedSections
     ? SECTION_SCHEMAS.filter((s) => selectedSections.includes(s.type))
     : SECTION_SCHEMAS.filter((s) => s.recommended);
 
-  /** Pick label in target language */
-  const lbl = (he: string, en: string) => isHe ? he : en;
-
-  const sectionInstructions = sections
-    .map((s) => {
-      const fieldList = s.fields
-        .map((f) => {
-          const fieldKey = localizeFieldKey(f.key, lang);
-          const fieldLabel = isHe ? f.label_he : f.label_en;
-          let line = `    - "${fieldKey}": (${f.type}) ${fieldLabel}`;
-          if (f.required) line += isHe ? " [חובה]" : " [required]";
-          if (f.hint) line += ` — ${f.hint}`;
-          if (f.maxLength) line += isHe ? ` (מקסימום ${f.maxLength} תווים)` : ` (max ${f.maxLength} chars)`;
-          if (f.type === "array" && f.itemFields) {
-            const itemLabel = isHe ? "כל פריט במערך:" : "Each item in array:";
-            const items = f.itemFields.map((if_) => {
-              const ifKey = localizeFieldKey(if_.key, lang);
-              const ifLabel = isHe ? if_.label_he : if_.label_en;
-              return `      - "${ifKey}": ${ifLabel}${if_.hint ? ` (${if_.hint})` : ""}`;
-            }).join("\n");
-            line += `\n    ${itemLabel}\n${items}`;
-          }
-          return line;
-        })
-        .join("\n");
-
-      const sLabel = isHe ? s.label_he : s.label_en;
-      const sDesc = isHe ? s.description_he : s.description_en;
-      const fieldsLabel = isHe ? "שדות:" : "Fields:";
-      return `  ## ${s.type} — ${sLabel}\n  ${sDesc}\n  ${fieldsLabel}\n${fieldList}`;
-    })
-    .join("\n\n");
+  const langSuffix = `_${lang}`;
+  const writingLang = isHe ? "Hebrew (עברית)" : lang === "ar" ? "Arabic (العربية)" : "English";
 
   const urlList = referenceUrls.length > 0
-    ? referenceUrls.map((u) => `  - ${u}`).join("\n")
-    : isHe ? "  (לא סופקו קישורים — כתוב תוכן שיווקי כללי)" : "  (No reference URLs provided — write general marketing content)";
+    ? referenceUrls.map((u) => `- ${u}`).join("\n")
+    : isHe
+      ? "(לא סופקו קישורים — כתוב תוכן שיווקי כללי)"
+      : "(No reference URLs — write general marketing content)";
 
-  // ── Language-specific prompt blocks ──
+  // ── Build section templates ──
+  const sectionTemplates = sections.map((s) => {
+    const example = localizeExample(s.jsonExample, lang);
+    const exampleJson = JSON.stringify(example, null, 2)
+      .split("\n")
+      .map((line) => `    ${line}`)
+      .join("\n");
 
-  const langName = isHe ? "עברית" : isAr ? "ערבית" : "English";
-  const writingLang = isHe ? "Hebrew" : isEn ? "English" : "Arabic";
-
-  if (!isHe) {
-    // ── ENGLISH / ARABIC PROMPT ──
-    return `# Landing Page Content Generation Instructions — OnoLeads
-
-## Program Details
-- Program name: ${programInfo.programName}
-- Degree type: ${programInfo.degreeType}
-- Faculty: ${programInfo.faculty}
-${programInfo.campuses ? `- Campuses: ${programInfo.campuses}` : ""}
-${programInfo.duration ? `- Duration: ${programInfo.duration}` : ""}
-- Page language: ${writingLang}
-${programInfo.additionalInfo ? `- Additional info: ${programInfo.additionalInfo}` : ""}
-
-## Reference URLs
-${urlList}
-
-## Writing Guidelines
-1. Write ALL content in ${writingLang} — clear, direct, persuasive marketing copy
-2. Use second person plural ("Join", "Discover", "Get")
-3. Emphasize Ono's unique advantages: flexibility, practical education, job market relevance
-4. Use specific data (success rates, years of experience, number of graduates) when available
-5. Respect recommended field lengths (max characters noted per field)
-6. For testimonial names — use realistic ${isAr ? "Arabic" : "international"} names
-7. Do NOT invent statistics — if unsure, use phrases like "one of the leading", "among the largest"
-
-## CRITICAL: Field Key Suffixes
-All text field keys MUST use the \`_${lang}\` suffix, NOT \`_he\`.
-For example: \`heading_${lang}\`, \`subheading_${lang}\`, \`cta_text_${lang}\`, \`stat_label_${lang}\`, \`description_${lang}\`, etc.
-Fields without a language suffix (like \`stat_value\`, \`icon\`, \`rating\`, \`layout\`) stay as-is.
-
-## Output Format
-Return valid JSON in this exact format:
+    return `### ${s.type} (sort_order: ${s.suggestedOrder})
+${isHe ? s.description_he : s.description_en}
 \`\`\`json
 {
-  "page": {
-    "title_he": "Page title (used internally)",
-    "seo_title": "SEO title — max 60 chars, in ${writingLang}",
-    "seo_description": "SEO description — max 155 chars, in ${writingLang}",
-    "language": "${lang}"
-  },
-  "sections": [
-    {
-      "section_type": "...",
-      "sort_order": 1,
-      "content": { ... }
-    }
-  ]
+  "section_type": "${s.type}",
+  "sort_order": ${s.suggestedOrder},
+  "content":
+${exampleJson}
 }
-\`\`\`
+\`\`\``;
+  }).join("\n\n");
 
-## Sections to Generate (${sections.length} sections)
+  // ── Build complete output template ──
+  const sectionsArrayPreview = sections.map((s) =>
+    `    { "section_type": "${s.type}", "sort_order": ${s.suggestedOrder}, "content": { ... } }`,
+  ).join(",\n");
 
-${sectionInstructions}
+  // ── PROMPT ──
+  if (isHe) {
+    return `אתה כותב תוכן שיווקי לעמוד נחיתה באתר OnoLeads (קמפוס אונו האקדמית).
+עליך להחזיר **JSON בלבד** — ללא טקסט, ללא הסברים, ללא markdown מסביב.
 
-## Example hero content field:
-\`\`\`json
-{
-  "heading_${lang}": "${isAr ? "دراسة القانون في أونو" : "Study Law at Ono"}",
-  "subheading_${lang}": "${isAr ? "أكبر كلية حقوق في إسرائيل — دراسة مرنة تناسب حياتك" : "Israel's largest law program — flexible study that fits your life"}",
-  "cta_text_${lang}": "${isAr ? "احصلوا على معلومات" : "Get Full Info"}",
-  "stat_value": "90%",
-  "stat_label_${lang}": "${isAr ? "نسبة النجاح في امتحان المحاماة" : "Bar exam pass rate"}",
-  "faculty_name_${lang}": "${isAr ? "كلية الحقوق" : "Faculty of Law"}",
-  "degree_type": "LL.B."
-}
-\`\`\`
-
-IMPORTANT: Return ONLY valid JSON, no additional text or markdown around it.`;
-  }
-
-  // ── HEBREW PROMPT ──
-  return `# הנחיות ליצירת תוכן עמוד נחיתה — OnoLeads
-
-## פרטי התוכנית
-- שם התוכנית: ${programInfo.programName}
-- סוג תואר: ${programInfo.degreeType}
+═══════════════════════════════════════
+פרטי התוכנית
+═══════════════════════════════════════
+- שם: ${programInfo.programName}
+- תואר: ${programInfo.degreeType}
 - פקולטה: ${programInfo.faculty}
-${programInfo.campuses ? `- קמפוסים: ${programInfo.campuses}` : ""}
-${programInfo.duration ? `- משך לימודים: ${programInfo.duration}` : ""}
-- שפת עמוד: עברית
+${programInfo.campuses ? `- קמפוסים: ${programInfo.campuses}` : ""}${programInfo.duration ? `\n- משך: ${programInfo.duration}` : ""}
 ${programInfo.additionalInfo ? `- מידע נוסף: ${programInfo.additionalInfo}` : ""}
 
-## קישורים לעיון
+קישורים לעיון:
 ${urlList}
 
-## הנחיות כתיבה
+═══════════════════════════════════════
+כללי כתיבה
+═══════════════════════════════════════
 1. כתוב בעברית שיווקית — ברורה, ישירה, משכנעת
 2. פנייה בגוף שני רבים ("הצטרפו", "גלו", "קבלו")
-3. דגש על יתרונות ייחודיים של אונו: גמישות, מעשיות, רלוונטיות לשוק העבודה
-4. נתונים ספציפיים (אחוזי הצלחה, שנות ותק, מספר בוגרים) — אם יש מידע, השתמש בו
-5. שמור על אורכים מומלצים לכל שדה (ציינתי מקסימום תווים)
-6. שמות אמיתיים של סטודנטים/בוגרים — המצא שמות ישראליים אמינים
-7. אל תמציא נתונים סטטיסטיים — אם לא בטוח, השתמש בניסוחים כמו "מהמובילים", "מהגדולים"
+3. דגש על יתרונות אונו: גמישות, מעשיות, רלוונטיות לשוק העבודה
+4. שמור על אורכי שדות (maxLength מצוין בדוגמאות)
+5. שמות סטודנטים — שמות ישראליים אמינים
+6. אל תמציא נתונים — אם לא בטוח, כתוב "מהמובילים", "מהגדולים"
+7. כל שדות הטקסט מסתיימים ב-${langSuffix}
 
-## חשוב: סיומות שדות
-כל שדות הטקסט חייבים להסתיים בסיומת \`_he\`.
-לדוגמה: \`heading_he\`, \`subheading_he\`, \`cta_text_he\`, \`stat_label_he\`, \`description_he\`.
-שדות ללא סיומת שפה (כמו \`stat_value\`, \`icon\`, \`rating\`, \`layout\`) נשארים כמו שהם.
-
-## פורמט פלט
-החזר JSON חוקי בפורמט הבא:
+═══════════════════════════════════════
+מבנה JSON נדרש (בדיוק!)
+═══════════════════════════════════════
 \`\`\`json
 {
   "page": {
-    "title_he": "כותרת העמוד (SEO)",
+    "title_he": "כותרת העמוד",
     "seo_title": "כותרת SEO — עד 60 תווים",
     "seo_description": "תיאור SEO — עד 155 תווים",
     "language": "he"
   },
   "sections": [
-    {
-      "section_type": "...",
-      "sort_order": 1,
-      "content": { ... }
-    }
+${sectionsArrayPreview}
   ]
 }
 \`\`\`
 
-## סקשנים לייצר (${sections.length} סקשנים)
+═══════════════════════════════════════
+${sections.length} סקשנים לייצר — דוגמאות מדויקות
+═══════════════════════════════════════
+להלן הדוגמה המדויקת לכל סקשן. **העתק את מבנה ה-content בדיוק** — אותם שמות שדות, אותם טיפוסים.
+החלף רק את הערכים בתוכן רלוונטי לתוכנית "${programInfo.programName}".
 
-${sectionInstructions}
+${sectionTemplates}
 
-## דוגמה לשדה content ב-hero:
+═══════════════════════════════════════
+תזכורת סופית
+═══════════════════════════════════════
+- החזר JSON חוקי בלבד, ללא טקסט מסביב
+- שמות שדות חייבים להיות זהים לדוגמאות למעלה (כולל _he)
+- אסור להוסיף שדות שלא מופיעים בדוגמאות
+- אסור לשנות שמות שדות (למשל: button_text_he ולא cta_text_he)
+- items/bullets/requirements/years/courses — מערכים, לא אובייקט בודד
+- section_type חייב להיות בדיוק אחד מ: ${sections.map((s) => s.type).join(", ")}`;
+  }
+
+  // ── ENGLISH / ARABIC PROMPT ──
+  return `You are a marketing copywriter for OnoLeads (Ono Academic Campus landing pages).
+Return **valid JSON only** — no text, no explanations, no markdown around it.
+
+═══════════════════════════════════════
+Program Details
+═══════════════════════════════════════
+- Name: ${programInfo.programName}
+- Degree: ${programInfo.degreeType}
+- Faculty: ${programInfo.faculty}
+${programInfo.campuses ? `- Campuses: ${programInfo.campuses}` : ""}${programInfo.duration ? `\n- Duration: ${programInfo.duration}` : ""}
+${programInfo.additionalInfo ? `- Additional info: ${programInfo.additionalInfo}` : ""}
+
+Reference URLs:
+${urlList}
+
+═══════════════════════════════════════
+Writing Rules
+═══════════════════════════════════════
+1. Write ALL text content in ${writingLang}
+2. Use second person plural ("Join", "Discover", "Get your info")
+3. Emphasize Ono's advantages: flexibility, practical education, job market readiness
+4. Respect field length limits (maxLength noted in examples)
+5. Use realistic ${lang === "ar" ? "Arabic" : "international"} names for testimonials
+6. Do NOT invent statistics — if unsure, write "one of the leading", "among the largest"
+7. CRITICAL — All text field keys MUST use the \`${langSuffix}\` suffix, NOT \`_he\`
+   Example: \`heading${langSuffix}\`, \`subheading${langSuffix}\`, \`button_text${langSuffix}\`, \`question${langSuffix}\`, \`answer${langSuffix}\`
+   Exception: keys without language suffix stay as-is: \`stat_value\`, \`icon\`, \`rating\`, \`layout\`, \`name\`, \`url\`, \`year_label\`, \`label\`, \`value\`
+
+═══════════════════════════════════════
+Required JSON Structure (exact format!)
+═══════════════════════════════════════
 \`\`\`json
 {
-  "heading_he": "לימודי משפטים באונו",
-  "subheading_he": "התוכנית הגדולה בישראל — גמישות שמתאימה לחיים שלך",
-  "cta_text_he": "קבלו מידע מלא",
-  "stat_value": "90%",
-  "stat_label_he": "הצלחה בבחינת הלשכה",
-  "faculty_name_he": "הפקולטה למשפטים",
-  "degree_type": "LL.B."
+  "page": {
+    "title_he": "Page title (internal, can be in ${writingLang})",
+    "seo_title": "SEO title — max 60 chars, in ${writingLang}",
+    "seo_description": "SEO description — max 155 chars, in ${writingLang}",
+    "language": "${lang}"
+  },
+  "sections": [
+${sectionsArrayPreview}
+  ]
 }
 \`\`\`
 
-חשוב: החזר JSON בלבד, ללא טקסט נוסף מסביב.`;
+═══════════════════════════════════════
+${sections.length} Sections — Exact Templates
+═══════════════════════════════════════
+Below is the exact content structure for each section. **Copy the field names exactly** — same keys, same types.
+Replace only the values with content relevant to "${programInfo.programName}".
+Remember: every \`_he\` suffix below becomes \`${langSuffix}\` in your output.
+
+${sectionTemplates}
+
+═══════════════════════════════════════
+Final Reminders
+═══════════════════════════════════════
+- Return valid JSON only, no surrounding text
+- Field names MUST match the templates above exactly (with \`${langSuffix}\` instead of \`_he\`)
+- Do NOT add fields that don't appear in the templates
+- Do NOT rename fields (e.g. use button_text${langSuffix}, NOT cta_text${langSuffix})
+- items/bullets/requirements/years/courses must be arrays, never single objects
+- section_type must be exactly one of: ${sections.map((s) => s.type).join(", ")}`;
 }
 
-/**
- * Validates imported JSON content against the section schemas.
- * @returns Array of validation errors, empty if valid
- */
+/* ────────────────────────────────────────────────────────────
+ * VALIDATION — checks imported JSON against section schemas
+ * ──────────────────────────────────────────────────────────── */
+
 export function validateImportedContent(data: unknown): string[] {
   const errors: string[] = [];
 
@@ -600,7 +732,7 @@ export function validateImportedContent(data: unknown): string[] {
     if (!section.section_type || typeof section.section_type !== "string") {
       errors.push(`סקשן ${i + 1}: חסר שדה section_type`);
     } else if (!validTypes.has(section.section_type as string)) {
-      errors.push(`סקשן ${i + 1}: סוג "${section.section_type}" לא מוכר`);
+      errors.push(`סקשן ${i + 1}: סוג "${section.section_type}" לא מוכר. סוגים חוקיים: ${Array.from(validTypes).join(", ")}`);
     }
     if (!section.content || typeof section.content !== "object") {
       errors.push(`סקשן ${i + 1}: חסר שדה content`);
