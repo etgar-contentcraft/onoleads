@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Plus, X, ImageIcon, Loader2, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { extractYoutubeId } from "@/lib/utils/youtube";
 
 export interface SectionContentEditorProps {
   sectionType: string;
@@ -304,19 +305,6 @@ function ObjectListField({
   );
 }
 
-function extractYoutubeId(input: string): string {
-  if (!input) return "";
-  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
-  try {
-    const url = new URL(input);
-    if (url.hostname === "youtu.be") return url.pathname.slice(1).split("?")[0];
-    const m = url.pathname.match(/\/(?:embed|v)\/([A-Za-z0-9_-]{11})/);
-    if (m) return m[1];
-    const v = url.searchParams.get("v");
-    if (v) return v;
-  } catch { /* not a URL */ }
-  return input;
-}
 
 function VideoListField({ draft, set }: { draft: Record<string, unknown>; set: SetFn }) {
   const videos = (draft.videos as Array<Record<string, string>>) || [];

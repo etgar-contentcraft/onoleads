@@ -9,26 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
-
-/**
- * Extracts 11-char YouTube video ID from common URL formats.
- */
-function extractYoutubeId(input: string): string {
-  if (!input) return "";
-  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
-  try {
-    const url = new URL(input);
-    if (url.hostname === "youtu.be") {
-      const c = url.pathname.slice(1).split("?")[0];
-      if (/^[A-Za-z0-9_-]{11}$/.test(c)) return c;
-    }
-    const m = url.pathname.match(/\/(?:embed|v)\/([A-Za-z0-9_-]{11})/);
-    if (m) return m[1];
-    const v = url.searchParams.get("v");
-    if (v && /^[A-Za-z0-9_-]{11}$/.test(v)) return v;
-  } catch { /* not a URL */ }
-  return "";
-}
+import { extractYoutubeId } from "@/lib/utils/youtube";
 
 interface AboutSectionProps {
   content: Record<string, unknown>;

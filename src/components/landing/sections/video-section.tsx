@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import type { Language } from "@/lib/types/database";
+import { extractYoutubeId } from "@/lib/utils/youtube";
 
 interface VideoItem {
   youtube_id: string;
@@ -60,38 +61,6 @@ function handleThumbnailError(e: React.SyntheticEvent<HTMLImageElement>, youtube
     // All thumbnail URLs failed — hide the broken image, dark bg shows through
     img.style.display = "none";
   }
-}
-
-/**
- * Extracts an 11-character YouTube video ID from any of these formats:
- *   - Raw ID:                "dQw4w9WgXcQ"
- *   - youtube.com/watch?v=  "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
- *   - youtu.be short link:  "https://youtu.be/dQw4w9WgXcQ"
- *   - embed URL:            "https://www.youtube.com/embed/dQw4w9WgXcQ"
- * Returns the raw input unchanged when it doesn't look like a URL.
- */
-function extractYoutubeId(input: string): string {
-  if (!input) return "";
-  // Already an 11-char ID (no slashes/dots)
-  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
-  try {
-    const url = new URL(input);
-    let candidate = "";
-    // youtu.be/<id>
-    if (url.hostname === "youtu.be") candidate = url.pathname.slice(1).split("?")[0];
-    // /embed/<id> or /v/<id>
-    const pathMatch = url.pathname.match(/\/(?:embed|v)\/([A-Za-z0-9_-]{11})/);
-    if (pathMatch) candidate = pathMatch[1];
-    // ?v=<id>
-    const v = url.searchParams.get("v");
-    if (v) candidate = v;
-    // Only return if extracted value is a valid 11-char YouTube ID
-    if (/^[A-Za-z0-9_-]{11}$/.test(candidate)) return candidate;
-  } catch {
-    // Not a URL — fall through to empty return
-  }
-  // Could not extract a valid ID — caller should skip the <img> / embed
-  return "";
 }
 
 /**

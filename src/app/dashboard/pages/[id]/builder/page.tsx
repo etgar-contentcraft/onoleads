@@ -72,6 +72,7 @@ import {
   Rocket,
 } from "lucide-react";
 import { sanitizeSlug } from "@/lib/utils/slug";
+import { extractYoutubeId } from "@/lib/utils/youtube";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -903,23 +904,6 @@ function StringListField({ label, fieldKey, placeholder = "", draft, set }: Stri
   );
 }
 
-/**
- * Extracts an 11-char YouTube video ID from a raw ID, watch URL, youtu.be, or embed URL.
- * Used client-side in the builder for thumbnail previews.
- */
-function extractYoutubeIdLocal(input: string): string {
-  if (!input) return "";
-  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
-  try {
-    const url = new URL(input);
-    if (url.hostname === "youtu.be") return url.pathname.slice(1).split("?")[0];
-    const pathMatch = url.pathname.match(/\/(?:embed|v)\/([A-Za-z0-9_-]{11})/);
-    if (pathMatch) return pathMatch[1];
-    const v = url.searchParams.get("v");
-    if (v) return v;
-  } catch { /* not a URL */ }
-  return input;
-}
 
 /**
  * Video list editor — each row has a YouTube URL/ID, title, and optional duration.
@@ -949,7 +933,7 @@ function VideoListField({ draft, set }: { draft: Record<string, unknown>; set: (
       )}
       <div className="space-y-3">
         {videos.map((video, i) => {
-          const ytId = extractYoutubeIdLocal(video.youtube_id || "");
+          const ytId = extractYoutubeId(video.youtube_id || "");
           const thumbUrl = ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : "";
           return (
             <div key={i} className="border border-[#E5E5E5] rounded-xl p-3 space-y-2 bg-[#FAFAFA]">
