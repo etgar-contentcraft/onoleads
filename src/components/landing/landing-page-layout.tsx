@@ -118,7 +118,7 @@ function StickyHeader({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={ONO_LOGO}
-              alt="אונו"
+              alt={isRtl ? "אונו" : "Ono"}
               className="h-8 object-contain"
               loading="lazy"
             />
@@ -400,7 +400,7 @@ function InnerLayout({
             <div className="inline-flex items-center gap-2 mb-3">
               <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
               <span className="text-[#B8D900] font-heading font-bold text-sm tracking-wider">
-                המכללה המומלצת בישראל
+                {isRtl ? "המכללה המומלצת בישראל" : "Israel's Most Recommended College"}
               </span>
               <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
             </div>
@@ -420,9 +420,9 @@ function InnerLayout({
               />
               <div>
                 <p className="text-white/90 font-heading font-bold text-sm">
-                  הקריה האקדמית אונו
+                  {isRtl ? "הקריה האקדמית אונו" : "Ono Academic College"}
                 </p>
-                <p className="text-xs text-white/50 font-heebo">המכללה המומלצת בישראל</p>
+                <p className="text-xs text-white/50 font-heebo">{isRtl ? "המכללה המומלצת בישראל" : "Israel's Most Recommended College"}</p>
               </div>
             </div>
 
@@ -434,12 +434,12 @@ function InnerLayout({
             </div>
 
             <div className="flex items-center gap-4 text-white/50 text-xs font-heebo">
-              <a href="/privacy" className="hover:text-[#B8D900] transition-colors">מדיניות פרטיות</a>
+              <a href="/privacy" className="hover:text-[#B8D900] transition-colors">{isRtl ? "מדיניות פרטיות" : "Privacy Policy"}</a>
               <span className="w-px h-3 bg-white/20" />
-              <a href="/terms" className="hover:text-[#B8D900] transition-colors">תנאי שימוש</a>
+              <a href="/terms" className="hover:text-[#B8D900] transition-colors">{isRtl ? "תנאי שימוש" : "Terms of Use"}</a>
               <span className="w-px h-3 bg-white/20" />
               <p className="text-white/40">
-                &copy; {new Date().getFullYear()} הקריה האקדמית אונו
+                &copy; {new Date().getFullYear()} {isRtl ? "הקריה האקדמית אונו" : "Ono Academic College"}
               </p>
             </div>
           </div>

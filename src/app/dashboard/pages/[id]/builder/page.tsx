@@ -1650,7 +1650,15 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
         return (
           <div className="space-y-4">
             <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "Career Outcomes" : "אפשרויות קריירה"} draft={draft} set={set} />
-            <StringListField label={isEn ? "Job Titles" : "תפקידים ומשרות"} fieldKey="items" placeholder={isEn ? "Legal Advisor..." : "יועץ משפטי..."} draft={draft} set={set} />
+            <ObjectListField
+              label={isEn ? "Job Titles" : "תפקידים ומשרות"}
+              fieldKey="items"
+              fields={[
+                { key: lk("title"), label: isEn ? "Title" : "תפקיד" },
+              ]}
+              draft={draft}
+              set={set}
+            />
           </div>
         );
 
@@ -1663,8 +1671,8 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               fieldKey="items"
               fields={[
                 { key: "name", label: isEn ? "Name" : "שם" },
-                { key: "role", label: isEn ? "Role / Year" : "תפקיד / שנה" },
-                { key: "quote", label: isEn ? "Quote" : "ציטוט", type: "textarea" },
+                { key: lk("role"), label: isEn ? "Role / Year" : "תפקיד / שנה" },
+                { key: lk("quote"), label: isEn ? "Quote" : "ציטוט", type: "textarea" },
                 { key: "image_url", label: isEn ? "Photo (URL)" : "תמונה (URL)", type: "image" },
               ]}
               draft={draft}
