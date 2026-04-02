@@ -50,6 +50,66 @@ function F({
   );
 }
 
+// ─── Background Media Fields (reusable) ──────────────────────────────────────
+
+/** Default overlay opacity for background media (0-100) */
+const DEFAULT_OVERLAY_OPACITY = 70;
+
+/** Shared background image + video URL fields for dark-bg sections */
+function BackgroundMediaFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
+  const opacity = (content.background_overlay_opacity as number) ?? DEFAULT_OVERLAY_OPACITY;
+  const hasMedia = !!(content.background_image_url as string) || !!(content.background_video_url as string);
+
+  return (
+    <div className="p-3 rounded-lg border border-dashed border-[#D0D0D0] bg-[#FAFAFA] space-y-3">
+      <p className="text-[11px] font-semibold text-[#716C70]">🎨 רקע (אופציונלי)</p>
+      <F label="תמונת רקע" tip="URL לתמונה שתוצג ברקע הסקשן עם שכבת הכהיה מעליה.">
+        <Input
+          value={(content.background_image_url as string) || ""}
+          onChange={(e) => onChange({ ...content, background_image_url: e.target.value })}
+          placeholder="https://..."
+          dir="ltr"
+        />
+        {(content.background_image_url as string) && (
+          <div className="mt-1 rounded-md overflow-hidden border h-20 bg-muted">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={content.background_image_url as string} alt="" className="w-full h-full object-cover" />
+          </div>
+        )}
+      </F>
+      <F label="סרטון רקע YouTube" tip="לינק YouTube רגיל — הסרטון יתנגן ברקע, מושתק, בלולאה אינסופית.">
+        <Input
+          value={(content.background_video_url as string) || ""}
+          onChange={(e) => onChange({ ...content, background_video_url: e.target.value })}
+          placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX"
+          dir="ltr"
+        />
+        <p className="text-[10px] text-[#9A969A] mt-0.5">
+          פורמט: <code className="bg-[#F0F0F0] px-1 rounded" dir="ltr">https://www.youtube.com/watch?v=...</code> — התמונה תשמש כפוסטר.
+        </p>
+      </F>
+      {/* Overlay opacity slider — only visible when media is set */}
+      {hasMedia && (
+        <F label={`שקיפות שכבת הכהיה: ${opacity}%`} tip="קובע כמה כהה השכבה מעל הרקע. 0% = שקוף לגמרי, 100% = שחור מלא. ברירת מחדל: 70%.">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={opacity}
+            onChange={(e) => onChange({ ...content, background_overlay_opacity: parseInt(e.target.value, 10) })}
+            className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#B8D900]"
+          />
+          <div className="flex justify-between text-[10px] text-[#9A969A]">
+            <span>שקוף</span>
+            <span>כהה</span>
+          </div>
+        </F>
+      )}
+    </div>
+  );
+}
+
 // ─── Video ────────────────────────────────────────────────────────────────────
 
 interface VideoItem {
@@ -246,6 +306,7 @@ function StatsEditorFields({ content, onChange }: { content: GenericContent; onC
       <Button variant="outline" size="sm" title="הוסף נתון סטטיסטי נוסף (מומלץ: עד 4 נתונים)" onClick={() => onChange({ ...content, items: [...items, { value: "", label_he: "", label_en: "", suffix: "" }] })} className="w-full">
         <Plus className="w-3.5 h-3.5 mr-1.5" /> הוסף נתון
       </Button>
+      <BackgroundMediaFields content={content} onChange={onChange} />
     </div>
   );
 }
@@ -376,8 +437,56 @@ function CtaEditorFields({ content, onChange }: { content: GenericContent; onCha
         <F label="צבע רקע (hex)" tip="הצבע מאחורי בלוק ה-CTA. ברירת מחדל: #B8D900 (צהוב-ירוק אונו).">
           <Input value={(content.bg_color as string) || ""} onChange={(e) => onChange({ ...content, bg_color: e.target.value })} placeholder="#B8D900" />
         </F>
+        <BackgroundMediaFields content={content} onChange={onChange} />
       </div>
     </Tabs>
+  );
+}
+
+// ─── Career ─────────────────────────────────────────────────────────────────
+
+function CareerEditorFields({ content, onChange }: { content: GenericContent; onChange: (c: GenericContent) => void }) {
+  const items = (content.items as Array<{ title_he: string; title_en?: string; icon?: string }>) || [];
+
+  const updateItem = (index: number, item: typeof items[0]) => {
+    const n = [...items];
+    n[index] = item;
+    onChange({ ...content, items: n });
+  };
+
+  return (
+    <div className="space-y-4">
+      {items.map((item, index) => (
+        <div key={index} className="p-3 rounded-lg border border-border bg-muted/30 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#9A969A]">קריירה {index + 1}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" title="מחק פריט" onClick={() => onChange({ ...content, items: items.filter((_, i) => i !== index) })}>
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <Label className="text-xs" title="שם התפקיד או הכיוון המקצועי.">תפקיד (עברית)</Label>
+                <CharCount value={item.title_he} max={40} />
+              </div>
+              <Input value={item.title_he} onChange={(e) => updateItem(index, { ...item, title_he: e.target.value })} dir="rtl" className="h-8 text-xs" placeholder="עורך דין" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between">
+                <Label className="text-xs">Title (EN)</Label>
+                <CharCount value={item.title_en || ""} max={40} />
+              </div>
+              <Input value={item.title_en || ""} onChange={(e) => updateItem(index, { ...item, title_en: e.target.value })} className="h-8 text-xs" placeholder="Lawyer" />
+            </div>
+          </div>
+        </div>
+      ))}
+      <Button variant="outline" size="sm" title="הוסף כיוון קריירה (מומלץ: 4-6)" onClick={() => onChange({ ...content, items: [...items, { title_he: "", title_en: "" }] })} className="w-full">
+        <Plus className="w-3.5 h-3.5 mr-1.5" /> הוסף כיוון קריירה
+      </Button>
+      <BackgroundMediaFields content={content} onChange={onChange} />
+    </div>
   );
 }
 
@@ -837,6 +946,8 @@ function SectionFields({ sectionType, content, onChange }: GenericEditorProps) {
       return <TestimonialsEditorFields content={content} onChange={onChange} />;
     case "cta":
       return <CtaEditorFields content={content} onChange={onChange} />;
+    case "career":
+      return <CareerEditorFields content={content} onChange={onChange} />;
     case "whatsapp":
       return <WhatsappEditorFields content={content} onChange={onChange} />;
     case "accordion":

@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { Language } from "@/lib/types/database";
+import { extractYoutubeId, DEFAULT_OVERLAY_OPACITY } from "@/lib/utils/youtube";
 
 interface StatItem {
   value: string;
@@ -93,6 +94,9 @@ export function StatsSection({ content, language }: StatsSectionProps) {
   const items: StatItem[] = (content.items as StatItem[]) || [];
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || "";
   const bgImage = (content.background_image_url as string) || (content.background_image as string) || "";
+  const bgVideo = (content.background_video_url as string) || "";
+  const overlayOpacity = ((content.background_overlay_opacity as number) ?? DEFAULT_OVERLAY_OPACITY) / 100;
+  const youtubeId = extractYoutubeId(bgVideo);
   const [inView, setInView] = useState(false);
   const ref = useRef<HTMLElement>(null);
 
@@ -113,13 +117,37 @@ export function StatsSection({ content, language }: StatsSectionProps) {
 
   return (
     <section ref={ref} className="relative py-16 md:py-24 overflow-hidden" dir={isRtl ? "rtl" : "ltr"}>
-      {/* Dark background */}
-      <div className="absolute inset-0 z-0 bg-[#2a2628]">
+      {/* Dark background with optional image/video */}
+      <div className="absolute inset-0 z-0 bg-[#2a2628] overflow-hidden">
+        {/* YouTube background video */}
+        {youtubeId && (
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              top: "50%",
+              left: "50%",
+              width: "max(100%, calc(100vh * 16 / 9))",
+              height: "max(100%, calc(100vw * 9 / 16))",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3`}
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+              tabIndex={-1}
+              aria-hidden="true"
+              title="Background video"
+            />
+          </div>
+        )}
+        {/* Background image (also serves as poster for video) */}
         {bgImage && (
-          <>
-            <Image src={bgImage} alt="" fill className="object-cover" sizes="100vw" quality={80} />
-            <div className="absolute inset-0 bg-[#2a2628]/85" />
-          </>
+          <Image src={bgImage} alt="" fill className={`object-cover ${youtubeId ? "-z-10" : ""}`} sizes="100vw" quality={80} />
+        )}
+        {/* Dynamic overlay */}
+        {(bgImage || youtubeId) && (
+          <div className="absolute inset-0" style={{ backgroundColor: `rgba(42,38,40,${overlayOpacity})` }} />
         )}
         {/* Dot pattern */}
         <div

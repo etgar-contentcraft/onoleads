@@ -6,8 +6,10 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
+import { extractYoutubeId, DEFAULT_OVERLAY_OPACITY } from "@/lib/utils/youtube";
 
 interface CareerItem {
   title_he: string;
@@ -68,6 +70,10 @@ export function CareerSection({ content, language }: CareerSectionProps) {
   const subheading = (content[`subheading_${language}`] as string) || (content.subheading_he as string) || "";
   const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || "";
   const ctaEnabled = content.cta_enabled !== false;
+  const bgImage = (content.background_image_url as string) || "";
+  const bgVideo = (content.background_video_url as string) || "";
+  const overlayOpacity = ((content.background_overlay_opacity as number) ?? DEFAULT_OVERLAY_OPACITY) / 100;
+  const youtubeId = extractYoutubeId(bgVideo);
   const items = normalizeItems(content.items);
 
   const [inView, setInView] = useState(false);
@@ -88,8 +94,39 @@ export function CareerSection({ content, language }: CareerSectionProps) {
 
   return (
     <section ref={sectionRef} className="relative py-20 md:py-28 overflow-hidden" dir={isRtl ? "rtl" : "ltr"}>
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#2a2628] via-[#353133] to-[#2a2628]" />
+      {/* Background with optional image/video */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#2a2628] via-[#353133] to-[#2a2628] overflow-hidden">
+        {/* YouTube background video */}
+        {youtubeId && (
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              top: "50%",
+              left: "50%",
+              width: "max(100%, calc(100vh * 16 / 9))",
+              height: "max(100%, calc(100vw * 9 / 16))",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3`}
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+              tabIndex={-1}
+              aria-hidden="true"
+              title="Background video"
+            />
+          </div>
+        )}
+        {/* Background image (also serves as poster for video) */}
+        {bgImage && (
+          <Image src={bgImage} alt="" fill className={`object-cover ${youtubeId ? "-z-10" : ""}`} sizes="100vw" quality={80} />
+        )}
+        {/* Dynamic overlay */}
+        {(bgImage || youtubeId) && (
+          <div className="absolute inset-0" style={{ backgroundColor: `rgba(42,38,40,${overlayOpacity})` }} />
+        )}
+      </div>
       <div className="absolute inset-0 opacity-[0.04]">
         <div
           style={{

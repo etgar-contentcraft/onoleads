@@ -7,8 +7,10 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
+import { extractYoutubeId, DEFAULT_OVERLAY_OPACITY } from "@/lib/utils/youtube";
 
 interface CtaSectionProps {
   content: Record<string, unknown>;
@@ -25,6 +27,10 @@ export function CtaSection({ content, language }: CtaSectionProps) {
   const buttonText = (content[`button_text_${language}`] as string) || (content.button_text_he as string) || (isRtl ? "לפרטים נוספים" : "Get info");
   const phone = (content.phone as string) || "*2899";
   const ctaEnabled = content.cta_enabled !== false;
+  const bgImage = (content.background_image_url as string) || "";
+  const bgVideo = (content.background_video_url as string) || "";
+  const overlayOpacity = ((content.background_overlay_opacity as number) ?? DEFAULT_OVERLAY_OPACITY) / 100;
+  const youtubeId = extractYoutubeId(bgVideo);
 
   const [inView, setInView] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -46,8 +52,39 @@ export function CtaSection({ content, language }: CtaSectionProps) {
       className="relative py-20 md:py-28 overflow-hidden"
       dir={isRtl ? "rtl" : "ltr"}
     >
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#B8D900] via-[#c8e920] to-[#B8D900]" />
+      {/* Background — default green gradient, or custom image/video */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#B8D900] via-[#c8e920] to-[#B8D900] overflow-hidden">
+        {/* YouTube background video */}
+        {youtubeId && (
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              top: "50%",
+              left: "50%",
+              width: "max(100%, calc(100vh * 16 / 9))",
+              height: "max(100%, calc(100vw * 9 / 16))",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3`}
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
+              tabIndex={-1}
+              aria-hidden="true"
+              title="Background video"
+            />
+          </div>
+        )}
+        {/* Background image (poster for video or standalone) */}
+        {bgImage && (
+          <Image src={bgImage} alt="" fill className={`object-cover ${youtubeId ? "-z-10" : ""}`} sizes="100vw" quality={80} />
+        )}
+        {/* Dynamic overlay when media is present */}
+        {(bgImage || youtubeId) && (
+          <div className="absolute inset-0" style={{ backgroundColor: `rgba(42,38,40,${overlayOpacity})` }} />
+        )}
+      </div>
 
       {/* Decorative pattern */}
       <div className="absolute inset-0 opacity-[0.06]">
@@ -66,9 +103,9 @@ export function CtaSection({ content, language }: CtaSectionProps) {
       <div className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full bg-white/10" />
 
       <div className="relative z-10 max-w-3xl mx-auto px-5 text-center">
-        {/* Heading */}
+        {/* Heading — white text when custom media is set, dark text on default green */}
         <h2
-          className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] mb-4 opacity-0"
+          className={`font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4 opacity-0 ${bgImage || youtubeId ? "text-white" : "text-[#2a2628]"}`}
           style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
         >
           {heading}
@@ -77,7 +114,7 @@ export function CtaSection({ content, language }: CtaSectionProps) {
         {/* Description */}
         {description && (
           <p
-            className="font-heebo text-lg md:text-xl text-[#2a2628]/60 mb-10 max-w-xl mx-auto opacity-0"
+            className={`font-heebo text-lg md:text-xl mb-10 max-w-xl mx-auto opacity-0 ${bgImage || youtubeId ? "text-white/70" : "text-[#2a2628]/60"}`}
             style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.15s forwards" : "none" }}
           >
             {description}

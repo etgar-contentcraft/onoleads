@@ -9,31 +9,11 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
+import { extractYoutubeId, HERO_OVERLAY_OPACITY } from "@/lib/utils/youtube";
 
 interface HeroSectionProps {
   content: Record<string, unknown>;
   language: Language;
-}
-
-/**
- * Extracts an 11-character YouTube video ID from common URL formats.
- * Returns empty string if extraction fails.
- */
-function extractYoutubeId(input: string): string {
-  if (!input) return "";
-  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
-  try {
-    const url = new URL(input);
-    if (url.hostname === "youtu.be") {
-      const c = url.pathname.slice(1).split("?")[0];
-      if (/^[A-Za-z0-9_-]{11}$/.test(c)) return c;
-    }
-    const pathMatch = url.pathname.match(/\/(?:embed|v)\/([A-Za-z0-9_-]{11})/);
-    if (pathMatch) return pathMatch[1];
-    const v = url.searchParams.get("v");
-    if (v && /^[A-Za-z0-9_-]{11}$/.test(v)) return v;
-  } catch { /* not a URL */ }
-  return "";
 }
 
 /** Scroll amount before parallax caps out */
@@ -57,6 +37,8 @@ export function HeroSection({ content, language }: HeroSectionProps) {
   const bgImage = (content.background_image_url as string) || (content.background_image as string) || "";
   const bgVideo = (content.background_video_url as string) || "";
   const bgVideoType = (content.background_video_type as string) || "mp4";
+  /** Overlay opacity: 0-100, default 60% for hero */
+  const overlayOpacity = ((content.background_overlay_opacity as number) ?? HERO_OVERLAY_OPACITY) / 100;
   const statValue = (content.stat_value as string) || "";
   const statLabel = (content[`stat_label_${language}`] as string) || (content.stat_label_he as string) || "";
   const facultyName = (content[`faculty_name_${language}`] as string) || (content.faculty_name_he as string) || "";
@@ -140,8 +122,18 @@ export function HeroSection({ content, language }: HeroSectionProps) {
               className="absolute inset-0 will-change-transform"
               style={{ transform: `translateY(-${parallaxY}px)` }}
             >
-              {/* Scale up to 120% to hide YouTube black bars */}
-              <div className="absolute inset-[-10%] w-[120%] h-[120%]">
+              {/* Cover the container like object-fit:cover — center the 16:9 iframe
+                  and make it large enough to always fill the parent, cropping edges */}
+              <div
+                className="absolute border-0 pointer-events-none"
+                style={{
+                  top: "50%",
+                  left: "50%",
+                  width: "max(100%, calc(100vh * 16 / 9))",
+                  height: "max(100%, calc(100vw * 9 / 16))",
+                  transform: "translate(-50%, -50%)",
+                }}
+              >
                 <iframe
                   src={`https://www.youtube-nocookie.com/embed/${extractYoutubeId(bgVideo)}?autoplay=1&mute=1&loop=1&playlist=${extractYoutubeId(bgVideo)}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3`}
                   className="w-full h-full border-0"
@@ -164,7 +156,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
                 quality={80}
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/45 to-black/85" />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity}), rgba(0,0,0,${overlayOpacity * 0.75}), rgba(0,0,0,${Math.min(overlayOpacity * 1.4, 1)}))` }} />
           </>
         ) : bgVideo ? (
           <>
@@ -179,7 +171,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
             >
               <source src={bgVideo} type="video/mp4" />
             </video>
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/45 to-black/85" />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity}), rgba(0,0,0,${overlayOpacity * 0.75}), rgba(0,0,0,${Math.min(overlayOpacity * 1.4, 1)}))` }} />
           </>
         ) : bgImage ? (
           <>
@@ -193,7 +185,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
               sizes="100vw"
               quality={80}
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/45 to-black/85" />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity}), rgba(0,0,0,${overlayOpacity * 0.75}), rgba(0,0,0,${Math.min(overlayOpacity * 1.4, 1)}))` }} />
           </>
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-[#1a1618] via-[#2a2628] to-[#1a1618]">

@@ -38,6 +38,7 @@ interface HeroContent {
   cta_text_en?: string;
   cta_text_ar?: string;
   cta_url?: string;
+  background_overlay_opacity?: number;
 }
 
 interface HeroEditorProps {
@@ -287,47 +288,26 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
 
         <Field
           label="סרטון רקע (אופציונלי)"
-          tooltip="קישור לסרטון שיופעל ברקע ה-Hero. תומך ב-YouTube וב-MP4 ישיר. הסרטון מתנגן אוטומטית, ללא קול, בלולאה."
+          tooltip="קישור לסרטון YouTube שיופעל ברקע ה-Hero. הסרטון מתנגן אוטומטית, ללא קול, בלולאה."
         >
-          <div className="flex gap-2 mb-2">
-            <button
-              type="button"
-              onClick={() => onChange({ ...content, background_video_type: "youtube" })}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                (content.background_video_type || "mp4") === "youtube"
-                  ? "bg-[#B8D900] text-[#2a2628]"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              YouTube
-            </button>
-            <button
-              type="button"
-              onClick={() => onChange({ ...content, background_video_type: "mp4" })}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                (content.background_video_type || "mp4") === "mp4"
-                  ? "bg-[#B8D900] text-[#2a2628]"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              MP4 / קובץ ישיר
-            </button>
-          </div>
           <Input
             value={content.background_video_url || ""}
             onChange={(e) => update("background_video_url", e.target.value)}
-            placeholder={
-              (content.background_video_type || "mp4") === "youtube"
-                ? "https://www.youtube.com/watch?v=..."
-                : "https://example.com/video.mp4"
-            }
+            placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX"
             type="url"
           />
-          <p className="text-[10px] text-[#9A969A] mt-1">
-            {(content.background_video_type || "mp4") === "youtube"
-              ? "הסרטון יוטמע ברקע ללא שליטות, מושתק ובלולאה. התמונה תשמש כפוסטר עד שהסרטון נטען."
-              : "קישור ישיר לקובץ MP4. תמונת הרקע תשמש כפוסטר עד שהסרטון נטען."}
-          </p>
+          <div className="mt-1.5 space-y-1">
+            <p className="text-[10px] text-[#9A969A]">
+              <span className="font-semibold text-[#716C70]">פורמט נתמך:</span>{" "}
+              לינק YouTube רגיל — לדוגמה:
+            </p>
+            <code className="block text-[10px] bg-[#F3F4F6] rounded px-2 py-1 font-mono text-[#716C70]" dir="ltr">
+              https://www.youtube.com/watch?v=dQw4w9WgXcQ
+            </code>
+            <p className="text-[10px] text-[#9A969A]">
+              הסרטון יוטמע ברקע ללא שליטות, מושתק ובלולאה אינסופית. תמונת הרקע תשמש כפוסטר עד שהסרטון נטען.
+            </p>
+          </div>
           {content.background_video_url && (
             <button
               type="button"
@@ -338,6 +318,28 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
             </button>
           )}
         </Field>
+
+        {/* Overlay opacity — visible when image or video is set */}
+        {(content.background_image_url || content.background_video_url) && (
+          <Field
+            label={`שקיפות שכבת הכהיה: ${content.background_overlay_opacity ?? 60}%`}
+            tooltip="קובע כמה כהה השכבה מעל הרקע. 0% = שקוף לגמרי, 100% = שחור מלא. ברירת מחדל: 60%."
+          >
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={content.background_overlay_opacity ?? 60}
+              onChange={(e) => onChange({ ...content, background_overlay_opacity: parseInt(e.target.value, 10) })}
+              className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#B8D900]"
+            />
+            <div className="flex justify-between text-[10px] text-[#9A969A]">
+              <span>שקוף</span>
+              <span>כהה</span>
+            </div>
+          </Field>
+        )}
 
         <Field
           label="ערך סטטיסטי"
