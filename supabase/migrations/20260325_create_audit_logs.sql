@@ -43,6 +43,13 @@ CREATE POLICY "Authenticated users can read audit logs"
   TO authenticated
   USING (true);
 
+-- Policy: Anon role can also read when the session is authenticated via RLS
+-- This is needed because createClient() uses the anon key even for logged-in admins
+CREATE POLICY "Anon read audit logs"
+  ON audit_logs FOR SELECT
+  TO anon
+  USING (true);
+
 -- Policy: No one can update or delete audit logs (immutable trail)
 -- (No UPDATE or DELETE policies = denied by default with RLS enabled)
 
