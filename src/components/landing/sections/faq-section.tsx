@@ -66,7 +66,7 @@ export function FaqSection({ content, language }: FaqSectionProps) {
       <script
         type="application/ld+json"
         suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema).replace(/<\/script>/gi, "<\\/script>") }}
       />
 
       <div className="max-w-3xl mx-auto px-5">

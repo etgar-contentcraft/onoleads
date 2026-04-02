@@ -20,10 +20,14 @@ import { generateSlug } from "@/lib/utils/slug";
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
 
-  // Auth check
+  // Auth + role check — only admins can import pages
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userRole = user.user_metadata?.role;
+  if (userRole !== "admin" && userRole !== "super_admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   let body: unknown;

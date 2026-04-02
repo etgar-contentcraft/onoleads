@@ -150,7 +150,7 @@ export default async function EventLandingPage({ params }: PageProps) {
       <script
         type="application/ld+json"
         suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(eventSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(eventSchema).replace(/<\/script>/gi, "<\\/script>") }}
       />
       <EventPageLayout
         page={page}
