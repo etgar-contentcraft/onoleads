@@ -3,7 +3,7 @@
  * Fetches page data, program info, and sections from Supabase,
  * then renders the page with enhanced SEO metadata and JSON-LD structured data.
  */
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Page, PageSection, Language, Program } from "@/lib/types/database";
@@ -400,7 +400,27 @@ export default async function LandingPage({ params }: PageProps) {
   const { slug } = await params;
   const data = await getPageData(slug);
 
-  if (!data) notFound();
+  if (!data) {
+    // Check if this is an old slug that was changed — redirect to new slug
+    const supabase = await createClient();
+    const { data: redir } = await supabase
+      .from("slug_redirects")
+      .select("page_id")
+      .eq("old_slug", slug)
+      .single();
+    if (redir) {
+      const { data: newPage } = await supabase
+        .from("pages")
+        .select("slug")
+        .eq("id", redir.page_id)
+        .eq("status", "published")
+        .single();
+      if (newPage) {
+        redirect(`/lp/${newPage.slug}`);
+      }
+    }
+    notFound();
+  }
 
   const { page, sections, program, settings, campaigns } = data;
   const language = (page.language || "he") as Language;

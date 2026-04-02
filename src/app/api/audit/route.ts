@@ -11,6 +11,8 @@ const VALID_ACTIONS: AuditAction[] = [
   "admin_page_created",
   "admin_page_updated",
   "admin_page_deleted",
+  "admin_page_published",
+  "admin_page_unpublished",
   "admin_settings_updated",
 ];
 

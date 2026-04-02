@@ -100,12 +100,22 @@ export default function AiImportPage() {
 
     let parsed: unknown;
     try {
-      // Try to extract JSON from markdown code blocks
-      const jsonMatch = jsonInput.match(/```(?:json)?\s*([\s\S]*?)```/);
-      const cleanJson = jsonMatch ? jsonMatch[1].trim() : jsonInput.trim();
-      parsed = JSON.parse(cleanJson);
-    } catch {
-      setImportError("JSON לא חוקי — ודאו שהפלט מ-AI הוא JSON תקין");
+      let raw = jsonInput.trim();
+      // Strip markdown code fences (```json ... ``` or ``` ... ```)
+      const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (fenceMatch) raw = fenceMatch[1].trim();
+      // Strip leading/trailing non-JSON text (some AIs add explanation around JSON)
+      const firstBrace = raw.indexOf("{");
+      const lastBrace = raw.lastIndexOf("}");
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        raw = raw.substring(firstBrace, lastBrace + 1);
+      }
+      // Fix common JSON issues: trailing commas before } or ]
+      raw = raw.replace(/,\s*([}\]])/g, "$1");
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      setImportError(`JSON לא חוקי — ודאו שהפלט מ-AI הוא JSON תקין.\n${msg ? `שגיאה: ${msg}` : ""}`);
       return;
     }
 

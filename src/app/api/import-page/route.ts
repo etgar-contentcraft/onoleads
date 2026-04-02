@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { validateImportedContent } from "@/lib/ai-import/content-schema";
+import { generateSlug } from "@/lib/utils/slug";
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -45,13 +46,9 @@ export async function POST(req: NextRequest) {
     program_id?: string;
   };
 
-  // Generate slug from title
+  // Generate English-only slug from title (transliterates Hebrew automatically)
   const title = data.page.title_he || "untitled";
-  const baseSlug = data.slug || title
-    .replace(/[^\u0590-\u05FF\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .toLowerCase()
-    .substring(0, 50);
+  const baseSlug = data.slug ? generateSlug(data.slug) : generateSlug(title);
 
   // Check slug uniqueness
   const { data: existing } = await supabase

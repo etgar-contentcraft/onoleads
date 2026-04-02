@@ -622,14 +622,18 @@ ${sections.length} סקשנים לייצר — דוגמאות מדויקות
 ${sectionTemplates}
 
 ═══════════════════════════════════════
-תזכורת סופית
+תזכורת סופית — חשוב מאוד!
 ═══════════════════════════════════════
-- החזר JSON חוקי בלבד, ללא טקסט מסביב
-- שמות שדות חייבים להיות זהים לדוגמאות למעלה (כולל _he)
-- אסור להוסיף שדות שלא מופיעים בדוגמאות
-- אסור לשנות שמות שדות (למשל: button_text_he ולא cta_text_he)
-- items/bullets/requirements/years/courses — מערכים, לא אובייקט בודד
-- section_type חייב להיות בדיוק אחד מ: ${sections.map((s) => s.type).join(", ")}`;
+1. החזר JSON חוקי בלבד. ללא טקסט לפני או אחרי ה-JSON. ללא markdown. ללא הסברים.
+2. אל תעטוף ב-\`\`\`json — החזר את ה-JSON ישירות.
+3. ודא שאין פסיקים מיותרים (trailing commas) לפני } או ].
+4. כל מחרוזת חייבת להיות בתוך גרשיים כפולים " ולא גרשיים בודדים '.
+5. שמות שדות חייבים להיות זהים לדוגמאות למעלה (כולל _he).
+6. אסור להוסיף שדות שלא מופיעים בדוגמאות.
+7. אסור לשנות שמות שדות (למשל: button_text_he ולא cta_text_he).
+8. items/bullets/requirements/years/courses — מערכים, לא אובייקט בודד.
+9. section_type חייב להיות בדיוק אחד מ: ${sections.map((s) => s.type).join(", ")}
+10. בדוק שוב שה-JSON תקין לפני שאתה מחזיר אותו.`;
   }
 
   // ── ENGLISH / ARABIC PROMPT ──
@@ -688,14 +692,18 @@ Remember: every \`_he\` suffix below becomes \`${langSuffix}\` in your output.
 ${sectionTemplates}
 
 ═══════════════════════════════════════
-Final Reminders
+Final Reminders — VERY IMPORTANT!
 ═══════════════════════════════════════
-- Return valid JSON only, no surrounding text
-- Field names MUST match the templates above exactly (with \`${langSuffix}\` instead of \`_he\`)
-- Do NOT add fields that don't appear in the templates
-- Do NOT rename fields (e.g. use button_text${langSuffix}, NOT cta_text${langSuffix})
-- items/bullets/requirements/years/courses must be arrays, never single objects
-- section_type must be exactly one of: ${sections.map((s) => s.type).join(", ")}`;
+1. Return valid JSON ONLY. No text before or after the JSON. No markdown. No explanations.
+2. Do NOT wrap in \`\`\`json — return the raw JSON directly.
+3. Ensure no trailing commas before } or ].
+4. All strings MUST use double quotes ", never single quotes '.
+5. Field names MUST match the templates above exactly (with \`${langSuffix}\` instead of \`_he\`).
+6. Do NOT add fields that don't appear in the templates.
+7. Do NOT rename fields (e.g. use button_text${langSuffix}, NOT cta_text${langSuffix}).
+8. items/bullets/requirements/years/courses must be arrays, never single objects.
+9. section_type must be exactly one of: ${sections.map((s) => s.type).join(", ")}
+10. Double-check that your JSON is valid before returning it.`;
 }
 
 /* ────────────────────────────────────────────────────────────

@@ -69,7 +69,9 @@ import {
   Users,
   Globe,
   Search,
+  Rocket,
 } from "lucide-react";
+import { sanitizeSlug } from "@/lib/utils/slug";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1140,7 +1142,7 @@ function FacultyMemberEditor({ draft, set }: { draft: Record<string, unknown>; s
 
       {/* Library picker dialog */}
       <Dialog open={libraryOpen} onOpenChange={setLibraryOpen}>
-        <DialogContent className="max-w-md max-h-[70vh] flex flex-col" dir="rtl">
+        <DialogContent className="max-w-4xl w-[95vw] h-[80vh] max-h-[80vh] flex flex-col" dir="rtl">
           <DialogHeader>
             <DialogTitle>בחר מרצים מהמאגר</DialogTitle>
           </DialogHeader>
@@ -1186,7 +1188,7 @@ function FacultyMemberEditor({ draft, set }: { draft: Record<string, unknown>; s
 
       {/* Member create / edit dialog */}
       <Dialog open={memberFormOpen} onOpenChange={setMemberFormOpen}>
-        <DialogContent className="max-w-md max-h-[85vh] flex flex-col" dir="rtl">
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] max-h-[85vh] flex flex-col" dir="rtl">
           <DialogHeader>
             <DialogTitle>{editingMember !== null ? "עריכת מרצה" : "מרצה חדש"}</DialogTitle>
           </DialogHeader>
@@ -1941,7 +1943,7 @@ function SectionEditModal({ section, onClose, onSave, saving }: SectionEditModal
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent
-        className="max-w-xl max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden"
+        className="max-w-4xl w-[95vw] h-[90vh] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden"
         dir="rtl"
       >
         <DialogHeader className="px-6 py-4 border-b border-[#F0F0F0] shrink-0">
@@ -1992,6 +1994,12 @@ interface PageSettingsDialogProps {
   onTyChange: (key: keyof ThankYouPageSettings, value: string | boolean) => void;
   onSave: () => Promise<void>;
   saving: boolean;
+  /** Current slug of the page */
+  slug: string;
+  /** Callback to update slug */
+  onSlugChange: (newSlug: string) => void;
+  /** Slug validation error message */
+  slugError: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -2031,12 +2039,12 @@ function SettingField({ label, fieldKey, placeholder, hint, dir = "ltr", setting
  * Empty fields fall back to the global settings configured in הגדרות.
  * Visual style matches the global settings page: card-style sections with icons.
  */
-function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onTyChange, onSave, saving }: PageSettingsDialogProps) {
+function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onTyChange, onSave, saving, slug, onSlugChange, slugError }: PageSettingsDialogProps) {
   const socialEnabled = settings.social_proof_enabled === "true";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl w-[95vw] h-[95vh] max-h-[95vh] flex flex-col gap-0 p-0 overflow-hidden" dir="rtl">
+      <DialogContent className="max-w-4xl w-[95vw] h-[95vh] max-h-[95vh] flex flex-col gap-0 p-0 overflow-hidden" dir="rtl">
         <DialogHeader className="px-6 py-4 border-b border-[#F0F0F0] shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#B8D900]/15 flex items-center justify-center shrink-0">
@@ -2053,6 +2061,37 @@ function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onT
 
         <ScrollArea className="flex-1">
           <div className="px-6 py-5 space-y-4">
+
+            {/* ─── Slug / URL ──────────────────────────── */}
+            <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
+              <div className="flex items-center gap-2.5 px-4 py-3 bg-[#FAFAFA] border-b border-[#F0F0F0]">
+                <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
+                  <Globe className="w-3.5 h-3.5 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-[#2A2628]">כתובת URL</p>
+                  <p className="text-[10px] text-[#9A969A]">כתובת העמוד באנגלית — שינוי ישמור הפניה אוטומטית מהכתובת הישנה</p>
+                </div>
+              </div>
+              <div className="px-4 py-3 space-y-2">
+                <div className="flex items-center gap-2" dir="ltr">
+                  <span className="text-xs text-[#9A969A] font-mono shrink-0">/lp/</span>
+                  <Input
+                    value={slug}
+                    onChange={(e) => onSlugChange(sanitizeSlug(e.target.value))}
+                    placeholder="my-program-name"
+                    dir="ltr"
+                    className={`h-9 text-sm font-mono flex-1 ${slugError ? "border-red-400 focus:ring-red-400" : ""}`}
+                  />
+                </div>
+                {slugError && (
+                  <p className="text-[11px] text-red-500 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" /> {slugError}
+                  </p>
+                )}
+                <p className="text-[11px] text-[#9A969A]">רק אותיות באנגלית קטנות, מספרים ומקפים. שינוי הכתובת ישמור הפניה אוטומטית מהכתובת הישנה.</p>
+              </div>
+            </div>
 
             {/* ─── Integrations ─────────────────────────── */}
             <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
@@ -2311,7 +2350,7 @@ function DeleteConfirmDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onCancel}>
-      <DialogContent className="max-w-sm" dir="rtl">
+      <DialogContent className="max-w-lg w-[90vw]" dir="rtl">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-1">
             <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
@@ -2378,6 +2417,10 @@ export default function PageBuilderPage() {
   const [versions, setVersions] = useState<PageVersion[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  /** Editable slug state for page settings dialog */
+  const [editSlug, setEditSlug] = useState("");
+  const [slugError, setSlugError] = useState("");
+  const [publishing, setPublishing] = useState(false);
 
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -2402,6 +2445,7 @@ export default function PageBuilderPage() {
       ]);
       if (pageRes.data) {
         setPage(pageRes.data as PageData);
+        setEditSlug(pageRes.data.slug);
         const customStyles = pageRes.data.custom_styles as Record<string, unknown> | null;
         setPageSettings((customStyles?.page_settings as PageOverrideSettings) || {});
         // Pre-populate with Ono defaults when no per-page settings exist yet
@@ -2816,6 +2860,37 @@ export default function PageBuilderPage() {
   /** Saves both page_settings and thank_you_settings to pages.custom_styles */
   const savePageSettings = useCallback(async () => {
     setPageSettingsSaving(true);
+
+    // ── Handle slug change ──
+    const oldSlug = page?.slug || "";
+    const newSlug = editSlug.trim();
+    if (newSlug && newSlug !== oldSlug) {
+      // Check uniqueness
+      const { data: existing } = await supabase
+        .from("pages")
+        .select("id")
+        .eq("slug", newSlug)
+        .neq("id", pageId)
+        .single();
+      if (existing) {
+        setSlugError("כתובת זו כבר תפוסה — בחר כתובת אחרת");
+        setPageSettingsSaving(false);
+        return;
+      }
+      // Save redirect from old slug → this page
+      await supabase.from("slug_redirects").upsert({ old_slug: oldSlug, page_id: pageId }, { onConflict: "old_slug" });
+      // Update the page slug
+      const { error: slugErr } = await supabase.from("pages").update({ slug: newSlug }).eq("id", pageId);
+      if (slugErr) {
+        setSlugError("שגיאה בעדכון כתובת: " + slugErr.message);
+        setPageSettingsSaving(false);
+        return;
+      }
+      // Update local state
+      setPage((prev) => prev ? { ...prev, slug: newSlug } : prev);
+      setSlugError("");
+    }
+
     // Strip empty strings so fallback to global works correctly
     const cleanedPage: PageOverrideSettings = Object.fromEntries(
       Object.entries(pageSettings).filter(([, v]) => v && String(v).trim() !== "")
@@ -2843,12 +2918,31 @@ export default function PageBuilderPage() {
       setTySettings(cleanedTy);
       setPageSettingsOpen(false);
       showToast("הגדרות העמוד נשמרו");
-      fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_settings_updated", resource_type: "page_settings", resource_id: pageId, metadata: { slug: page?.slug } }) }).catch(() => {});
+      fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_settings_updated", resource_type: "page_settings", resource_id: pageId, metadata: { slug: newSlug || oldSlug } }) }).catch(() => {});
     } else {
       showToast("שגיאה בשמירת הגדרות", "error");
     }
     setPageSettingsSaving(false);
-  }, [page, pageId, pageSettings, tySettings, supabase, showToast]);
+  }, [page, pageId, pageSettings, tySettings, editSlug, supabase, showToast]);
+
+  /** Publishes (or unpublishes) the current page */
+  const handlePublish = useCallback(async () => {
+    if (!page) return;
+    setPublishing(true);
+    const isPublished = page.status === "published";
+    const newStatus = isPublished ? "draft" : "published";
+    const updateData: Record<string, unknown> = { status: newStatus };
+    if (!isPublished) updateData.published_at = new Date().toISOString();
+    const { error } = await supabase.from("pages").update(updateData).eq("id", pageId);
+    if (!error) {
+      setPage((prev) => prev ? { ...prev, status: newStatus } : prev);
+      showToast(isPublished ? "העמוד הוחזר לטיוטה" : "העמוד פורסם בהצלחה!");
+      fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: isPublished ? "admin_page_unpublished" : "admin_page_published", resource_type: "page", resource_id: pageId, metadata: { slug: page.slug } }) }).catch(() => {});
+    } else {
+      showToast("שגיאה בעדכון סטטוס", "error");
+    }
+    setPublishing(false);
+  }, [page, pageId, supabase, showToast]);
 
   // ---------------------------------------------------------------------------
   // Loading / 404 states
@@ -2998,6 +3092,30 @@ export default function PageBuilderPage() {
             <ExternalLink className="w-3.5 h-3.5" />
             צפה בעמוד
           </Button>
+
+          {/* Publish / Unpublish button */}
+          {page.status === "published" ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePublish}
+              disabled={publishing}
+              className="h-9 gap-2 border-green-200 text-green-700 hover:bg-green-50"
+            >
+              {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              מפורסם
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={handlePublish}
+              disabled={publishing}
+              className="h-9 gap-2 bg-emerald-500 text-white hover:bg-emerald-600"
+            >
+              {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
+              פרסם עמוד
+            </Button>
+          )}
 
           <Button
             size="sm"
@@ -3336,6 +3454,9 @@ export default function PageBuilderPage() {
         onTyChange={updateTySetting}
         onSave={savePageSettings}
         saving={pageSettingsSaving}
+        slug={editSlug}
+        onSlugChange={(s) => { setEditSlug(s); setSlugError(""); }}
+        slugError={slugError}
       />
 
       {/* ── Version History Drawer ── */}

@@ -20,6 +20,8 @@ export type AuditAction =
   | "admin_page_created"
   | "admin_page_updated"
   | "admin_page_deleted"
+  | "admin_page_published"
+  | "admin_page_unpublished"
   | "admin_settings_updated"
   | "rate_limit_exceeded"
   | "bot_detected"

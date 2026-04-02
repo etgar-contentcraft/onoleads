@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { generateSlug, sanitizeSlug } from "@/lib/utils/slug";
 import {
   Card,
   CardContent,
@@ -108,15 +109,10 @@ export default function NewPageWizard() {
     fetchData();
   }, []);
 
-  // Auto-generate slug from title
+  // Auto-generate English slug from title (transliterates Hebrew automatically)
   useEffect(() => {
     if (title) {
-      const generated = title
-        .toLowerCase()
-        .replace(/[^\w\u0590-\u05FF\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .trim();
+      const generated = generateSlug(title);
       setSlug(generated || `page-${Date.now()}`);
     }
   }, [title]);
@@ -480,14 +476,7 @@ export default function NewPageWizard() {
                   <span className="text-sm text-[#9A969A] shrink-0">/lp/</span>
                   <Input
                     value={slug}
-                    onChange={(e) =>
-                      setSlug(
-                        e.target.value
-                          .toLowerCase()
-                          .replace(/[^a-z0-9\u0590-\u05FF-]/g, "-")
-                          .replace(/-+/g, "-")
-                      )
-                    }
+                    onChange={(e) => setSlug(sanitizeSlug(e.target.value))}
                     placeholder="law-open-day"
                     dir="ltr"
                     className="h-10 font-mono text-sm"
