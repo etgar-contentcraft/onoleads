@@ -267,8 +267,9 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
     } catch (err) {
       console.error("Form submission failed:", err);
       setSubmitError("אירעה שגיאה בחיבור. אנא נסו שוב.");
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   /**

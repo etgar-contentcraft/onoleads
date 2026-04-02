@@ -15,6 +15,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  /* Verify caller has admin role — prevents cache stampede from non-admin accounts */
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (!profile || profile.role !== "admin") {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const { slug } = (await request.json()) as { slug?: string };
   if (!slug) return Response.json({ error: "missing slug" }, { status: 400 });
 

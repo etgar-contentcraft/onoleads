@@ -10,6 +10,7 @@ import type { Page, PageSection, Language, Program } from "@/lib/types/database"
 import type { PopupCampaign } from "@/lib/types/popup-campaigns";
 import { LandingPageLayout, type PageSettings } from "@/components/landing/landing-page-layout";
 import type { Metadata } from "next";
+import { cache } from "react";
 
 /** Default OG image used when the program has no hero image */
 const DEFAULT_OG_IMAGE =
@@ -51,7 +52,7 @@ function getEducationalLevel(degreeType: string): string {
  * @param slug - URL slug identifying the landing page
  * @returns Combined page data or null if page not found/unpublished
  */
-async function getPageData(slug: string) {
+const getPageData = cache(async function getPageData(slug: string) {
   const supabase = await createClient();
 
   const [pageRes, globalSettingsRes] = await Promise.all([
@@ -126,7 +127,7 @@ async function getPageData(slug: string) {
     settings,
     campaigns,
   };
-}
+});
 
 /**
  * Generates enhanced SEO metadata including OpenGraph, Twitter Cards,

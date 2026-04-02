@@ -78,6 +78,8 @@ export function HeroSection({ content, language }: HeroSectionProps) {
       return;
     }
 
+    let animTimer: ReturnType<typeof setInterval> | null = null;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated.current) {
@@ -85,7 +87,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
           const stepTime = COUNTER_DURATION / COUNTER_STEPS;
           let current = 0;
 
-          const timer = setInterval(() => {
+          animTimer = setInterval(() => {
             current += 1;
             const progress = current / COUNTER_STEPS;
             const eased = 1 - Math.pow(1 - progress, 3);
@@ -93,7 +95,8 @@ export function HeroSection({ content, language }: HeroSectionProps) {
             setCounterValue(val.toLocaleString() + statValue.replace(/[0-9,]/g, ""));
 
             if (current >= COUNTER_STEPS) {
-              clearInterval(timer);
+              clearInterval(animTimer!);
+              animTimer = null;
               setCounterValue(statValue);
             }
           }, stepTime);
@@ -103,7 +106,10 @@ export function HeroSection({ content, language }: HeroSectionProps) {
     );
 
     if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (animTimer) clearInterval(animTimer);
+    };
   }, [statValue]);
 
   return (
