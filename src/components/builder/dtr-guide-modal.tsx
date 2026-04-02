@@ -86,7 +86,7 @@ export function DtrGuideModal({ open, onOpenChange, onInsert }: DtrGuideModalPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="max-w-4xl w-[98vw] h-[95vh] max-h-[95vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle className="text-lg font-heading font-bold text-[#2A2628]">
             כותרות דינמיות (DTR)
@@ -179,19 +179,19 @@ function DtrGenerator({ onInsert }: { onInsert?: (template: string) => void }) {
         <Label className="text-xs font-semibold">
           שלב 1: באיזה פרמטר להשתמש?
         </Label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="flex flex-wrap gap-2">
           {UTM_PARAMS.map((p) => (
             <button
               key={p.key}
               onClick={() => setParam(p.key)}
-              className={`flex flex-col p-3 rounded-lg border text-right transition-all ${
+              className={`flex flex-col p-2.5 rounded-lg border text-right transition-all min-w-[140px] flex-1 ${
                 param === p.key
                   ? "border-[#B8D900] bg-[#B8D900]/5 shadow-sm"
                   : "border-gray-200 hover:border-gray-300"
               }`}
             >
               <span className="font-semibold text-[#2a2628] text-xs">{p.label}</span>
-              <span className="text-[10px] text-[#9A969A] mt-0.5">דוגמאות: {p.hint}</span>
+              <span className="text-[10px] text-[#9A969A] mt-0.5">{p.hint}</span>
             </button>
           ))}
         </div>
