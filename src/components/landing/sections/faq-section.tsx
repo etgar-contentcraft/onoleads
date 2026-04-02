@@ -65,6 +65,7 @@ export function FaqSection({ content, language }: FaqSectionProps) {
     <section ref={sectionRef} className="py-20 md:py-28 bg-white" dir={isRtl ? "rtl" : "ltr"}>
       <script
         type="application/ld+json"
+        suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 

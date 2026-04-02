@@ -448,6 +448,7 @@ export default async function LandingPage({ params }: PageProps) {
           <script
             key={i}
             type="application/ld+json"
+            suppressHydrationWarning
             dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
           />
         ))}
