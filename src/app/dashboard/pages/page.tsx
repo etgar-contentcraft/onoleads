@@ -516,19 +516,19 @@ export default function PagesManagementPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => router.push(`/dashboard/pages/${page.id}/builder`)} className="gap-2">
+                      <DropdownMenuItem onClick={() => router.push(`/dashboard/pages/${page.id}/builder`)} className="gap-2">
                           <Pencil className="w-4 h-4" />
                           עריכה
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => router.push(`/dashboard/analytics?page=${page.id}`)} className="gap-2">
+                      <DropdownMenuItem onClick={() => router.push(`/dashboard/analytics?page=${page.id}`)} className="gap-2">
                           <BarChart3 className="w-4 h-4" />
                           אנליטיקס
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => router.push(`/dashboard/pages/${page.id}/settings`)} className="gap-2">
+                      <DropdownMenuItem onClick={() => router.push(`/dashboard/pages/${page.id}/settings`)} className="gap-2">
                           <Settings className="w-4 h-4" />
                           הגדרות עמוד
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => window.open(`/lp/${page.slug}`, "_blank")} className="gap-2">
+                      <DropdownMenuItem onClick={() => window.open(`/lp/${page.slug}`, "_blank")} className="gap-2">
                           <Eye className="w-4 h-4" />
                           תצוגה מקדימה
                       </DropdownMenuItem>
@@ -629,19 +629,19 @@ export default function PagesManagementPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/pages/${page.id}/builder`)} className="gap-2">
+                            <DropdownMenuItem onClick={() => router.push(`/dashboard/pages/${page.id}/builder`)} className="gap-2">
                                 <Pencil className="w-4 h-4" />
                                 עריכה
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/analytics?page=${page.id}`)} className="gap-2">
+                            <DropdownMenuItem onClick={() => router.push(`/dashboard/analytics?page=${page.id}`)} className="gap-2">
                                 <BarChart3 className="w-4 h-4" />
                                 אנליטיקס
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/pages/${page.id}/settings`)} className="gap-2">
+                            <DropdownMenuItem onClick={() => router.push(`/dashboard/pages/${page.id}/settings`)} className="gap-2">
                                 <Settings className="w-4 h-4" />
                                 הגדרות עמוד
                             </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => window.open(`/lp/${page.slug}`, "_blank")} className="gap-2">
+                            <DropdownMenuItem onClick={() => window.open(`/lp/${page.slug}`, "_blank")} className="gap-2">
                                 <Eye className="w-4 h-4" />
                                 תצוגה מקדימה
                             </DropdownMenuItem>
