@@ -489,7 +489,9 @@ export function FloatingCtaButton({ ctaText }: { ctaText?: string }) {
 
   useEffect(() => {
     const handleScroll = () => {
-      setVisible(window.scrollY > 600);
+      /** Show earlier on mobile (after hero) since there's no sticky header CTA visible yet */
+      const threshold = window.innerWidth < 768 ? 350 : 600;
+      setVisible(window.scrollY > threshold);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
@@ -498,7 +500,7 @@ export function FloatingCtaButton({ ctaText }: { ctaText?: string }) {
   return (
     <button
       onClick={open}
-      className={`fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 flex items-center gap-2 px-4 py-3 md:px-6 md:py-3.5 rounded-full bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm shadow-[0_4px_25px_rgba(184,217,0,0.4)] hover:shadow-[0_4px_35px_rgba(184,217,0,0.6)] hover:scale-105 transition-all duration-500 ${
+      className={`fixed bottom-4 right-4 md:bottom-6 md:right-6 pb-[env(safe-area-inset-bottom)] z-40 flex items-center gap-2 px-5 py-3.5 md:px-6 md:py-3.5 rounded-full bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm shadow-[0_4px_25px_rgba(184,217,0,0.4)] hover:shadow-[0_4px_35px_rgba(184,217,0,0.6)] hover:scale-105 transition-all duration-500 ${
         visible
           ? "translate-y-0 opacity-100"
           : "translate-y-20 opacity-0 pointer-events-none"

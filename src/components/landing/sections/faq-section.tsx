@@ -108,9 +108,11 @@ export function FaqSection({ content, language }: FaqSectionProps) {
                 style={{ animation: inView ? `fade-in-up 0.5s ease-out ${0.15 + index * 0.06}s forwards` : "none" }}
               >
                 <button
+                  id={`faq-question-${index}`}
                   onClick={() => setOpenIndex(isOpen ? null : index)}
                   className="w-full flex items-center justify-between p-5 md:p-6 text-start group"
                   aria-expanded={isOpen}
+                  aria-controls={`faq-answer-${index}`}
                 >
                   <div className="flex items-start gap-4">
                     {/* Green accent bar */}
@@ -137,6 +139,9 @@ export function FaqSection({ content, language }: FaqSectionProps) {
 
                 {/* Answer with smooth animation */}
                 <div
+                  id={`faq-answer-${index}`}
+                  role="region"
+                  aria-labelledby={`faq-question-${index}`}
                   className={`grid transition-all duration-300 ease-in-out ${
                     isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                   }`}

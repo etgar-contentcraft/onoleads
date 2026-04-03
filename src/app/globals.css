@@ -381,6 +381,25 @@
 .stagger-5 { animation-delay: 0.5s; }
 .stagger-6 { animation-delay: 0.6s; }
 
+/* Respect users who prefer reduced motion — disable all custom animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-fade-in-down,
+  .animate-fade-in,
+  .animate-scale-in,
+  .animate-slide-in-right,
+  .animate-slide-in-left,
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-shimmer,
+  .animate-count-up,
+  .animate-scroll-hint,
+  .animate-check-draw {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
 /* ============================================================================
    Landing Page Utility Classes
    ============================================================================ */

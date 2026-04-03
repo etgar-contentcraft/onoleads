@@ -533,7 +533,7 @@ function SortableSectionRow({
     >
       {/* Drag handle */}
       <button
-        className="cursor-grab active:cursor-grabbing text-[#C8C4C8] hover:text-[#9A969A] transition-colors shrink-0"
+        className="cursor-grab active:cursor-grabbing text-[#B0ACB0] hover:text-[#716C70] transition-colors shrink-0"
         {...attributes}
         {...listeners}
         title="גרור לשינוי סדר"
@@ -621,7 +621,7 @@ function SortableSectionRow({
           variant="ghost"
           size="sm"
           onClick={onEdit}
-          className="h-8 w-8 p-0 text-[#9A969A] hover:text-[#4A4648] opacity-0 group-hover:opacity-100 transition-all"
+          className="h-8 w-8 p-0 text-[#9A969A] hover:text-[#4A4648] md:opacity-0 md:group-hover:opacity-100 transition-all"
           title="ערוך תוכן"
         >
           <Pencil className="w-3.5 h-3.5" />
@@ -632,7 +632,7 @@ function SortableSectionRow({
           variant="ghost"
           size="sm"
           onClick={onDelete}
-          className="h-8 w-8 p-0 text-[#C8C4C8] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+          className="h-8 w-8 p-0 text-[#C8C4C8] hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 transition-all"
           title="מחק"
         >
           <Trash2 className="w-3.5 h-3.5" />

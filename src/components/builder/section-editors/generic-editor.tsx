@@ -86,8 +86,10 @@ function BackgroundMediaFields({ content, onChange }: { content: GenericContent;
           placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX"
           dir="ltr"
         />
-        <p className="text-[10px] text-[#9A969A] mt-0.5">
-          פורמט: <code className="bg-[#F0F0F0] px-1 rounded" dir="ltr">https://www.youtube.com/watch?v=...</code> — התמונה תשמש כפוסטר.
+        <p className="text-xs text-[#9A969A] mt-1">
+          הדביקו קישור רגיל מיוטיוב, למשל: <code className="bg-[#F0F0F0] px-1.5 py-0.5 rounded text-[11px]" dir="ltr">https://www.youtube.com/watch?v=...</code>
+          <br />
+          <span className="text-[10px]">התמונה שנבחרה תשמש כפוסטר עד שהסרטון נטען.</span>
         </p>
       </F>
       {/* Overlay opacity slider — only visible when media is set */}
