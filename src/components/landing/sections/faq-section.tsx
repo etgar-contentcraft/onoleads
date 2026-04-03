@@ -29,7 +29,7 @@ export function FaqSection({ content, language }: FaqSectionProps) {
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "שאלות נפוצות" : "FAQ");
   const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || "";
   const ctaEnabled = content.cta_enabled !== false;
-  const items: FaqItem[] = (content.items as FaqItem[]) || [];
+  const items: FaqItem[] = Array.isArray(content.items) ? (content.items as FaqItem[]) : [];
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const [inView, setInView] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);

@@ -1,5 +1,5 @@
 /**
- * AI Import — Content Schema Definitions
+ * AI Import: Content Schema Definitions
  * Defines every section type, its exact field keys (matching the React components),
  * and generates precise AI prompts with complete JSON templates.
  */
@@ -27,13 +27,13 @@ export interface SectionSchema {
   fields: FieldDef[];
   /**
    * A complete JSON example of the `content` object for this section.
-   * Uses `_he` suffixes — the prompt generator localizes them per language.
+   * Uses `_he` suffixes. The prompt generator localizes them per language.
    */
   jsonExample: Record<string, unknown>;
 }
 
 /* ────────────────────────────────────────────────────────────
- * SECTION SCHEMAS — field keys MUST match the React components
+ * SECTION SCHEMAS: field keys MUST match the React components
  * in src/components/landing/sections/*.tsx exactly.
  * ──────────────────────────────────────────────────────────── */
 
@@ -43,8 +43,8 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     type: "hero",
     label_he: "באנר ראשי",
     label_en: "Hero Banner",
-    description_he: "הסקשן הראשון — כותרת, משפט משנה, כפתור CTA ונתון סטטיסטי",
-    description_en: "First section — heading, subheading, CTA button, and optional stat",
+    description_he: "הסקשן הראשון: כותרת, משפט משנה, כפתור CTA ונתון סטטיסטי",
+    description_en: "First section: heading, subheading, CTA button, and optional stat",
     suggestedOrder: 1,
     recommended: true,
     fields: [
@@ -58,7 +58,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     ],
     jsonExample: {
       heading_he: "לימודי משפטים באונו",
-      subheading_he: "בית הספר הגדול בישראל למשפטים — גמישות, מעשיות, והשמה מובטחת",
+      subheading_he: "בית הספר הגדול בישראל למשפטים. גמישות, מעשיות, והשמה מובטחת",
       cta_text_he: "קבלו מידע מלא",
       stat_value: "90%",
       stat_label_he: "הצלחה בבחינת הלשכה",
@@ -361,7 +361,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     ],
     jsonExample: {
       heading_he: "תנאי קבלה",
-      description_he: "ההרשמה פתוחה — מספר המקומות מוגבל",
+      description_he: "ההרשמה פתוחה, מספר המקומות מוגבל",
       requirements: [
         "תעודת בגרות מלאה",
         "ציון פסיכומטרי 520 ומעלה (או SAT/יע״ל מקביל)",
@@ -511,7 +511,7 @@ function localizeExample(obj: Record<string, unknown>, lang: string): Record<str
 }
 
 /* ────────────────────────────────────────────────────────────
- * PROMPT GENERATOR — produces the sharpest possible prompt
+ * PROMPT GENERATOR: produces the sharpest possible prompt
  * ──────────────────────────────────────────────────────────── */
 
 export function generateAiPrompt(
@@ -540,8 +540,8 @@ export function generateAiPrompt(
   const urlList = referenceUrls.length > 0
     ? referenceUrls.map((u) => `- ${u}`).join("\n")
     : isHe
-      ? "(לא סופקו קישורים — כתוב תוכן שיווקי כללי)"
-      : "(No reference URLs — write general marketing content)";
+      ? "(לא סופקו קישורים. כתוב תוכן שיווקי כללי)"
+      : "(No reference URLs. Write general marketing content)";
 
   // ── Build section templates ──
   const sectionTemplates = sections.map((s) => {
@@ -571,7 +571,7 @@ ${exampleJson}
   // ── PROMPT ──
   if (isHe) {
     return `אתה כותב תוכן שיווקי לעמוד נחיתה באתר OnoLeads (קמפוס אונו האקדמית).
-עליך להחזיר **JSON בלבד** — ללא טקסט, ללא הסברים, ללא markdown מסביב.
+עליך להחזיר **JSON בלבד**. ללא טקסט, ללא הסברים, ללא markdown מסביב.
 
 ═══════════════════════════════════════
 פרטי התוכנית
@@ -588,13 +588,27 @@ ${urlList}
 ═══════════════════════════════════════
 כללי כתיבה
 ═══════════════════════════════════════
-1. כתוב בעברית שיווקית — ברורה, ישירה, משכנעת
+1. כתוב בעברית שיווקית, ברורה, ישירה ומשכנעת
 2. פנייה בגוף שני רבים ("הצטרפו", "גלו", "קבלו")
 3. דגש על יתרונות אונו: גמישות, מעשיות, רלוונטיות לשוק העבודה
 4. שמור על אורכי שדות (maxLength מצוין בדוגמאות)
-5. שמות סטודנטים — שמות ישראליים אמינים
-6. אל תמציא נתונים — אם לא בטוח, כתוב "מהמובילים", "מהגדולים"
+5. שמות סטודנטים: שמות ישראליים אמינים
+6. אל תמציא נתונים. אם לא בטוח, כתוב "מהמובילים", "מהגדולים"
 7. כל שדות הטקסט מסתיימים ב-${langSuffix}
+
+═══════════════════════════════════════
+סגנון כתיבה: תכתוב כמו בן אדם
+═══════════════════════════════════════
+חשוב מאוד שהטקסט יישמע טבעי, כאילו בן אדם כתב אותו ולא מכונה.
+כללים:
+- לא להשתמש במקף ארוך (—). להפריד עם נקודה, פסיק או משפט חדש
+- לא להשתמש במילות קישור מלאכותיות כמו "לפיכך", "אי לכך", "בהתאם לכך"
+- לא לכתוב ברשימות מנוקדות ארוכות ומסודרות מדי. לגוון בין משפטים קצרים וארוכים
+- להימנע מניסוחים גנריים כמו "פתרון מקיף", "חוויה ייחודית", "הזדמנות פז"
+- להשתמש בעברית של היומיום. לכתוב כמו שמדברים עם חבר שקצת מכבדים
+- לגוון את פתיחת המשפטים. לא להתחיל 3 משפטים ברצף עם אותה מילה
+- לא לכתוב באופן תבניתי (כל פיסקה באותו אורך, כל נקודה באותו מבנה)
+- להכניס פרטים קונקרטיים ספציפיים במקום תיאורים כלליים
 
 ═══════════════════════════════════════
 מבנה JSON נדרש (בדיוק!)
@@ -603,8 +617,8 @@ ${urlList}
 {
   "page": {
     "title_he": "כותרת העמוד",
-    "seo_title": "כותרת SEO — עד 60 תווים",
-    "seo_description": "תיאור SEO — עד 155 תווים",
+    "seo_title": "כותרת SEO, עד 60 תווים",
+    "seo_description": "תיאור SEO, עד 155 תווים",
     "language": "he"
   },
   "sections": [
@@ -614,31 +628,31 @@ ${sectionsArrayPreview}
 \`\`\`
 
 ═══════════════════════════════════════
-${sections.length} סקשנים לייצר — דוגמאות מדויקות
+${sections.length} סקשנים לייצר, דוגמאות מדויקות
 ═══════════════════════════════════════
-להלן הדוגמה המדויקת לכל סקשן. **העתק את מבנה ה-content בדיוק** — אותם שמות שדות, אותם טיפוסים.
+להלן הדוגמה המדויקת לכל סקשן. **העתק את מבנה ה-content בדיוק**, אותם שמות שדות, אותם טיפוסים.
 החלף רק את הערכים בתוכן רלוונטי לתוכנית "${programInfo.programName}".
 
 ${sectionTemplates}
 
 ═══════════════════════════════════════
-תזכורת סופית — חשוב מאוד!
+תזכורת סופית, חשוב מאוד!
 ═══════════════════════════════════════
 1. החזר JSON חוקי בלבד. ללא טקסט לפני או אחרי ה-JSON. ללא markdown. ללא הסברים.
-2. אל תעטוף ב-\`\`\`json — החזר את ה-JSON ישירות.
+2. אל תעטוף ב-\`\`\`json. החזר את ה-JSON ישירות.
 3. ודא שאין פסיקים מיותרים (trailing commas) לפני } או ].
 4. כל מחרוזת חייבת להיות בתוך גרשיים כפולים " ולא גרשיים בודדים '.
 5. שמות שדות חייבים להיות זהים לדוגמאות למעלה (כולל _he).
 6. אסור להוסיף שדות שלא מופיעים בדוגמאות.
 7. אסור לשנות שמות שדות (למשל: button_text_he ולא cta_text_he).
-8. items/bullets/requirements/years/courses — מערכים, לא אובייקט בודד.
+8. items/bullets/requirements/years/courses חייבים להיות מערכים, לא אובייקט בודד.
 9. section_type חייב להיות בדיוק אחד מ: ${sections.map((s) => s.type).join(", ")}
 10. בדוק שוב שה-JSON תקין לפני שאתה מחזיר אותו.`;
   }
 
   // ── ENGLISH / ARABIC PROMPT ──
   return `You are a marketing copywriter for OnoLeads (Ono Academic Campus landing pages).
-Return **valid JSON only** — no text, no explanations, no markdown around it.
+Return **valid JSON only**. No text, no explanations, no markdown around it.
 
 ═══════════════════════════════════════
 Program Details
@@ -660,10 +674,24 @@ Writing Rules
 3. Emphasize Ono's advantages: flexibility, practical education, job market readiness
 4. Respect field length limits (maxLength noted in examples)
 5. Use realistic ${lang === "ar" ? "Arabic" : "international"} names for testimonials
-6. Do NOT invent statistics — if unsure, write "one of the leading", "among the largest"
-7. CRITICAL — All text field keys MUST use the \`${langSuffix}\` suffix, NOT \`_he\`
+6. Do NOT invent statistics. If unsure, write "one of the leading", "among the largest"
+7. CRITICAL: All text field keys MUST use the \`${langSuffix}\` suffix, NOT \`_he\`
    Example: \`heading${langSuffix}\`, \`subheading${langSuffix}\`, \`button_text${langSuffix}\`, \`question${langSuffix}\`, \`answer${langSuffix}\`
    Exception: keys without language suffix stay as-is: \`stat_value\`, \`icon\`, \`rating\`, \`layout\`, \`name\`, \`url\`, \`year_label\`, \`label\`, \`value\`
+
+═══════════════════════════════════════
+Writing Style: Sound Human
+═══════════════════════════════════════
+The text must read like a real person wrote it, not a machine.
+Rules:
+- Never use em dashes. Use periods, commas, or start a new sentence instead
+- Avoid filler words like "comprehensive solution", "unique experience", "golden opportunity"
+- Do not write overly structured bullet points. Mix short and long sentences naturally
+- Avoid generic corporate language. Be specific and concrete
+- Vary sentence openings. Never start 3 sentences in a row with the same word
+- Do not write in a template pattern (every paragraph same length, every bullet same structure)
+- Include specific concrete details instead of vague descriptions
+- Write the way you would talk to a friend you respect
 
 ═══════════════════════════════════════
 Required JSON Structure (exact format!)
@@ -672,8 +700,8 @@ Required JSON Structure (exact format!)
 {
   "page": {
     "title_he": "Page title (internal, can be in ${writingLang})",
-    "seo_title": "SEO title — max 60 chars, in ${writingLang}",
-    "seo_description": "SEO description — max 155 chars, in ${writingLang}",
+    "seo_title": "SEO title, max 60 chars, in ${writingLang}",
+    "seo_description": "SEO description, max 155 chars, in ${writingLang}",
     "language": "${lang}"
   },
   "sections": [
@@ -683,19 +711,19 @@ ${sectionsArrayPreview}
 \`\`\`
 
 ═══════════════════════════════════════
-${sections.length} Sections — Exact Templates
+${sections.length} Sections: Exact Templates
 ═══════════════════════════════════════
-Below is the exact content structure for each section. **Copy the field names exactly** — same keys, same types.
+Below is the exact content structure for each section. **Copy the field names exactly**, same keys, same types.
 Replace only the values with content relevant to "${programInfo.programName}".
 Remember: every \`_he\` suffix below becomes \`${langSuffix}\` in your output.
 
 ${sectionTemplates}
 
 ═══════════════════════════════════════
-Final Reminders — VERY IMPORTANT!
+Final Reminders, VERY IMPORTANT!
 ═══════════════════════════════════════
 1. Return valid JSON ONLY. No text before or after the JSON. No markdown. No explanations.
-2. Do NOT wrap in \`\`\`json — return the raw JSON directly.
+2. Do NOT wrap in \`\`\`json. Return the raw JSON directly.
 3. Ensure no trailing commas before } or ].
 4. All strings MUST use double quotes ", never single quotes '.
 5. Field names MUST match the templates above exactly (with \`${langSuffix}\` instead of \`_he\`).
@@ -707,7 +735,7 @@ Final Reminders — VERY IMPORTANT!
 }
 
 /* ────────────────────────────────────────────────────────────
- * VALIDATION — checks imported JSON against section schemas
+ * VALIDATION: checks imported JSON against section schemas
  * ──────────────────────────────────────────────────────────── */
 
 export function validateImportedContent(data: unknown): string[] {
@@ -731,7 +759,7 @@ export function validateImportedContent(data: unknown): string[] {
 
   const sections = obj.sections as Record<string, unknown>[];
   if (sections.length === 0) {
-    errors.push("מערך sections ריק — נדרש לפחות סקשן אחד");
+    errors.push("מערך sections ריק. נדרש לפחות סקשן אחד");
   }
 
   const validTypes = new Set(SECTION_SCHEMAS.map((s) => s.type));

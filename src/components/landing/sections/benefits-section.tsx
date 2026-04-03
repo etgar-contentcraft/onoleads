@@ -140,8 +140,8 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
           </h2>
         </div>
 
-        {/* 3-column card grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-7">
+        {/* Flex grid — centers orphan items on the last row */}
+        <div className="flex flex-wrap justify-center gap-5 md:gap-7">
           {items.map((item, index) => {
             const title = (item[`title_${language}` as keyof BenefitItem] as string) || item.title_he;
             const desc = (item[`description_${language}` as keyof BenefitItem] as string) || item.description_he || "";
@@ -150,7 +150,7 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
             return (
               <div
                 key={index}
-                className="group relative bg-white rounded-2xl p-7 md:p-8 border border-gray-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] hover:border-[#B8D900]/40 hover:shadow-[0_12px_40px_rgba(184,217,0,0.1)] transition-all duration-400 opacity-0 hover:-translate-y-1"
+                className="group relative bg-white rounded-2xl p-7 md:p-8 border border-gray-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] hover:border-[#B8D900]/40 hover:shadow-[0_12px_40px_rgba(184,217,0,0.1)] transition-all duration-400 opacity-0 hover:-translate-y-1 w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-19px)]"
                 style={{ animation: inView ? `fade-in-up 0.5s ease-out ${0.1 + index * 0.08}s forwards` : "none" }}
               >
                 {/* Green top accent line on hover */}

@@ -317,10 +317,12 @@ export default function PagesManagementPage() {
   async function confirmDelete() {
     if (!deleteConfirmId) return;
     const { error } = await supabase.from("pages").delete().eq("id", deleteConfirmId);
-    if (!error) {
-      fetchPages();
-      fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_page_deleted", resource_type: "page", resource_id: deleteConfirmId }) }).catch(() => {});
+    if (error) {
+      alert("שגיאה במחיקת העמוד. נסו שוב.");
+      return;
     }
+    fetchPages();
+    fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_page_deleted", resource_type: "page", resource_id: deleteConfirmId }) }).catch(() => {});
     setDeleteConfirmId(null);
   }
 

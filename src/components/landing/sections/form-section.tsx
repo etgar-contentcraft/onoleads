@@ -27,7 +27,7 @@ export function FormSection({ content, language, pageId, programId }: FormSectio
   const submitText = (content[`submit_text_${language}`] as string) || (content.submit_text_he as string) || "שלחו לי מידע מלא";
   const thankYouMessage = (content[`thank_you_message_${language}`] as string) || (content.thank_you_message_he as string) || "";
 
-  const fields: FormField[] = (content.fields as FormField[]) || [
+  const fields: FormField[] = Array.isArray(content.fields) ? (content.fields as FormField[]) : [
     { name: "full_name", type: "text", label_he: "שם מלא", label_en: "Full Name", required: true },
     { name: "phone", type: "tel", label_he: "טלפון", label_en: "Phone", required: true },
     { name: "email", type: "email", label_he: "אימייל", label_en: "Email", required: false },
@@ -35,6 +35,7 @@ export function FormSection({ content, language, pageId, programId }: FormSectio
 
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [inView, setInView] = useState(false);
@@ -62,6 +63,15 @@ export function FormSection({ content, language, pageId, programId }: FormSectio
 
   const getLabel = (field: FormField) => {
     return (field[`label_${language}` as keyof FormField] as string) || field.label_he || field.name;
+  };
+
+  /** Updates a field value and clears its validation error */
+  const handleChange = (fieldName: string, value: string) => {
+    setFormData({ ...formData, [fieldName]: value });
+    if (errors[fieldName]) {
+      setErrors((prev) => { const next = { ...prev }; delete next[fieldName]; return next; });
+    }
+    if (apiError) setApiError(false);
   };
 
   const validate = (): boolean => {
@@ -126,12 +136,15 @@ export function FormSection({ content, language, pageId, programId }: FormSectio
 
       if (res.ok) {
         setSubmitted(true);
+      } else {
+        setApiError(true);
       }
     } catch (err) {
       console.error("Form submission failed:", err);
+      setApiError(true);
+    } finally {
+      setSubmitting(false);
     }
-
-    setSubmitting(false);
   };
 
   // Thank you state
@@ -211,14 +224,16 @@ export function FormSection({ content, language, pageId, programId }: FormSectio
                 <div key={field.name}>
                   <label className="block text-white/80 text-sm font-medium mb-2">
                     {getLabel(field)}
-                    {field.required && <span className="text-[#B8D900] mr-1">*</span>}
+                    {field.required && <span className={`text-[#B8D900] ${isRtl ? "mr-1" : "ml-1"}`}>*</span>}
                   </label>
 
                   {field.type === "select" ? (
                     <select
                       value={formData[field.name] || ""}
-                      onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-                      className="w-full h-14 rounded-xl bg-white/10 border border-white/20 px-5 text-white text-base focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none"
+                      onChange={(e) => handleChange(field.name, e.target.value)}
+                      aria-required={field.required || undefined}
+                      required={field.required}
+                      className={`w-full h-14 rounded-xl bg-white/10 border px-5 text-white text-base focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none ${errors[field.name] ? "border-red-400/60" : "border-white/20"}`}
                     >
                       <option value="" className="bg-[#2a2628]">{isRtl ? "בחרו..." : "Select..."}</option>
                       {field.options?.map((opt) => (
@@ -229,9 +244,11 @@ export function FormSection({ content, language, pageId, programId }: FormSectio
                     <input
                       type={field.type}
                       value={formData[field.name] || ""}
-                      onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
+                      onChange={(e) => handleChange(field.name, e.target.value)}
                       dir={field.type === "tel" || field.type === "email" ? "ltr" : undefined}
-                      className="w-full h-14 rounded-xl bg-white/10 border border-white/20 px-5 text-white text-base placeholder:text-white/30 focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
+                      aria-required={field.required || undefined}
+                      required={field.required}
+                      className={`w-full h-14 rounded-xl bg-white/10 border px-5 text-white text-base placeholder:text-white/30 focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors[field.name] ? "border-red-400/60" : "border-white/20"}`}
                       placeholder={getLabel(field)}
                     />
                   )}
@@ -247,6 +264,16 @@ export function FormSection({ content, language, pageId, programId }: FormSectio
                 </div>
               ))}
             </div>
+
+            {/* API error feedback */}
+            {apiError && (
+              <div className="mt-5 p-4 rounded-xl bg-red-500/10 border border-red-400/30 text-red-300 text-sm flex items-center gap-2">
+                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {isRtl ? "שגיאה בשליחת הטופס. אנא נסו שוב." : "Error submitting form. Please try again."}
+              </div>
+            )}
 
             <button
               type="submit"

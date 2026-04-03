@@ -65,7 +65,7 @@ export function ProgramInfoBar({ content, language }: ProgramInfoBarProps) {
     return () => { obs.disconnect(); clearTimeout(fallback); };
   }, []);
 
-  const items: InfoItem[] = (content.items as InfoItem[]) || [];
+  const items: InfoItem[] = Array.isArray(content.items) ? (content.items as InfoItem[]) : [];
 
   /* Build default items from content fields if no items array */
   const displayItems: InfoItem[] = items.length > 0 ? items : [

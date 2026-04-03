@@ -1,5 +1,5 @@
 /**
- * Help & Documentation page — full reference of all system capabilities.
+ * Help & Documentation page, full reference of all system capabilities.
  * Designed for marketing team members who are new to the admin panel.
  */
 "use client";
@@ -29,7 +29,7 @@ const HELP_SECTIONS: HelpSection[] = [
     id: "builder",
     icon: Edit3,
     title: "בילדר דפי נחיתה",
-    description: "כלי הליבה לבניית ועריכת עמודי נחיתה. גרירה, שינוי סדר, הסתרה — הכל ב-UI ויזואלי.",
+    description: "כלי הליבה לבניית ועריכת עמודי נחיתה. גרירה, שינוי סדר, הסתרה, הכל ב-UI ויזואלי.",
     color: "bg-lime-50 text-lime-700 border-lime-200",
     features: [
       {
@@ -42,7 +42,7 @@ const HELP_SECTIONS: HelpSection[] = [
       },
       {
         name: "הסתרת סקציה",
-        description: "לחצו על אייקון העין בכרטיס הסקציה כדי להסתירה מהמבקרים — הסקציה נשמרת אך לא מוצגת.",
+        description: "לחצו על אייקון העין בכרטיס הסקציה כדי להסתירה מהמבקרים, הסקציה נשמרת אך לא מוצגת.",
       },
       {
         name: "עריכת תוכן",
@@ -54,13 +54,13 @@ const HELP_SECTIONS: HelpSection[] = [
       },
       {
         name: "Dynamic Text (DTR)",
-        description: "השתמשו ב-{{utm_source}}, {{utm_campaign}} וכו' בכותרות ותיאורים — הטקסט יוחלף אוטומטית לפי UTM params של המבקר.",
+        description: "השתמשו ב-{{utm_source}}, {{utm_campaign}} וכו' בכותרות ותיאורים, הטקסט יוחלף אוטומטית לפי UTM params של המבקר.",
         tip: "דוגמה: כותרת \"קורס מ-{{utm_source|Google}}\" תוצג כ-\"קורס מ-Facebook\" למבקר עם utm_source=Facebook",
       },
       {
         name: "היסטוריית גרסאות",
         description: "לחצו על אייקון השעון בטופבר לצפות ב-20 הגרסאות האחרונות של הדף ולשחזר כל אחת מהן.",
-        tip: "גרסה נשמרת אוטומטית לפני כל שמירה — אין צורך בפעולה ידנית",
+        tip: "גרסה נשמרת אוטומטית לפני כל שמירה, אין צורך בפעולה ידנית",
       },
       {
         name: "הגדרות עמוד",
@@ -76,7 +76,7 @@ const HELP_SECTIONS: HelpSection[] = [
       },
       {
         name: "כותרת סרגל עליון",
-        description: "ניתן להגדיר כותרת מקוצרת שתוצג בסרגל העליון הנעוץ. אם לא מוגדרת — שם העמוד המלא יוצג.",
+        description: "ניתן להגדיר כותרת מקוצרת שתוצג בסרגל העליון הנעוץ. אם לא מוגדרת, שם העמוד המלא יוצג.",
       },
     ],
   },
@@ -89,16 +89,16 @@ const HELP_SECTIONS: HelpSection[] = [
     features: [
       { name: "Hero", description: "כותרת ראשית עם רקע, כותרת משנה, CTA, וסטטיסטיקה מונפשת." },
       { name: "אודות", description: "שני עמודות: טקסט + תמונה, עם נקודות USP ב-checkmarks." },
-      { name: "יתרונות", description: "כרטיסיות יתרונות מונפשות — מה מבדל את התוכנית." },
-      { name: "סטטיסטיקות", description: "מספרים גדולים עם הנפשת ספירה — אחוזי תעסוקה, מספר בוגרים וכו'." },
-      { name: "תוכנית לימודים", description: "אקורדיון לפי שנים/סמסטרים — מצוין ל-SEO." },
+      { name: "יתרונות", description: "כרטיסיות יתרונות מונפשות, מה מבדל את התוכנית." },
+      { name: "סטטיסטיקות", description: "מספרים גדולים עם הנפשת ספירה, אחוזי תעסוקה, מספר בוגרים וכו'." },
+      { name: "תוכנית לימודים", description: "אקורדיון לפי שנים/סמסטרים, מצוין ל-SEO." },
       { name: "קריירה", description: "תפקידים נפוצים של בוגרים + ציטוטים." },
       { name: "סגל", description: "רשת כרטיסיות אנשי סגל עם תמונה, תואר, ומוסד." },
       { name: "המלצות", description: "ציטוטים מסטודנטים בוגרים עם שם, תוכנית, ותמונה." },
       { name: "שאלות נפוצות", description: "אקורדיון FAQ עם JSON-LD schema אוטומטי לגוגל ו-AI." },
-      { name: "וידאו", description: "נגן YouTube — ראשי + רשת סרטונים נוספים." },
+      { name: "וידאו", description: "נגן YouTube, ראשי + רשת סרטונים נוספים." },
       { name: "גלריה", description: "פסיפס תמונות לקמפוס, אירועים, חיי סטודנטים." },
-      { name: "ספירה לאחור", description: "טיימר evergreen (מתאפס לכל מבקר) או קבוע לתאריך — יוצר דחיפות." },
+      { name: "ספירה לאחור", description: "טיימר evergreen (מתאפס לכל מבקר) או קבוע לתאריך, יוצר דחיפות." },
       { name: "קריאה לפעולה", description: "CTA גדול ומרשים לתחתית הדף." },
       { name: "מפה", description: "כתובת + embed של Google Maps." },
     ],
@@ -113,20 +113,20 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         name: "Exit Intent Popup",
         description: "פופאפ שמופיע כשהמבקר מנסה לעזוב (עכבר עוזב המסך למעלה), או אחרי גלילה חזרה למעלה במובייל.",
-        tip: "כבוי כברירת מחדל — הפעל בהגדרות עמוד תחת 'המרות'",
+        tip: "כבוי כברירת מחדל, הפעל בהגדרות עמוד תחת 'המרות'",
       },
       {
         name: "Social Proof Toast",
-        description: "toast בתחתית המסך: \"23 אנשים נרשמו לתוכנית זו השבוע\" — מביא נתונים בזמן אמת מה-DB.",
-        tip: "כבוי כברירת מחדל — הפעל בהגדרות עמוד, ניתן לשנות את חלון הימים",
+        description: "toast בתחתית המסך: \"23 אנשים נרשמו לתוכנית זו השבוע\", מביא נתונים בזמן אמת מה-DB.",
+        tip: "כבוי כברירת מחדל, הפעל בהגדרות עמוד, ניתן לשנות את חלון הימים",
       },
       {
         name: "Sticky Mobile Header",
-        description: "כותרת נצמדת עם כפתור CTA ומספר טלפון שמופיעה בזמן גלילה — מעלה המרות במובייל.",
+        description: "כותרת נצמדת עם כפתור CTA ומספר טלפון שמופיעה בזמן גלילה, מעלה המרות במובייל.",
       },
       {
         name: "WhatsApp Floating Button",
-        description: "כפתור WhatsApp צף עם הודעה מותאמת אישית — הוסיפו סקציית WhatsApp לדף.",
+        description: "כפתור WhatsApp צף עם הודעה מותאמת אישית, הוסיפו סקציית WhatsApp לדף.",
       },
       {
         name: "טופס לידים (CTA Modal)",
@@ -142,12 +142,12 @@ const HELP_SECTIONS: HelpSection[] = [
     id: "leads",
     icon: Users,
     title: "לידים",
-    description: "כל ליד שנשמר דרך הטפסים — עם פרטים מלאים ו-UTM attribution.",
+    description: "כל ליד שנשמר דרך הטפסים, עם פרטים מלאים ו-UTM attribution.",
     color: "bg-purple-50 text-purple-700 border-purple-200",
     features: [
       {
         name: "רשימת לידים",
-        description: "כל הלידים מכל הדפים — עם שם, טלפון, אימייל, תוכנית, עמוד מקור, ומקור UTM.",
+        description: "כל הלידים מכל הדפים, עם שם, טלפון, אימייל, תוכנית, עמוד מקור, ומקור UTM.",
       },
       {
         name: "UTM Attribution",
@@ -159,11 +159,11 @@ const HELP_SECTIONS: HelpSection[] = [
       },
       {
         name: "Webhook ל-CRM",
-        description: "הגדירו webhook URL בהגדרות (גלובלי או לכל עמוד בנפרד) — כל ליד נשלח ב-real-time ל-Make.com / Zapier.",
+        description: "הגדירו webhook URL בהגדרות (גלובלי או לכל עמוד בנפרד), כל ליד נשלח ב-real-time ל-Make.com / Zapier.",
       },
       {
         name: "עמוד תודה",
-        description: "לאחר שליחת הטופס המבקר מנותב לעמוד תודה מותאם אישית — הגדרות בבילדר תחת 'הגדרות עמוד'.",
+        description: "לאחר שליחת הטופס המבקר מנותב לעמוד תודה מותאם אישית, הגדרות בבילדר תחת 'הגדרות עמוד'.",
       },
     ],
   },
@@ -171,7 +171,7 @@ const HELP_SECTIONS: HelpSection[] = [
     id: "global-sections",
     icon: Globe,
     title: "סקציות גלובליות",
-    description: "בלוקים משותפים שמופיעים בכמה עמודים — ערוך פעם אחת ויתעדכן בכולם.",
+    description: "בלוקים משותפים שמופיעים בכמה עמודים, ערוך פעם אחת ויתעדכן בכולם.",
     color: "bg-teal-50 text-teal-700 border-teal-200",
     features: [
       {
@@ -188,7 +188,7 @@ const HELP_SECTIONS: HelpSection[] = [
       },
       {
         name: "ניתוק",
-        description: "ניתן למחוק את הסקציה הגלובלית — הדפים שהשתמשו בה ישמרו עם התוכן האחרון שלה.",
+        description: "ניתן למחוק את הסקציה הגלובלית, הדפים שהשתמשו בה ישמרו עם התוכן האחרון שלה.",
       },
     ],
   },
@@ -196,7 +196,7 @@ const HELP_SECTIONS: HelpSection[] = [
     id: "analytics",
     icon: BarChart3,
     title: "אנליטיקס",
-    description: "נתוני ביצועים ראשוניים (first-party) — ללא תלות ב-Google Analytics.",
+    description: "נתוני ביצועים ראשוניים (first-party), ללא תלות ב-Google Analytics.",
     color: "bg-indigo-50 text-indigo-700 border-indigo-200",
     features: [
       {
@@ -209,11 +209,11 @@ const HELP_SECTIONS: HelpSection[] = [
       },
       {
         name: "שליחות טופס",
-        description: "כמה מבקרים השלימו שליחת ליד — שיעור המרה לפי עמוד.",
+        description: "כמה מבקרים השלימו שליחת ליד, שיעור המרה לפי עמוד.",
       },
       {
         name: "Google Analytics + Facebook Pixel",
-        description: "הגדירו ID בהגדרות הכלליות — יופעל אוטומטית על כל עמוד. ניתן גם להגדיר per-page.",
+        description: "הגדירו ID בהגדרות הכלליות, יופעל אוטומטית על כל עמוד. ניתן גם להגדיר per-page.",
       },
     ],
   },
@@ -230,7 +230,7 @@ const HELP_SECTIONS: HelpSection[] = [
       },
       {
         name: "Open Graph & Twitter Cards",
-        description: "תגי OG לשיתוף ב-social — כותרת, תיאור, ותמונה.",
+        description: "תגי OG לשיתוף ב-social, כותרת, תיאור, ותמונה.",
       },
       {
         name: "SEO Title & Description",
@@ -246,17 +246,17 @@ const HELP_SECTIONS: HelpSection[] = [
     id: "dtr",
     icon: Zap,
     title: "טקסט דינמי (DTR)",
-    description: "הטמעת משתני UTM ישירות בתוכן הדף — לפרסונליזציה לפי מקור תנועה.",
+    description: "הטמעת משתני UTM ישירות בתוכן הדף, לפרסונליזציה לפי מקור תנועה.",
     color: "bg-orange-50 text-orange-700 border-orange-200",
     features: [
       {
-        name: "טקסט דינמי (DTR) — מדריך מלא",
+        name: "טקסט דינמי (DTR), מדריך מלא",
         description: "התאמת תוכן אוטומטית לפי UTM parameters. השתמשו ב-{{utm_source}}, {{utm_campaign}} וכו' בכל שדה טקסט. הוסיפו fallback עם תו |, למשל: {{utm_source|Google}}. לחצו על 'מדריך מפורט' ליד כל שדה טקסט דינמי לקבלת הנחיות מפורטות.",
         tip: "משתנים זמינים: utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer. דוגמה: כותרת 'קורס מ-{{utm_source|אונו}}' תוצג כ-'קורס מ-Facebook' למבקר עם utm_source=Facebook",
       },
       {
         name: "שימוש",
-        description: "כתבו {{utm_source}} בכל שדה טקסט בבילדר — יוחלף אוטומטית.",
+        description: "כתבו {{utm_source}} בכל שדה טקסט בבילדר, יוחלף אוטומטית.",
       },
       {
         name: "Fallback",
@@ -269,7 +269,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         name: "דוגמה",
         description: "כותרת: \"לימוד {{utm_campaign|מנהל עסקים}} באונו\" → לבקור מ-utm_campaign=MBA יוצג: \"לימוד MBA באונו\"",
-        tip: "DTR פועל בכל שדה טקסט — כותרות, תיאורים, טקסט כפתורים, bullets וכו'",
+        tip: "DTR פועל בכל שדה טקסט, כותרות, תיאורים, טקסט כפתורים, bullets וכו'",
       },
     ],
   },
@@ -277,16 +277,16 @@ const HELP_SECTIONS: HelpSection[] = [
     id: "versions",
     icon: Eye,
     title: "גרסאות ו-Rollback",
-    description: "כל שמירה בבילדר נשמרת כגרסה — ניתן לשחזר כל גרסה מ-20 האחרונות.",
+    description: "כל שמירה בבילדר נשמרת כגרסה, ניתן לשחזר כל גרסה מ-20 האחרונות.",
     color: "bg-slate-50 text-slate-700 border-slate-200",
     features: [
       {
         name: "שמירה אוטומטית",
-        description: "לפני כל לחיצה על שמור — הגרסה הנוכחית נשמרת אוטומטית. אין צורך בפעולה ידנית.",
+        description: "לפני כל לחיצה על שמור, הגרסה הנוכחית נשמרת אוטומטית. אין צורך בפעולה ידנית.",
       },
       {
         name: "צפייה בהיסטוריה",
-        description: "לחצו על אייקון השעון בטופבר הבילדר — תראו רשימה של עד 20 גרסאות אחרונות.",
+        description: "לחצו על אייקון השעון בטופבר הבילדר, תראו רשימה של עד 20 גרסאות אחרונות.",
       },
       {
         name: "שחזור גרסה",
@@ -298,12 +298,12 @@ const HELP_SECTIONS: HelpSection[] = [
     id: "settings",
     icon: Settings,
     title: "הגדרות מערכת",
-    description: "הגדרות גלובליות שמשפיעות על כל הדפים — אלא אם עמוד ספציפי מגדיר override.",
+    description: "הגדרות גלובליות שמשפיעות על כל הדפים, אלא אם עמוד ספציפי מגדיר override.",
     color: "bg-gray-50 text-gray-700 border-gray-200",
     features: [
       {
         name: "Webhook כללי",
-        description: "URL לשליחת לידים ל-Make.com / Zapier / CRM — פועל על כל הדפים.",
+        description: "URL לשליחת לידים ל-Make.com / Zapier / CRM, פועל על כל הדפים.",
       },
       {
         name: "מספר WhatsApp & טלפון",
@@ -328,7 +328,7 @@ const HELP_SECTIONS: HelpSection[] = [
     features: [
       {
         name: "תיעוד פעולות",
-        description: "כל פעולה — יצירת דף, מחיקה, עריכת תוכן, שינוי הגדרות — מתועדת עם תאריך ומשתמש.",
+        description: "כל פעולה, יצירת דף, מחיקה, עריכת תוכן, שינוי הגדרות, מתועדת עם תאריך ומשתמש.",
       },
       {
         name: "סינון",
@@ -340,23 +340,23 @@ const HELP_SECTIONS: HelpSection[] = [
     id: "media",
     icon: ImageIcon,
     title: "ספריית מדיה",
-    description: "ניהול כל קבצי המדיה — תמונות, לוגואים, תמונות רקע.",
+    description: "ניהול כל קבצי המדיה, תמונות, לוגואים, תמונות רקע.",
     color: "bg-pink-50 text-pink-700 border-pink-200",
     features: [
       {
         name: "העלאת תמונות",
-        description: "גרור ושחרר או לחץ להעלאה — שמירה ב-Supabase Storage.",
+        description: "גרור ושחרר או לחץ להעלאה, שמירה ב-Supabase Storage.",
       },
       {
         name: "שימוש בבילדר",
-        description: "בכל שדה תמונה בעורכי הסקציות — ניתן להשתמש ב-URL ישיר מהספרייה.",
+        description: "בכל שדה תמונה בעורכי הסקציות, ניתן להשתמש ב-URL ישיר מהספרייה.",
       },
     ],
   },
   {
     id: "cta-best-practices",
     icon: Target,
-    title: "שיטות עבודה מומלצות — קריאה לפעולה",
+    title: "שיטות עבודה מומלצות, קריאה לפעולה",
     description: "טיפים ליצירת כפתורי CTA אפקטיביים בעברית.",
     color: "bg-yellow-50 text-yellow-700 border-yellow-200",
     features: [
@@ -390,11 +390,11 @@ const HELP_SECTIONS: HelpSection[] = [
     color: "bg-purple-50 text-purple-700 border-purple-200",
     features: [
       {
-        name: "עברית וערבית — RTL",
+        name: "עברית וערבית, RTL",
         description: "בשפות אלו כל הממשק והעמוד מוצגים מימין לשמאל. חצי CTA מצביעים שמאלה.",
       },
       {
-        name: "אנגלית — LTR",
+        name: "אנגלית, LTR",
         description: "כשהעמוד מוגדר כאנגלית, כל הטקסטים מיושרים שמאלה וחצים מצביעים ימינה.",
       },
       {
@@ -413,14 +413,14 @@ const JSON_EXAMPLES = [
   {
     id: "benefits",
     title: "יתרונות (benefits)",
-    description: "כרטיסיות יתרון — כותרת + תיאור + אייקון",
+    description: "כרטיסיות יתרון, כותרת + תיאור + אייקון",
     prompt: `צור JSON של 5 יתרונות ללימודי משפטים באוניברסיטה.
 הפורמט הוא:
 [{"title_he": "כותרת", "description_he": "תיאור קצר של 1-2 משפטים", "icon": "⚖️"}, ...]`,
     example: `[
   {
     "title_he": "מסלולים גמישים",
-    "description_he": "לימוד בימים ובשעות שמתאימים לך — גם בשעות הערב.",
+    "description_he": "לימוד בימים ובשעות שמתאימים לך, גם בשעות הערב.",
     "icon": "🕐"
   },
   {
@@ -446,7 +446,7 @@ const JSON_EXAMPLES = [
   {
     id: "faq",
     title: "שאלות נפוצות (faq)",
-    description: "FAQ — שאלה + תשובה",
+    description: "FAQ, שאלה + תשובה",
     prompt: `צור JSON של 6 שאלות נפוצות ללימודי [שם תוכנית].
 הפורמט: [{"question_he": "שאלה?", "answer_he": "תשובה מפורטת של 2-3 משפטים."}, ...]`,
     example: `[
@@ -456,14 +456,14 @@ const JSON_EXAMPLES = [
   },
   {
     "question_he": "האם ניתן ללמוד בערב?",
-    "answer_he": "כן — כל הקורסים מתקיימים גם בשעות הערב. ניתן לשלב עם עבודה מלאה."
+    "answer_he": "כן, כל הקורסים מתקיימים גם בשעות הערב. ניתן לשלב עם עבודה מלאה."
   }
 ]`,
   },
   {
     id: "testimonials",
     title: "המלצות (testimonials)",
-    description: "ציטוטים מסטודנטים — שם + ציטוט + תפקיד + תמונה",
+    description: "ציטוטים מסטודנטים, שם + ציטוט + תפקיד + תמונה",
     prompt: `צור JSON של 3 המלצות מסטודנטים בוגרי [שם תוכנית].
 הפורמט: [{"name_he": "שם", "quote_he": "ציטוט", "title_he": "תפקיד/תוכנית", "image_url": ""}, ...]`,
     example: `[
@@ -516,7 +516,7 @@ const JSON_EXAMPLES = [
   {
     id: "faculty",
     title: "סגל אקדמי (faculty)",
-    description: "חברי סגל — שם + תואר + תיאור + תמונה",
+    description: "חברי סגל, שם + תואר + תיאור + תמונה",
     prompt: `צור JSON של 4 חברי סגל אקדמי בתחום [שם תוכנית].
 הפורמט: [{"name_he": "שם", "title_he": "תואר/מוסד", "bio_he": "תיאור קצר", "image_url": ""}, ...]`,
     example: `[
@@ -559,9 +559,9 @@ function JsonGuideSection() {
             <Code2 className="w-5 h-5 text-[#B8D900]" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">מדריך JSON — יצירה עם AI</h3>
+            <h3 className="text-sm font-bold text-white">מדריך JSON, יצירה עם AI</h3>
             <p className="text-xs text-white/50 mt-0.5">
-              לכל סוג סקציה — פרומפט מוכן ל-ChatGPT/Claude + דוגמה מלאה
+              לכל סוג סקציה, פרומפט מוכן ל-ChatGPT/Claude + דוגמה מלאה
             </p>
           </div>
         </div>

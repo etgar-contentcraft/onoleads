@@ -59,7 +59,7 @@ export function TestimonialsSection({ content, language }: TestimonialsSectionPr
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "מה אומרים הסטודנטים שלנו" : "What our students say");
   const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || "";
   const ctaEnabled = content.cta_enabled !== false;
-  const items: Testimonial[] = (content.items as Testimonial[]) || [];
+  const items: Testimonial[] = Array.isArray(content.items) ? (content.items as Testimonial[]) : [];
 
   const [inView, setInView] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
