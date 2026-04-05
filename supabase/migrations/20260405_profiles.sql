@@ -37,13 +37,22 @@ CREATE POLICY "admins_update_profiles" ON profiles
 
 -- Auto-create profile on new user signup
 CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $func$
 BEGIN
-  INSERT INTO profiles (id, role, display_name)
-  VALUES (NEW.id, 'viewer', COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email));
+  INSERT INTO public.profiles (id, role, display_name)
+  VALUES (
+    NEW.id,
+    'viewer',
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email, 'User')
+  )
+  ON CONFLICT (id) DO NOTHING;
+  RETURN NEW;
+EXCEPTION WHEN others THEN
+  -- Don't let profile creation failure block user creation
+  RAISE WARNING 'handle_new_user error: %', SQLERRM;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$func$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
