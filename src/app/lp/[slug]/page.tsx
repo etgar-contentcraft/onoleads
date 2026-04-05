@@ -112,6 +112,10 @@ const getPageData = cache(async function getPageData(slug: string) {
     facebook_pixel_id: pageOverrides.facebook_pixel_id || globalMap.facebook_pixel_id,
     social_proof_enabled: pageOverrides.social_proof_enabled === "true",
     social_proof_days: pageOverrides.social_proof_days ? parseInt(pageOverrides.social_proof_days, 10) : 7,
+    /* Brand colors: page-level overrides win over global settings */
+    brand_color_primary: pageOverrides.brand_color_primary || globalMap.brand_color_primary,
+    brand_color_dark: pageOverrides.brand_color_dark || globalMap.brand_color_dark,
+    brand_color_gray: pageOverrides.brand_color_gray || globalMap.brand_color_gray,
   };
 
   // For global sections: use shared content when shared_section_id is set

@@ -61,6 +61,10 @@ export interface PageSettings {
   social_proof_days?: number;
   /** Optional short title for the sticky header bar */
   sticky_header_title?: string;
+  /** Brand colors — override defaults across all landing page sections */
+  brand_color_primary?: string;
+  brand_color_dark?: string;
+  brand_color_gray?: string;
 }
 
 /** Minimal interest area shape needed on the client */
@@ -369,8 +373,39 @@ function InnerLayout({
     return sectionType ? !existingSectionTypes.has(sectionType) : true;
   });
 
+  /* Brand color values — fallback to ONO defaults */
+  const brandPrimary = settings?.brand_color_primary || "#B8D900";
+  const brandDark = settings?.brand_color_dark || "#2a2628";
+  const brandGray = settings?.brand_color_gray || "#716C70";
+  const hasCustomColors = brandPrimary !== "#B8D900" || brandDark !== "#2a2628" || brandGray !== "#716C70";
+
+  /* Sanitize: only allow valid hex colors to prevent CSS injection */
+  const safeHex = (v: string) => /^#[0-9A-Fa-f]{3,8}$/.test(v) ? v : "#B8D900";
+  const p = safeHex(brandPrimary);
+  const d = safeHex(brandDark);
+
   return (
-    <div dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-white font-heebo overflow-x-hidden">
+    <div id="lp-root" dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-white font-heebo overflow-x-hidden">
+      {/* Scoped color overrides — applied only when brand colors differ from ONO defaults */}
+      {hasCustomColors && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          #lp-root .bg-\\[\\#B8D900\\] { background-color: ${p} !important; }
+          #lp-root .text-\\[\\#B8D900\\] { color: ${p} !important; }
+          #lp-root .border-\\[\\#B8D900\\] { border-color: ${p} !important; }
+          #lp-root .ring-\\[\\#B8D900\\] { --tw-ring-color: ${p} !important; }
+          #lp-root .from-\\[\\#B8D900\\] { --tw-gradient-from: ${p} !important; }
+          #lp-root .via-\\[\\#B8D900\\] { --tw-gradient-via: ${p} !important; }
+          #lp-root .to-\\[\\#B8D900\\] { --tw-gradient-to: ${p} !important; }
+          #lp-root .bg-\\[\\#2a2628\\] { background-color: ${d} !important; }
+          #lp-root .text-\\[\\#2a2628\\] { color: ${d} !important; }
+          #lp-root .border-\\[\\#2a2628\\] { border-color: ${d} !important; }
+          #lp-root .from-\\[\\#1a1618\\] { --tw-gradient-from: color-mix(in srgb, ${d} 75%, #000) !important; }
+          #lp-root .via-\\[\\#2a2628\\] { --tw-gradient-via: ${d} !important; }
+          #lp-root .to-\\[\\#1a1618\\] { --tw-gradient-to: color-mix(in srgb, ${d} 75%, #000) !important; }
+          #lp-root .hover\\:bg-\\[\\#c8e920\\]:hover { background-color: color-mix(in srgb, ${p} 85%, #fff) !important; }
+          #lp-root .hover\\:bg-\\[\\#3a3638\\]:hover { background-color: color-mix(in srgb, ${d} 85%, #fff) !important; }
+        ` }} />
+      )}
       {/* Sticky Header */}
       <StickyHeader
         programName={pageTitle || (language === "en" ? (program?.name_en || program?.name_he) : program?.name_he)}
