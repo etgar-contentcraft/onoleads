@@ -343,9 +343,19 @@ export default function PageSettingsPage() {
             <p className="text-xs text-red-500 mt-1.5">{slugError}</p>
           )}
           {newSlug !== pageSlug && !slugError && (
-            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5 mt-2">
-              הכתובת הנוכחית <span className="font-mono">/lp/{pageSlug}</span> תמשיך לעבוד אחרי השמירה.
-            </p>
+            <div className="mt-2 flex items-center justify-between gap-3 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5">
+              <p className="text-xs text-amber-600">
+                הכתובת הנוכחית <span className="font-mono">/lp/{pageSlug}</span> תמשיך לעבוד אחרי השמירה.
+              </p>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={saving}
+                className="shrink-0 h-7 px-3 text-xs bg-[#B8D900] hover:bg-[#c8e920] text-[#2a2628] font-semibold"
+              >
+                {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "שמור Slug"}
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
