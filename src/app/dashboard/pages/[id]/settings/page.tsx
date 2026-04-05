@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Loader2, Save, ExternalLink, Tag, Search, X, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowRight, Loader2, Save, ExternalLink, Tag, Search, X, ChevronUp, ChevronDown, Link2 } from "lucide-react";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 import type { InterestArea } from "@/lib/types/database";
@@ -121,6 +121,8 @@ export default function PageSettingsPage() {
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(EMPTY_GLOBAL);
   const [overrides, setOverrides] = useState<PageOverrides>({});
   const [tySettings, setTySettings] = useState<ThankYouPageSettings>({ ...ONO_TY_DEFAULTS });
+  const [newSlug, setNewSlug] = useState("");
+  const [slugError, setSlugError] = useState("");
   const [interestAreas, setInterestAreas] = useState<InterestArea[]>([]);
   const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([]);
   const [areaSearch, setAreaSearch] = useState("");
@@ -166,6 +168,7 @@ export default function PageSettingsPage() {
     if (pageRes.data) {
       setPageTitle(pageRes.data.title_he || "");
       setPageSlug(pageRes.data.slug || "");
+      setNewSlug(pageRes.data.slug || "");
       const cs = (pageRes.data.custom_styles || {}) as Record<string, unknown>;
       const ps = (cs.page_settings || {}) as PageOverrides;
       setOverrides(ps);
@@ -181,7 +184,38 @@ export default function PageSettingsPage() {
   useEffect(() => { load(); }, [load]);
 
   const handleSave = async () => {
+    /* Validate slug if changed */
+    const cleanSlug = newSlug.trim().toLowerCase();
+    if (cleanSlug !== pageSlug) {
+      if (!/^[a-z0-9-]+$/.test(cleanSlug)) {
+        setSlugError("ה-Slug יכול להכיל רק אותיות לטיניות, מספרים ומקפים");
+        return;
+      }
+      if (cleanSlug.length < 2) {
+        setSlugError("ה-Slug חייב להכיל לפחות 2 תווים");
+        return;
+      }
+    }
+    setSlugError("");
     setSaving(true);
+
+    /* If slug changed: update pages table and save old slug as redirect */
+    if (cleanSlug !== pageSlug) {
+      const { error: slugError } = await supabase
+        .from("pages")
+        .update({ slug: cleanSlug })
+        .eq("id", pageId);
+      if (slugError) {
+        setSaving(false);
+        showToast("שגיאה: ה-Slug כבר קיים או לא תקין", false);
+        return;
+      }
+      /* Create redirect from old slug so existing links keep working */
+      await supabase
+        .from("slug_redirects")
+        .upsert({ old_slug: pageSlug, page_id: pageId }, { onConflict: "old_slug" });
+      setPageSlug(cleanSlug);
+    }
 
     /* Save page custom_styles */
     const { data: existing } = await supabase
@@ -267,6 +301,52 @@ export default function PageSettingsPage() {
         שדות ריקים יירשו את ערכי ברירת המחדל מ<a href="/dashboard/settings" className="text-blue-600 font-medium hover:underline">ההגדרות הראשיות</a>.
         מלאו שדה רק אם רוצים לדרוס את הברירת מחדל לעמוד זה.
       </p>
+
+      {/* Slug editor */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base text-[#2a2628] flex items-center gap-2">
+            <Link2 className="w-4 h-4 text-[#B8D900]" />
+            כתובת עמוד (Slug)
+          </CardTitle>
+          <CardDescription>
+            הכתובת שמופיעה בURL של העמוד. שינוי יצור הפניה אוטומטית מהכתובת הישנה.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-[#9A969A] shrink-0 font-mono">/lp/</span>
+            <Input
+              value={newSlug}
+              onChange={(e) => {
+                setNewSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"));
+                setSlugError("");
+              }}
+              placeholder="slug-shel-haadmud"
+              className="h-9 font-mono text-sm flex-1"
+              dir="ltr"
+            />
+            <a
+              href={`/lp/${newSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0"
+            >
+              <Button variant="outline" size="sm" className="gap-1.5 h-9">
+                <ExternalLink className="w-3.5 h-3.5" />
+              </Button>
+            </a>
+          </div>
+          {slugError && (
+            <p className="text-xs text-red-500 mt-1.5">{slugError}</p>
+          )}
+          {newSlug !== pageSlug && !slugError && (
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5 mt-2">
+              הכתובת הנוכחית <span className="font-mono">/lp/{pageSlug}</span> תמשיך לעבוד אחרי השמירה.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Interest Areas — full width before grid */}
       <Card className="border-0 shadow-sm">
