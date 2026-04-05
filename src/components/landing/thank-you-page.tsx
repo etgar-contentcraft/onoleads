@@ -59,36 +59,79 @@ const SocialIcons = {
   ),
 };
 
-// ── Step timeline data ────────────────────────────────────────────────────────
+// ── Translations ─────────────────────────────────────────────────────────────
 
-const NEXT_STEPS = [
-  {
-    icon: (
-      <svg className="w-5 h-5 text-[#B8D900]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-    ),
-    text: "קיבלנו את פרטיך בהצלחה",
-    done: true,
+const TY_TEXTS: Record<string, Record<string, string>> = {
+  he: {
+    thank_you: "תודה",
+    default_heading: "תודה! קיבלנו את פרטיך",
+    default_subheading: "יועץ לימודים ייצור איתך קשר תוך 24 שעות",
+    what_now: "מה קורה עכשיו?",
+    step_1: "קיבלנו את פרטיך בהצלחה",
+    step_2: "יועץ לימודים יחזור אליך תוך 24 שעות",
+    step_3: "נתחיל לתכנן את המסלול שלך",
+    whatsapp_cta: "רוצים לדבר עכשיו?",
+    whatsapp_msg: "היי, זה עתה השארתי פרטים ואשמח לקבל מידע נוסף",
+    calendar_cta: "קבעו שיחה עכשיו",
+    follow_us: "עקבו אחרינו ברשתות",
+    share_cta: "שתפו עם חבר שמחפש תואר",
+    shared: "שותף!",
+    back_link: "← חזרה לעמוד התוכנית",
+    share_text: "יש לי תוכנית לימודים שאולי תתאים לך בהקריה האקדמית אונו",
   },
-  {
-    icon: (
-      <svg className="w-5 h-5 text-[#716C70]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-      </svg>
-    ),
-    text: "יועץ לימודים יחזור אליך תוך 24 שעות",
-    done: false,
+  en: {
+    thank_you: "Thank you",
+    default_heading: "Thank you! We received your details",
+    default_subheading: "An academic advisor will contact you within 24 hours",
+    what_now: "What happens next?",
+    step_1: "We received your details successfully",
+    step_2: "An academic advisor will contact you within 24 hours",
+    step_3: "We'll start planning your academic path",
+    whatsapp_cta: "Want to talk now?",
+    whatsapp_msg: "Hi, I just submitted my details and would love to get more information",
+    calendar_cta: "Schedule a call now",
+    follow_us: "Follow us on social media",
+    share_cta: "Share with a friend looking for a degree",
+    shared: "Shared!",
+    back_link: "← Back to program page",
+    share_text: "Check out this study program at Ono Academic College",
   },
-  {
-    icon: (
-      <svg className="w-5 h-5 text-[#716C70]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-      </svg>
-    ),
-    text: "נתחיל לתכנן את המסלול שלך",
-    done: false,
+  ar: {
+    thank_you: "شكراً",
+    default_heading: "!شكراً لك! استلمنا بياناتك",
+    default_subheading: "مستشار أكاديمي سيتواصل معك خلال 24 ساعة",
+    what_now: "ماذا يحدث الآن؟",
+    step_1: "استلمنا بياناتك بنجاح",
+    step_2: "مستشار أكاديمي سيتواصل معك خلال 24 ساعة",
+    step_3: "سنبدأ بتخطيط مسارك الأكاديمي",
+    whatsapp_cta: "تريد التحدث الآن؟",
+    whatsapp_msg: "مرحباً، لقد أرسلت بياناتي وأود الحصول على مزيد من المعلومات",
+    calendar_cta: "حدد موعد مكالمة الآن",
+    follow_us: "تابعونا على الشبكات الاجتماعية",
+    share_cta: "شاركوا مع صديق يبحث عن شهادة",
+    shared: "!تمت المشاركة",
+    back_link: "→ العودة إلى صفحة البرنامج",
+    share_text: "ألق نظرة على برنامج الدراسة هذا في كلية أونو الأكاديمية",
   },
+};
+
+/** Get translation text for a given language, falling back to Hebrew */
+function t(lang: string, key: string): string {
+  return TY_TEXTS[lang]?.[key] || TY_TEXTS.he[key] || key;
+}
+
+// ── Step timeline icons (shared across languages) ────────────────────────────
+
+const STEP_ICONS = [
+  <svg key="1" className="w-5 h-5 text-[#B8D900]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+  </svg>,
+  <svg key="2" className="w-5 h-5 text-[#716C70]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+  </svg>,
+  <svg key="3" className="w-5 h-5 text-[#716C70]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+  </svg>,
 ];
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -97,9 +140,11 @@ interface ThankYouPageProps {
   programName?: string;
   settings: ThankYouPageSettings;
   pageSlug?: string;
+  language?: string;
 }
 
-export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPageProps) {
+export function ThankYouPage({ programName, settings, pageSlug, language = "he" }: ThankYouPageProps) {
+  const isRtl = language === "he" || language === "ar";
   const [visible, setVisible] = useState(false);
   const [shared, setShared] = useState(false);
   const [displayName, setDisplayName] = useState("");
@@ -113,7 +158,7 @@ export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPagePr
     }
   }, []);
 
-  const heading = (settings.heading_he || "תודה! קיבלנו את פרטיך")
+  const heading = (settings.heading_he || t(language, "default_heading"))
     .replace("[שם]", displayName || "")
     .replace(/^  +/, "")
     .trim();
@@ -126,7 +171,9 @@ export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPagePr
 
   /* Native share or WhatsApp fallback */
   const handleShare = async () => {
-    const shareText = `יש לי תוכנית לימודים שאולי תתאים לך ב${programName ? ` ${programName} ב` : ""}הקריה האקדמית אונו`;
+    const shareText = programName
+      ? `${t(language, "share_text")} - ${programName}`
+      : t(language, "share_text");
     const shareUrl = pageSlug ? `${window.location.origin}/lp/${pageSlug}` : "https://www.ono.ac.il";
 
     if (navigator.share) {
@@ -153,7 +200,7 @@ export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPagePr
   return (
     <div
       className="min-h-screen bg-gradient-to-br from-[#1a1618] via-[#2a2628] to-[#1a1618] flex flex-col items-center justify-start px-4 py-12 md:py-20"
-      dir="rtl"
+      dir={isRtl ? "rtl" : "ltr"}
       style={{ fontFamily: "'Rubik', 'Heebo', sans-serif" }}
     >
       {/* Decorative gradient orbs */}
@@ -196,7 +243,7 @@ export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPagePr
             <h1 className="text-3xl md:text-4xl font-extrabold text-white leading-tight mb-3">
               {displayName ? (
                 <>
-                  תודה <span className="text-[#B8D900]">{displayName}</span>!
+                  {t(language, "thank_you")} <span className="text-[#B8D900]">{displayName}</span>!
                 </>
               ) : (
                 heading
@@ -205,7 +252,7 @@ export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPagePr
 
             {displayName && (
               <p className="text-white/60 text-base font-medium mb-1">
-                {settings.subheading_he || "יועץ לימודים ייצור איתך קשר תוך 24 שעות"}
+                {settings.subheading_he || t(language, "default_subheading")}
               </p>
             )}
 
@@ -218,9 +265,13 @@ export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPagePr
 
           {/* What happens next timeline */}
           <div className="mx-6 mb-6 rounded-2xl bg-white/5 border border-white/8 p-5">
-            <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-4">מה קורה עכשיו?</p>
+            <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-4">{t(language, "what_now")}</p>
             <div className="space-y-4">
-              {NEXT_STEPS.map((step, i) => (
+              {[
+                { icon: STEP_ICONS[0], text: t(language, "step_1"), done: true },
+                { icon: STEP_ICONS[1], text: t(language, "step_2"), done: false },
+                { icon: STEP_ICONS[2], text: t(language, "step_3"), done: false },
+              ].map((step, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${step.done ? "bg-[#B8D900]/20" : "bg-white/8"}`}>
                     {step.icon}
@@ -239,7 +290,7 @@ export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPagePr
               <a
                 href={whatsappHref(
                   settings.whatsapp_number,
-                  `היי, זה עתה השארתי פרטים${programName ? ` לגבי ${programName}` : ""} ואשמח לקבל מידע נוסף`
+                  programName ? `${t(language, "whatsapp_msg")} - ${programName}` : t(language, "whatsapp_msg")
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -248,7 +299,7 @@ export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPagePr
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                 </svg>
-                {settings.whatsapp_cta_he || "רוצים לדבר עכשיו?"}
+                {settings.whatsapp_cta_he || t(language, "whatsapp_cta")}
               </a>
             </div>
           )}
@@ -268,7 +319,7 @@ export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPagePr
                   <line x1="8" y1="2" x2="8" y2="6" />
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
-                {settings.calendar_cta_he || "קבעו שיחה עכשיו"}
+                {settings.calendar_cta_he || t(language, "calendar_cta")}
               </a>
             </div>
           )}
@@ -296,7 +347,7 @@ export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPagePr
           {/* Social media follows */}
           {settings.show_social !== false && socialLinks.length > 0 && (
             <div className="px-6 mb-5">
-              <p className="text-white/35 text-xs font-medium text-center mb-3">עקבו אחרינו ברשתות</p>
+              <p className="text-white/35 text-xs font-medium text-center mb-3">{t(language, "follow_us")}</p>
               <div className="flex items-center justify-center gap-3 flex-wrap">
                 {socialLinks.map((social) => (
                   <a
@@ -330,14 +381,14 @@ export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPagePr
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    שותף!
+                    {t(language, "shared")}
                   </>
                 ) : (
                   <>
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                     </svg>
-                    {settings.referral_cta_he || "שתפו עם חבר שמחפש תואר"}
+                    {settings.referral_cta_he || t(language, "share_cta")}
                   </>
                 )}
               </button>
@@ -351,7 +402,7 @@ export function ThankYouPage({ programName, settings, pageSlug }: ThankYouPagePr
             href={pageSlug ? `/lp/${pageSlug}` : "https://www.ono.ac.il"}
             className="text-white/25 text-xs hover:text-white/50 transition-colors"
           >
-            ← חזרה לעמוד התוכנית
+            {t(language, "back_link")}
           </a>
           <p className="text-white/15 text-xs mt-2">© הקריה האקדמית אונו</p>
         </div>

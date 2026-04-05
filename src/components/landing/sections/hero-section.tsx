@@ -214,7 +214,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-5 md:px-8 pt-24 md:pt-32 pb-28 md:pb-36 lg:pb-40">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-5 md:px-8 pt-24 md:pt-32 pb-36 md:pb-44 lg:pb-48">
         <div className="max-w-3xl">
           {/* College branding pill */}
           <div

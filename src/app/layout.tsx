@@ -41,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="he" dir="rtl" className={cn(heebo.variable, rubik.variable)}>
+    <html lang="he" dir="rtl" className={cn("light", heebo.variable, rubik.variable)} style={{ colorScheme: "light" }}>
       <body
         className={cn(
           "min-h-screen bg-background antialiased",

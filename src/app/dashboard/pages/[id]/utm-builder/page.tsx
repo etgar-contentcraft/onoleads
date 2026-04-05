@@ -316,13 +316,13 @@ export default function UtmBuilderPage() {
   const fetchPage = useCallback(async () => {
     const { data, error } = await supabase
       .from("pages")
-      .select("slug, title")
+      .select("slug, title_he")
       .eq("id", pageId)
       .single();
 
     if (!error && data) {
       setPageSlug(data.slug || "");
-      setPageName(data.title || "");
+      setPageName(data.title_he || "");
     }
     setLoading(false);
   }, [pageId, supabase]);

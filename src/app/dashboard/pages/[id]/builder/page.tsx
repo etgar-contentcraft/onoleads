@@ -31,8 +31,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { createClient } from "@/lib/supabase/client";
 import type { PageSection } from "@/lib/types/database";
-import type { ThankYouPageSettings } from "@/lib/types/thank-you";
-import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,7 +43,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ArrowRight,
   ArrowLeft,
@@ -80,22 +77,6 @@ import { extractYoutubeId } from "@/lib/utils/youtube";
 // Types
 // ---------------------------------------------------------------------------
 
-/** Per-page settings that override the global settings defaults */
-interface PageOverrideSettings {
-  webhook_url?: string;
-  whatsapp_number?: string;
-  phone_number?: string;
-  logo_url?: string;
-  default_cta_text?: string;
-  google_analytics_id?: string;
-  facebook_pixel_id?: string;
-  /** "true" to enable social proof toast on this page (off by default) */
-  social_proof_enabled?: string;
-  /** Days window for social proof count, stored as string */
-  social_proof_days?: string;
-  /** Optional short title for the sticky header bar */
-  sticky_header_title?: string;
-}
 
 /** A shared (global) section from the shared_sections library */
 interface GlobalSectionItem {
@@ -2065,355 +2046,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
 // Page Settings Dialog
 // ---------------------------------------------------------------------------
 
-interface PageSettingsDialogProps {
-  open: boolean;
-  onClose: () => void;
-  settings: PageOverrideSettings;
-  onChange: (key: keyof PageOverrideSettings, value: string) => void;
-  tySettings: Partial<ThankYouPageSettings>;
-  onTyChange: (key: keyof ThankYouPageSettings, value: string | boolean) => void;
-  onSave: () => Promise<void>;
-  saving: boolean;
-  /** Current slug of the page */
-  slug: string;
-  /** Callback to update slug */
-  onSlugChange: (newSlug: string) => void;
-  /** Slug validation error message */
-  slugError: string;
-}
 
-// ---------------------------------------------------------------------------
-// File-scope SettingField for PageSettingsDialog.
-// Defined outside the component to avoid remount-on-render focus loss.
-// ---------------------------------------------------------------------------
-
-interface SettingFieldProps {
-  label: string;
-  fieldKey: keyof PageOverrideSettings;
-  placeholder?: string;
-  hint?: string;
-  dir?: "rtl" | "ltr";
-  settings: PageOverrideSettings;
-  onChange: (key: keyof PageOverrideSettings, value: string) => void;
-}
-
-/** A labeled input bound to a PageOverrideSettings key */
-function SettingField({ label, fieldKey, placeholder, hint, dir = "ltr", settings, onChange }: SettingFieldProps) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-semibold text-[#2A2628]">{label}</Label>
-      <Input
-        value={settings[fieldKey] || ""}
-        onChange={(e) => onChange(fieldKey, e.target.value)}
-        placeholder={placeholder || "כברירת מחדל מהגדרות הכלליות"}
-        dir={dir}
-        className="h-9 text-sm"
-      />
-      {hint && <p className="text-[11px] text-[#9A969A]">{hint}</p>}
-    </div>
-  );
-}
-
-/**
- * Per-page settings override dialog.
- * Empty fields fall back to the global settings configured in הגדרות.
- * Visual style matches the global settings page: card-style sections with icons.
- */
-function PageSettingsDialog({ open, onClose, settings, onChange, tySettings, onTyChange, onSave, saving, slug, onSlugChange, slugError }: PageSettingsDialogProps) {
-  const socialEnabled = settings.social_proof_enabled === "true";
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-none w-screen h-screen max-h-screen flex flex-col gap-0 p-0 overflow-hidden rounded-none" dir="rtl">
-        <DialogHeader className="px-6 py-4 border-b border-[#F0F0F0] shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#B8D900]/15 flex items-center justify-center shrink-0">
-              <Settings2 className="w-4 h-4 text-[#8aac00]" />
-            </div>
-            <div>
-              <DialogTitle className="text-base font-bold text-[#2A2628]">הגדרות עמוד</DialogTitle>
-              <DialogDescription className="text-xs text-[#9A969A] mt-0.5">
-                שדות ריקים יורשו מ<a href="/dashboard/settings" target="_blank" className="text-[#B8D900] hover:underline">הגדרות הכלליות</a>
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <ScrollArea className="flex-1">
-          <div className="px-6 py-5 space-y-4">
-
-            {/* ─── Slug / URL ──────────────────────────── */}
-            <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
-              <div className="flex items-center gap-2.5 px-4 py-3 bg-[#FAFAFA] border-b border-[#F0F0F0]">
-                <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
-                  <Globe className="w-3.5 h-3.5 text-purple-500" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-[#2A2628]">כתובת URL</p>
-                  <p className="text-[10px] text-[#9A969A]">כתובת העמוד באנגלית — שינוי ישמור הפניה אוטומטית מהכתובת הישנה</p>
-                </div>
-              </div>
-              <div className="px-4 py-3 space-y-2">
-                <div className="flex items-center gap-2" dir="ltr">
-                  <span className="text-xs text-[#9A969A] font-mono shrink-0">/lp/</span>
-                  <Input
-                    value={slug}
-                    onChange={(e) => onSlugChange(sanitizeSlug(e.target.value))}
-                    placeholder="my-program-name"
-                    dir="ltr"
-                    className={`h-9 text-sm font-mono flex-1 ${slugError ? "border-red-400 focus:ring-red-400" : ""}`}
-                  />
-                </div>
-                {slugError && (
-                  <p className="text-[11px] text-red-500 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3" /> {slugError}
-                  </p>
-                )}
-                <p className="text-[11px] text-[#9A969A]">רק אותיות באנגלית קטנות, מספרים ומקפים. שינוי הכתובת ישמור הפניה אוטומטית מהכתובת הישנה.</p>
-              </div>
-            </div>
-
-            {/* ─── Integrations ─────────────────────────── */}
-            <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
-              <div className="flex items-center gap-2.5 px-4 py-3 bg-[#FAFAFA] border-b border-[#F0F0F0]">
-                <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-[#2A2628]">אינטגרציות</p>
-                  <p className="text-[10px] text-[#9A969A]">Webhook, WhatsApp ומספר טלפון</p>
-                </div>
-              </div>
-              <div className="px-4 py-3 space-y-3">
-                <SettingField label="כתובת Webhook" fieldKey="webhook_url" placeholder="https://hooks.zapier.com/... (מהגדרות הכלליות)" hint="לשליחת לידים מעמוד זה ל-CRM ספציפי" settings={settings} onChange={onChange} />
-                <SettingField label="מספר WhatsApp" fieldKey="whatsapp_number" placeholder="972501234567 (מהגדרות הכלליות)" hint="מספר בפורמט בינלאומי ללא מקף" settings={settings} onChange={onChange} />
-                <SettingField label="מספר טלפון לתצוגה" fieldKey="phone_number" placeholder="*2899 (מהגדרות הכלליות)" hint="יוצג בכותרת ובתחתית העמוד" settings={settings} onChange={onChange} />
-                <SettingField label="כותרת סרגל עליון (אופציונלי)" fieldKey="sticky_header_title" placeholder="כותרת מקוצרת לסרגל — אם ריק, ייעשה שימוש בשם העמוד" hint="כותרת חלופית קצרה שתוצג בסרגל העליון הנעוץ. אם ריק — שם העמוד המלא." dir="rtl" settings={settings} onChange={onChange} />
-              </div>
-            </div>
-
-            {/* ─── Conversion Features ──────────────────── */}
-            <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
-              <div className="flex items-center gap-2.5 px-4 py-3 bg-[#FAFAFA] border-b border-[#F0F0F0]">
-                <div className="w-7 h-7 rounded-lg bg-[#B8D900]/15 flex items-center justify-center shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8aac00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-[#2A2628]">המרות</p>
-                  <p className="text-[10px] text-[#9A969A]">כלים להגדלת המרות בעמוד זה</p>
-                </div>
-              </div>
-              <div className="px-4 py-3 space-y-3">
-                {/* Popups — link to /dashboard/campaigns */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <Label className="text-xs font-semibold text-[#2A2628] block">פופאפים</Label>
-                    <p className="text-[11px] text-[#9A969A] mt-0.5 leading-relaxed">ניהול פופאפים, exit intent, וסרגלי CTA לעמוד זה.</p>
-                  </div>
-                  <a
-                    href="/dashboard/campaigns"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] text-[#B8D900] hover:underline font-semibold shrink-0 mt-0.5"
-                  >
-                    ניהול פופאפים ↗
-                  </a>
-                </div>
-                {/* Social Proof Toast Toggle */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <Label className="text-xs font-semibold text-[#2A2628] block">הוכחה חברתית (Social Proof)</Label>
-                    <p className="text-[11px] text-[#9A969A] mt-0.5 leading-relaxed">toast קטן: &ldquo;X אנשים נרשמו השבוע&rdquo;. <span className="text-amber-600 font-medium">כבוי כברירת מחדל.</span></p>
-                    {socialEnabled && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <Label className="text-[11px] text-[#716C70] shrink-0">ימים אחורה:</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={90}
-                          value={settings.social_proof_days || "7"}
-                          onChange={(e) => onChange("social_proof_days", e.target.value)}
-                          className="h-7 w-16 text-xs"
-                          dir="ltr"
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => onChange("social_proof_enabled", socialEnabled ? "false" : "true")}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors mt-0.5 ${socialEnabled ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}
-                    role="switch"
-                    aria-checked={socialEnabled}
-                  >
-                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${socialEnabled ? "translate-x-4" : "translate-x-0"}`} />
-                  </button>
-                </div>
-                <SettingField label="טקסט קריאה לפעולה (CTA)" fieldKey="default_cta_text" placeholder="השאירו פרטים ונחזור אליכם (מהגדרות הכלליות)" dir="rtl" hint="הטקסט על כפתורי הרשמה בעמוד" settings={settings} onChange={onChange} />
-                <SettingField label="לוגו מותאם (URL)" fieldKey="logo_url" placeholder="https://... (לוגו אונו כברירת מחדל)" hint="להחלפת הלוגו בעמוד זה בלבד" settings={settings} onChange={onChange} />
-              </div>
-            </div>
-
-            {/* ─── Thank You Page ───────────────────────── */}
-            <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 bg-[#FAFAFA] border-b border-[#F0F0F0]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-[#2A2628]">עמוד תודה</p>
-                    <p className="text-[10px] text-[#9A969A]">מה יראה המבקר אחרי הגשת הטופס</p>
-                  </div>
-                </div>
-                <a href="/ty" target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#B8D900] hover:underline flex items-center gap-1 shrink-0">
-                  תצוגה מקדימה ↗
-                </a>
-              </div>
-              <div className="px-4 py-3 space-y-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-[#2A2628]">כותרת</Label>
-                  <Input value={tySettings.heading_he || ""} onChange={(e) => onTyChange("heading_he", e.target.value)} placeholder="תודה! קיבלנו את פרטיך" dir="rtl" className="h-9 text-sm" />
-                  <p className="text-[11px] text-[#9A969A]">ניתן לכתוב [שם] לפרסונליזציה</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-[#2A2628]">כותרת משנה</Label>
-                  <Input value={tySettings.subheading_he || ""} onChange={(e) => onTyChange("subheading_he", e.target.value)} placeholder="יועץ לימודים ייצור איתך קשר תוך 24 שעות" dir="rtl" className="h-9 text-sm" />
-                </div>
-                {/* WhatsApp */}
-                <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-[#2A2628]">כפתור WhatsApp</Label>
-                    <button type="button" onClick={() => onTyChange("show_whatsapp", !tySettings.show_whatsapp)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_whatsapp ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}>
-                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tySettings.show_whatsapp ? "translate-x-4" : "translate-x-0"}`} />
-                    </button>
-                  </div>
-                  {tySettings.show_whatsapp !== false && (
-                    <>
-                      <Input value={tySettings.whatsapp_number || ""} onChange={(e) => onTyChange("whatsapp_number", e.target.value)} placeholder="972501234567 (מהגדרות הכלליות)" dir="ltr" className="h-8 text-xs" />
-                      <Input value={tySettings.whatsapp_cta_he || ""} onChange={(e) => onTyChange("whatsapp_cta_he", e.target.value)} placeholder="רוצים לדבר עכשיו? כתבו לנו" dir="rtl" className="h-8 text-xs" />
-                    </>
-                  )}
-                </div>
-                {/* Social */}
-                <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-[#2A2628]">עקבו בסושיאל מדיה</Label>
-                    <button type="button" onClick={() => onTyChange("show_social", !tySettings.show_social)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_social ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}>
-                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tySettings.show_social ? "translate-x-4" : "translate-x-0"}`} />
-                    </button>
-                  </div>
-                  {tySettings.show_social !== false && (
-                    <div className="space-y-1.5">
-                      {([
-                        { key: "facebook_url", label: "Facebook", placeholder: "https://www.facebook.com/OnoAcademic" },
-                        { key: "instagram_url", label: "Instagram", placeholder: "https://www.instagram.com/ono_academic/" },
-                        { key: "youtube_url", label: "YouTube", placeholder: "https://www.youtube.com/@OnoAcademic" },
-                        { key: "linkedin_url", label: "LinkedIn", placeholder: "https://il.linkedin.com/school/ono-academic-college" },
-                        { key: "tiktok_url", label: "TikTok", placeholder: "https://www.tiktok.com/@ono_academic" },
-                      ] as const).map(({ key, label, placeholder }) => (
-                        <div key={key} className="flex items-center gap-2">
-                          <span className="text-[11px] text-[#9A969A] w-14 shrink-0">{label}</span>
-                          <Input value={(tySettings[key] as string) || ""} onChange={(e) => onTyChange(key, e.target.value)} placeholder={placeholder} dir="ltr" className="h-7 text-xs flex-1" />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {/* Referral */}
-                <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-[#2A2628]">שיתוף עם חברים</Label>
-                    <button type="button" onClick={() => onTyChange("show_referral", !tySettings.show_referral)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_referral ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}>
-                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tySettings.show_referral ? "translate-x-4" : "translate-x-0"}`} />
-                    </button>
-                  </div>
-                  {tySettings.show_referral !== false && (
-                    <Input value={tySettings.referral_cta_he || ""} onChange={(e) => onTyChange("referral_cta_he", e.target.value)} placeholder="שתפו עם חבר שמחפש תואר" dir="rtl" className="h-8 text-xs" />
-                  )}
-                </div>
-                {/* Calendar */}
-                <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-[#2A2628]">הזמנת פגישה (Calendly)</Label>
-                    <button type="button" onClick={() => onTyChange("show_calendar", !tySettings.show_calendar)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_calendar ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}>
-                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tySettings.show_calendar ? "translate-x-4" : "translate-x-0"}`} />
-                    </button>
-                  </div>
-                  {tySettings.show_calendar && (
-                    <>
-                      <Input value={tySettings.calendar_url || ""} onChange={(e) => onTyChange("calendar_url", e.target.value)} placeholder="https://calendly.com/ono/..." dir="ltr" className="h-8 text-xs" />
-                      <Input value={tySettings.calendar_cta_he || ""} onChange={(e) => onTyChange("calendar_cta_he", e.target.value)} placeholder="קבעו שיחת ייעוץ עכשיו" dir="rtl" className="h-8 text-xs" />
-                    </>
-                  )}
-                </div>
-                {/* Video */}
-                <div className="p-3 rounded-xl border border-[#E5E5E5] space-y-2.5 bg-[#FAFAFA]">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-[#2A2628]">סרטון ברכה / מידע</Label>
-                    <button type="button" onClick={() => onTyChange("show_video", !tySettings.show_video)} className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${tySettings.show_video ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}>
-                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${tySettings.show_video ? "translate-x-4" : "translate-x-0"}`} />
-                    </button>
-                  </div>
-                  {tySettings.show_video && (
-                    <Input value={tySettings.video_url || ""} onChange={(e) => onTyChange("video_url", e.target.value)} placeholder="https://youtube.com/watch?v=..." dir="ltr" className="h-8 text-xs" />
-                  )}
-                </div>
-                {/* Custom redirect */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-[#2A2628]">הפניה מיוחדת (מדלג על /ty)</Label>
-                  <Input value={tySettings.custom_redirect_url || ""} onChange={(e) => onTyChange("custom_redirect_url", e.target.value)} placeholder="https://..." dir="ltr" className="h-9 text-sm" />
-                  <p className="text-[11px] text-[#9A969A]">אם מוגדר, המשתמש מועבר לכתובת זו ישירות</p>
-                </div>
-              </div>
-            </div>
-
-            {/* ─── Tracking ─────────────────────────────── */}
-            <div className="rounded-xl border border-[#E5E5E5] overflow-hidden">
-              <div className="flex items-center gap-2.5 px-4 py-3 bg-[#FAFAFA] border-b border-[#F0F0F0]">
-                <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-[#2A2628]">מעקב ואנליטיקס</p>
-                  <p className="text-[10px] text-[#9A969A]">Google Analytics ו-Facebook Pixel</p>
-                </div>
-              </div>
-              <div className="px-4 py-3 space-y-3">
-                <SettingField label="Google Analytics ID" fieldKey="google_analytics_id" placeholder="G-XXXXXXXXXX (מהגדרות הכלליות)" hint="לעקוב אחר קמפיינים ספציפיים" settings={settings} onChange={onChange} />
-                <SettingField label="Facebook Pixel ID" fieldKey="facebook_pixel_id" placeholder="123456789 (מהגדרות הכלליות)" hint="לפיקסל ספציפי לקמפיין" settings={settings} onChange={onChange} />
-              </div>
-            </div>
-
-          </div>
-        </ScrollArea>
-
-        <div className="px-6 py-4 border-t border-[#F0F0F0] flex items-center justify-between gap-3 shrink-0">
-          <p className="text-[11px] text-[#9A969A]">שדות ריקים = ברירת מחדל מההגדרות הכלליות</p>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={onClose} className="h-9">ביטול</Button>
-            <Button
-              onClick={onSave}
-              disabled={saving}
-              className="h-9 bg-[#B8D900] text-[#2A2628] hover:bg-[#A8C400] gap-2"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              שמור הגדרות
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Delete confirmation dialog
@@ -2482,10 +2115,6 @@ export default function PageBuilderPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const [addingType, setAddingType] = useState<string | null>(null);
-  const [pageSettingsOpen, setPageSettingsOpen] = useState(false);
-  const [pageSettings, setPageSettings] = useState<PageOverrideSettings>({});
-  const [tySettings, setTySettings] = useState<Partial<ThankYouPageSettings>>({});
-  const [pageSettingsSaving, setPageSettingsSaving] = useState(false);
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   // Global sections library panel state
   const [libraryTab, setLibraryTab] = useState<"types" | "global">("types");
@@ -2502,8 +2131,6 @@ export default function PageBuilderPage() {
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
   /** Editable slug state for page settings dialog */
-  const [editSlug, setEditSlug] = useState("");
-  const [slugError, setSlugError] = useState("");
   const [publishing, setPublishing] = useState(false);
 
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2529,12 +2156,6 @@ export default function PageBuilderPage() {
       ]);
       if (pageRes.data) {
         setPage(pageRes.data as PageData);
-        setEditSlug(pageRes.data.slug);
-        const customStyles = pageRes.data.custom_styles as Record<string, unknown> | null;
-        setPageSettings((customStyles?.page_settings as PageOverrideSettings) || {});
-        // Pre-populate with Ono defaults when no per-page settings exist yet
-        const savedTy = (customStyles?.thank_you_settings as Partial<ThankYouPageSettings>) || {};
-        setTySettings(Object.keys(savedTy).length > 0 ? savedTy : { ...ONO_TY_DEFAULTS });
       }
       if (sectionsRes.data) setSections(sectionsRes.data as PageSection[]);
       setLoading(false);
@@ -2965,84 +2586,6 @@ export default function PageBuilderPage() {
     setSaving(false);
   };
 
-  // ---- Page settings ----
-
-  const updatePageSetting = useCallback((key: keyof PageOverrideSettings, value: string) => {
-    setPageSettings((prev) => ({ ...prev, [key]: value }));
-  }, []);
-
-  const updateTySetting = useCallback((key: keyof ThankYouPageSettings, value: string | boolean) => {
-    setTySettings((prev) => ({ ...prev, [key]: value }));
-  }, []);
-
-  /** Saves both page_settings and thank_you_settings to pages.custom_styles */
-  const savePageSettings = useCallback(async () => {
-    setPageSettingsSaving(true);
-
-    // ── Handle slug change ──
-    const oldSlug = page?.slug || "";
-    const newSlug = editSlug.trim();
-    if (newSlug && newSlug !== oldSlug) {
-      // Check uniqueness
-      const { data: existing } = await supabase
-        .from("pages")
-        .select("id")
-        .eq("slug", newSlug)
-        .neq("id", pageId)
-        .single();
-      if (existing) {
-        setSlugError("כתובת זו כבר תפוסה — בחר כתובת אחרת");
-        setPageSettingsSaving(false);
-        return;
-      }
-      // Save redirect from old slug → this page
-      await supabase.from("slug_redirects").upsert({ old_slug: oldSlug, page_id: pageId }, { onConflict: "old_slug" });
-      // Update the page slug
-      const { error: slugErr } = await supabase.from("pages").update({ slug: newSlug }).eq("id", pageId);
-      if (slugErr) {
-        setSlugError("שגיאה בעדכון כתובת: " + slugErr.message);
-        setPageSettingsSaving(false);
-        return;
-      }
-      // Update local state
-      setPage((prev) => prev ? { ...prev, slug: newSlug } : prev);
-      setSlugError("");
-    }
-
-    // Strip empty strings so fallback to global works correctly
-    const cleanedPage: PageOverrideSettings = Object.fromEntries(
-      Object.entries(pageSettings).filter(([, v]) => v && String(v).trim() !== "")
-    ) as PageOverrideSettings;
-
-    // Strip empty strings from TY settings (but keep booleans)
-    const cleanedTy: Partial<ThankYouPageSettings> = Object.fromEntries(
-      Object.entries(tySettings).filter(([, v]) => v !== undefined && v !== "")
-    ) as Partial<ThankYouPageSettings>;
-
-    const existingCustomStyles = (page?.custom_styles as Record<string, unknown>) || {};
-    const { error } = await supabase
-      .from("pages")
-      .update({
-        custom_styles: {
-          ...existingCustomStyles,
-          page_settings: cleanedPage,
-          thank_you_settings: cleanedTy,
-        },
-      })
-      .eq("id", pageId);
-
-    if (!error) {
-      setPageSettings(cleanedPage);
-      setTySettings(cleanedTy);
-      setPageSettingsOpen(false);
-      showToast("הגדרות העמוד נשמרו");
-      fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_settings_updated", resource_type: "page_settings", resource_id: pageId, metadata: { slug: newSlug || oldSlug } }) }).catch(() => {});
-    } else {
-      showToast("שגיאה בשמירת הגדרות", "error");
-    }
-    setPageSettingsSaving(false);
-  }, [page, pageId, pageSettings, tySettings, editSlug, supabase, showToast]);
-
   /** Publishes (or unpublishes) the current page */
   const handlePublish = useCallback(async () => {
     if (!page) return;
@@ -3194,7 +2737,7 @@ export default function PageBuilderPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPageSettingsOpen(true)}
+            onClick={() => router.push(`/dashboard/pages/${pageId}/settings`)}
             className="h-9 gap-2 border-[#E5E5E5] text-[#4A4648] hover:border-[#B8D900]"
           >
             <Settings2 className="w-3.5 h-3.5" />
@@ -3587,21 +3130,6 @@ export default function PageBuilderPage() {
         open={!!deleteTargetId}
         onCancel={() => setDeleteTargetId(null)}
         onConfirm={() => deleteTargetId && deleteSection(deleteTargetId)}
-      />
-
-      {/* ── Page Settings Dialog ── */}
-      <PageSettingsDialog
-        open={pageSettingsOpen}
-        onClose={() => setPageSettingsOpen(false)}
-        settings={pageSettings}
-        onChange={updatePageSetting}
-        tySettings={tySettings}
-        onTyChange={updateTySetting}
-        onSave={savePageSettings}
-        saving={pageSettingsSaving}
-        slug={editSlug}
-        onSlugChange={(s) => { setEditSlug(s); setSlugError(""); }}
-        slugError={slugError}
       />
 
       {/* ── Version History Drawer ── */}

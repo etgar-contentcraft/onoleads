@@ -49,11 +49,12 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
   let pageTySettings: Partial<ThankYouPageSettings> = {};
   let pageWhatsapp = "";
   let programName = "";
+  let language = "he";
 
   if (slug) {
     const { data: page } = await supabase
       .from("pages")
-      .select("custom_styles, title_he")
+      .select("custom_styles, title_he, language")
       .eq("slug", slug)
       .single();
 
@@ -62,6 +63,7 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
       pageTySettings = (cs.thank_you_settings || {}) as Partial<ThankYouPageSettings>;
       pageWhatsapp = ((cs.page_settings as Record<string, string>) || {}).whatsapp_number || "";
       programName = page.title_he || "";
+      language = page.language || "he";
     }
   }
 
@@ -89,8 +91,8 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
 
   return (
     <html
-      lang="he"
-      dir="rtl"
+      lang={language}
+      dir={language === "he" || language === "ar" ? "rtl" : "ltr"}
       style={
         {
           "--font-heading": "'Rubik', sans-serif",
@@ -113,6 +115,7 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
           programName={programName}
           settings={settings}
           pageSlug={slug}
+          language={language}
         />
       </body>
     </html>

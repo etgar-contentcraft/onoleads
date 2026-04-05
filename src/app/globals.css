@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Force class-based dark mode (prevents OS dark mode from activating dark: utilities) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

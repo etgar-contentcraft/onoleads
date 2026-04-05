@@ -668,7 +668,7 @@ export default function SmartLinksPage() {
                   placeholder='למשל: "קמפיין קיץ פייסבוק"'
                   value={form.label}
                   onChange={(e) => setForm({ ...form, label: e.target.value })}
-                  className="bg-[#1e1c1d] border-[#716C70] text-[#2A2628] placeholder:text-[#716C70]"
+                  className="bg-white border-[#E5E5E5] text-[#2A2628] placeholder:text-[#C4C4C4]"
                 />
               </div>
 
@@ -681,13 +681,13 @@ export default function SmartLinksPage() {
                     placeholder="law26"
                     value={form.slug}
                     onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                    className="bg-[#1e1c1d] border-[#716C70] text-[#2A2628] font-mono placeholder:text-[#716C70] max-w-[200px]"
+                    className="bg-white border-[#E5E5E5] text-[#2A2628] font-mono placeholder:text-[#C4C4C4] max-w-[200px]"
                   />
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setForm({ ...form, slug: generateRandomSlug() })}
-                    className="border-[#716C70] text-[#9A969A] hover:text-[#2A2628] shrink-0"
+                    className="border-[#E5E5E5] text-[#9A969A] hover:text-[#2A2628] shrink-0"
                   >
                     קוד אקראי
                   </Button>
@@ -701,7 +701,7 @@ export default function SmartLinksPage() {
                   placeholder="utm_source=facebook&utm_medium=cpc&utm_campaign=summer"
                   value={form.utmParams}
                   onChange={(e) => setForm({ ...form, utmParams: e.target.value })}
-                  className="bg-[#1e1c1d] border-[#716C70] text-[#2A2628] font-mono text-sm placeholder:text-[#716C70]"
+                  className="bg-white border-[#E5E5E5] text-[#2A2628] font-mono text-sm placeholder:text-[#C4C4C4]"
                   dir="ltr"
                 />
               </div>
@@ -714,7 +714,7 @@ export default function SmartLinksPage() {
                     type="datetime-local"
                     value={form.expiresAt}
                     onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
-                    className="bg-[#1e1c1d] border-[#716C70] text-[#2A2628]"
+                    className="bg-white border-[#E5E5E5] text-[#2A2628]"
                     dir="ltr"
                   />
                 </div>
@@ -726,7 +726,7 @@ export default function SmartLinksPage() {
                     placeholder="https://example.com/expired"
                     value={form.fallbackUrl}
                     onChange={(e) => setForm({ ...form, fallbackUrl: e.target.value })}
-                    className="bg-[#1e1c1d] border-[#716C70] text-[#2A2628] font-mono text-sm placeholder:text-[#716C70]"
+                    className="bg-white border-[#E5E5E5] text-[#2A2628] font-mono text-sm placeholder:text-[#C4C4C4]"
                     dir="ltr"
                   />
                 </div>
@@ -970,7 +970,7 @@ export default function SmartLinksPage() {
                           <span className="text-sm text-[#9A969A] w-16 shrink-0">
                             {DEVICE_LABELS[device.type] || device.type}
                           </span>
-                          <div className="flex-1 bg-[#1e1c1d] rounded-full h-5 overflow-hidden">
+                          <div className="flex-1 bg-white rounded-full h-5 overflow-hidden">
                             <div
                               className="h-full rounded-full flex items-center justify-end px-2 text-xs font-bold transition-all"
                               style={{
@@ -998,9 +998,9 @@ export default function SmartLinksPage() {
                   <h4 className="text-sm font-semibold text-[#9A969A] mb-3">מקורות תנועה</h4>
                   <div className="space-y-1">
                     {analyticsStats.referrers.map((ref) => (
-                      <div key={ref.domain} className="flex items-center justify-between py-1 px-2 rounded hover:bg-[#1e1c1d]">
+                      <div key={ref.domain} className="flex items-center justify-between py-1 px-2 rounded hover:bg-white">
                         <span className="text-sm text-[#2A2628] truncate" dir="ltr">{ref.domain}</span>
-                        <Badge variant="secondary" className="bg-[#1e1c1d] text-[#B8D900] text-xs">
+                        <Badge variant="secondary" className="bg-white text-[#B8D900] text-xs">
                           {ref.count}
                         </Badge>
                       </div>
@@ -1015,7 +1015,7 @@ export default function SmartLinksPage() {
                   <h4 className="text-sm font-semibold text-[#9A969A] mb-3">הקלקות לפי יום (7 ימים אחרונים)</h4>
                   <div className="space-y-1">
                     {analyticsStats.dailyClicks.map((day) => (
-                      <div key={day.date} className="flex items-center justify-between py-1 px-2 rounded hover:bg-[#1e1c1d]">
+                      <div key={day.date} className="flex items-center justify-between py-1 px-2 rounded hover:bg-white">
                         <span className="text-sm text-[#9A969A]" dir="ltr">{day.date}</span>
                         <div className="flex items-center gap-2">
                           <div
@@ -1082,7 +1082,7 @@ export default function SmartLinksPage() {
               <Button
                 variant="outline"
                 onClick={() => qrLink && handleCopy(qrLink.slug)}
-                className="border-[#716C70] text-[#9A969A] hover:text-[#2A2628]"
+                className="border-[#E5E5E5] text-[#9A969A] hover:text-[#2A2628]"
               >
                 <Copy className="w-4 h-4 ml-1" />
                 העתק URL
@@ -1105,7 +1105,7 @@ export default function SmartLinksPage() {
  */
 function MetricCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <div className="bg-[#1e1c1d] rounded-lg p-3 text-center">
+    <div className="bg-white rounded-lg p-3 text-center">
       <div className="flex items-center justify-center text-[#B8D900] mb-1">
         {icon}
       </div>
