@@ -588,14 +588,14 @@ export default function UtmBuilderPage() {
             variant="ghost"
             size="sm"
             onClick={() => router.push(`/dashboard/pages/${pageId}/builder`)}
-            className="gap-1 text-[#9A969A] hover:text-white"
+            className="gap-1 text-[#9A969A] hover:text-[#4A4648]"
           >
             <ArrowRight className="size-4" />
             חזרה לבונה
           </Button>
           <Separator orientation="vertical" className="h-6" />
           <div>
-            <h1 className="text-xl font-bold text-white">בונה UTM</h1>
+            <h1 className="text-xl font-bold text-[#2A2628]">בונה UTM</h1>
             <p className="text-sm text-[#9A969A]">{pageName}</p>
           </div>
         </div>
@@ -606,10 +606,10 @@ export default function UtmBuilderPage() {
       </div>
 
       {/* ── Base URL (locked) ── */}
-      <Card className="border-[#2A2628] bg-[#2A2628]/50">
+      <Card className="border-[#E5E5E5] bg-white">
         <CardContent className="pt-4">
           <Label className="text-xs text-[#9A969A]">כתובת בסיס (נעולה)</Label>
-          <div className="mt-1 flex items-center gap-2 rounded-md border border-[#716C70]/30 bg-[#2A2628] px-3 py-2">
+          <div className="mt-1 flex items-center gap-2 rounded-md border border-[#E5E5E5] bg-[#F3F4F6] px-3 py-2">
             <Link2 className="size-4 shrink-0 text-[#B8D900]" />
             <span className="font-mono text-sm text-[#9A969A]">
               {BASE_URL_PREFIX}{pageSlug}
@@ -619,9 +619,9 @@ export default function UtmBuilderPage() {
       </Card>
 
       {/* ── Presets Section ── */}
-      <Card className="border-[#2A2628] bg-[#2A2628]/50">
+      <Card className="border-[#E5E5E5] bg-white">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base text-white">
+          <CardTitle className="flex items-center gap-2 text-base text-[#2A2628]">
             <Star className="size-4 text-[#B8D900]" />
             תבניות מהירות
           </CardTitle>
@@ -638,7 +638,7 @@ export default function UtmBuilderPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => applyPreset(preset)}
-                className="gap-1.5 border-[#716C70]/30 bg-transparent text-[#9A969A] hover:border-[#B8D900]/50 hover:bg-[#B8D900]/10 hover:text-white"
+                className="gap-1.5 border-[#E5E5E5] bg-transparent text-[#9A969A] hover:border-[#B8D900]/50 hover:bg-[#B8D900]/10 hover:text-[#4A4648]"
               >
                 {getPlatformIcon(preset.icon, "size-3.5")}
                 {preset.name}
@@ -666,7 +666,7 @@ export default function UtmBuilderPage() {
                       </Button>
                       <button
                         onClick={() => handleDeletePreset(preset.id)}
-                        className="absolute -left-1 -top-1 hidden size-4 items-center justify-center rounded-full bg-red-500 text-white group-hover:flex"
+                        className="absolute -left-1 -top-1 hidden size-4 items-center justify-center rounded-full bg-red-500 text-[#2A2628] group-hover:flex"
                         title="מחק תבנית"
                       >
                         <X className="size-2.5" />
@@ -681,9 +681,9 @@ export default function UtmBuilderPage() {
       </Card>
 
       {/* ── UTM Form ── */}
-      <Card className="border-[#2A2628] bg-[#2A2628]/50">
+      <Card className="border-[#E5E5E5] bg-white">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base text-white">
+          <CardTitle className="flex items-center gap-2 text-base text-[#2A2628]">
             <Tag className="size-4 text-[#B8D900]" />
             פרמטרים של הקמפיין
           </CardTitle>
@@ -698,7 +698,7 @@ export default function UtmBuilderPage() {
               placeholder='לדוגמה: "קמפיין פייסבוק - מרץ 2026"'
               value={form.label}
               onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
-              className="border-[#716C70]/30 bg-[#2A2628] text-white placeholder:text-[#716C70]"
+              className="border-[#E5E5E5] bg-white text-[#2A2628] placeholder:text-[#9A969A]"
             />
           </div>
 
@@ -720,7 +720,7 @@ export default function UtmBuilderPage() {
                   }
                 }}
               >
-                <SelectTrigger className="w-full border-[#716C70]/30 bg-[#2A2628] text-white">
+                <SelectTrigger className="w-full border-[#E5E5E5] bg-white text-[#2A2628]">
                   <SelectValue placeholder="בחרו מקור" />
                 </SelectTrigger>
                 <SelectContent>
@@ -736,7 +736,7 @@ export default function UtmBuilderPage() {
                   placeholder="הזינו מקור מותאם"
                   value={customSource}
                   onChange={(e) => setCustomSource(e.target.value)}
-                  className="mt-1.5 border-[#716C70]/30 bg-[#2A2628] text-white placeholder:text-[#716C70]"
+                  className="mt-1.5 border-[#E5E5E5] bg-white text-[#2A2628] placeholder:text-[#9A969A]"
                 />
               )}
             </div>
@@ -758,7 +758,7 @@ export default function UtmBuilderPage() {
                   }
                 }}
               >
-                <SelectTrigger className="w-full border-[#716C70]/30 bg-[#2A2628] text-white">
+                <SelectTrigger className="w-full border-[#E5E5E5] bg-white text-[#2A2628]">
                   <SelectValue placeholder="בחרו מדיום" />
                 </SelectTrigger>
                 <SelectContent>
@@ -774,7 +774,7 @@ export default function UtmBuilderPage() {
                   placeholder="הזינו מדיום מותאם"
                   value={customMedium}
                   onChange={(e) => setCustomMedium(e.target.value)}
-                  className="mt-1.5 border-[#716C70]/30 bg-[#2A2628] text-white placeholder:text-[#716C70]"
+                  className="mt-1.5 border-[#E5E5E5] bg-white text-[#2A2628] placeholder:text-[#9A969A]"
                 />
               )}
             </div>
@@ -789,7 +789,7 @@ export default function UtmBuilderPage() {
               placeholder="שם הקמפיין, לדוגמה: spring_2026_open_day"
               value={form.utm_campaign}
               onChange={(e) => setForm((f) => ({ ...f, utm_campaign: e.target.value }))}
-              className="border-[#716C70]/30 bg-[#2A2628] text-white placeholder:text-[#716C70]"
+              className="border-[#E5E5E5] bg-white text-[#2A2628] placeholder:text-[#9A969A]"
             />
           </div>
 
@@ -803,7 +803,7 @@ export default function UtmBuilderPage() {
                 placeholder="וריאנט מודעה, לדוגמה: banner_v2"
                 value={form.utm_content}
                 onChange={(e) => setForm((f) => ({ ...f, utm_content: e.target.value }))}
-                className="border-[#716C70]/30 bg-[#2A2628] text-white placeholder:text-[#716C70]"
+                className="border-[#E5E5E5] bg-white text-[#2A2628] placeholder:text-[#9A969A]"
               />
             </div>
 
@@ -816,7 +816,7 @@ export default function UtmBuilderPage() {
                 placeholder="מילת מפתח, לדוגמה: MBA_online"
                 value={form.utm_term}
                 onChange={(e) => setForm((f) => ({ ...f, utm_term: e.target.value }))}
-                className="border-[#716C70]/30 bg-[#2A2628] text-white placeholder:text-[#716C70]"
+                className="border-[#E5E5E5] bg-white text-[#2A2628] placeholder:text-[#9A969A]"
               />
             </div>
           </div>
@@ -860,7 +860,7 @@ export default function UtmBuilderPage() {
               variant="outline"
               onClick={() => copyToClipboard(generatedUrl, "generated")}
               disabled={!generatedUrl || !effectiveSource || !effectiveMedium || !form.utm_campaign}
-              className="gap-1.5 border-[#716C70]/30 text-[#9A969A] hover:border-[#B8D900]/50 hover:text-white disabled:opacity-40"
+              className="gap-1.5 border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900]/50 hover:text-[#2A2628] disabled:opacity-40"
             >
               {copiedGenerated ? <Check className="size-4" /> : <Copy className="size-4" />}
               העתקת URL
@@ -870,7 +870,7 @@ export default function UtmBuilderPage() {
               variant="outline"
               onClick={() => setPresetDialogOpen(true)}
               disabled={!effectiveSource || !effectiveMedium}
-              className="gap-1.5 border-[#716C70]/30 text-[#9A969A] hover:border-[#B8D900]/50 hover:text-white disabled:opacity-40"
+              className="gap-1.5 border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900]/50 hover:text-[#2A2628] disabled:opacity-40"
             >
               <Bookmark className="size-4" />
               שמירה כתבנית
@@ -895,9 +895,9 @@ export default function UtmBuilderPage() {
       </Card>
 
       {/* ── Saved Links Table ── */}
-      <Card className="border-[#2A2628] bg-[#2A2628]/50">
+      <Card className="border-[#E5E5E5] bg-white">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base text-white">
+          <CardTitle className="flex items-center gap-2 text-base text-[#2A2628]">
             <Link2 className="size-4 text-[#B8D900]" />
             קישורים שמורים
           </CardTitle>
@@ -943,8 +943,8 @@ export default function UtmBuilderPage() {
                 </TableHeader>
                 <TableBody>
                   {links.map((link) => (
-                    <TableRow key={link.id} className="border-[#716C70]/10 hover:bg-[#2A2628]/80">
-                      <TableCell className="font-medium text-white">
+                    <TableRow key={link.id} className="border-[#716C70]/10 hover:bg-[#F9FAFB]">
+                      <TableCell className="font-medium text-[#2A2628]">
                         {link.label}
                       </TableCell>
                       <TableCell>
@@ -990,7 +990,7 @@ export default function UtmBuilderPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => window.open(link.full_url, "_blank")}
-                            className="size-8 p-0 text-[#9A969A] hover:text-white"
+                            className="size-8 p-0 text-[#9A969A] hover:text-[#4A4648]"
                             title="פתיחה בחלון חדש"
                           >
                             <ExternalLink className="size-3.5" />
@@ -1010,7 +1010,7 @@ export default function UtmBuilderPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setDeleteConfirmId(null)}
-                                className="size-8 p-0 text-[#9A969A] hover:text-white"
+                                className="size-8 p-0 text-[#9A969A] hover:text-[#4A4648]"
                                 title="ביטול"
                               >
                                 <X className="size-3.5" />
@@ -1040,9 +1040,9 @@ export default function UtmBuilderPage() {
 
       {/* ── Save as Preset Dialog ── */}
       <Dialog open={presetDialogOpen} onOpenChange={setPresetDialogOpen}>
-        <DialogContent className="border-[#716C70]/30 bg-[#2A2628] sm:max-w-md" dir="rtl">
+        <DialogContent className="border-[#E5E5E5] bg-white sm:max-w-md" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-white">שמירה כתבנית</DialogTitle>
+            <DialogTitle className="text-[#2A2628]">שמירה כתבנית</DialogTitle>
             <DialogDescription className="text-[#9A969A]">
               שמרו את ערכי ה-UTM הנוכחיים כתבנית לשימוש חוזר
             </DialogDescription>
@@ -1054,7 +1054,7 @@ export default function UtmBuilderPage() {
                 placeholder='לדוגמה: "קמפיין פייסבוק כללי"'
                 value={presetName}
                 onChange={(e) => setPresetName(e.target.value)}
-                className="border-[#716C70]/30 bg-[#2A2628] text-white placeholder:text-[#716C70]"
+                className="border-[#E5E5E5] bg-white text-[#2A2628] placeholder:text-[#9A969A]"
               />
             </div>
 
@@ -1070,7 +1070,7 @@ export default function UtmBuilderPage() {
               <Button
                 variant="ghost"
                 onClick={() => setPresetDialogOpen(false)}
-                className="text-[#9A969A] hover:text-white"
+                className="text-[#9A969A] hover:text-[#4A4648]"
               >
                 ביטול
               </Button>

@@ -620,13 +620,13 @@ export default function SmartLinksPage() {
   /* ── Render ── */
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#2A2628] text-white p-6">
+    <div dir="rtl" className="min-h-screen bg-[#F9FAFB] text-[#2A2628] p-6">
       {/* Header */}
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <Link href={`/dashboard/pages/${pageId}/builder`}>
-              <Button variant="ghost" size="sm" className="text-[#9A969A] hover:text-white">
+              <Button variant="ghost" size="sm" className="text-[#9A969A] hover:text-[#2A2628]">
                 <ArrowRight className="w-4 h-4 ml-1" />
                 חזרה לבילדר
               </Button>
@@ -653,9 +653,9 @@ export default function SmartLinksPage() {
 
         {/* Create Form */}
         {showCreateForm && (
-          <Card className="bg-[#2A2628] border-[#716C70] mb-6">
+          <Card className="bg-white border-[#E5E5E5] mb-6">
             <CardHeader>
-              <CardTitle className="text-lg text-white">יצירת קישור חכם חדש</CardTitle>
+              <CardTitle className="text-lg text-[#2A2628]">יצירת קישור חכם חדש</CardTitle>
               <CardDescription className="text-[#9A969A]">
                 הקישור יפנה אל: onoleads.vercel.app/lp/{pageSlug}
               </CardDescription>
@@ -668,7 +668,7 @@ export default function SmartLinksPage() {
                   placeholder='למשל: "קמפיין קיץ פייסבוק"'
                   value={form.label}
                   onChange={(e) => setForm({ ...form, label: e.target.value })}
-                  className="bg-[#1e1c1d] border-[#716C70] text-white placeholder:text-[#716C70]"
+                  className="bg-[#1e1c1d] border-[#716C70] text-[#2A2628] placeholder:text-[#716C70]"
                 />
               </div>
 
@@ -681,13 +681,13 @@ export default function SmartLinksPage() {
                     placeholder="law26"
                     value={form.slug}
                     onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                    className="bg-[#1e1c1d] border-[#716C70] text-white font-mono placeholder:text-[#716C70] max-w-[200px]"
+                    className="bg-[#1e1c1d] border-[#716C70] text-[#2A2628] font-mono placeholder:text-[#716C70] max-w-[200px]"
                   />
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setForm({ ...form, slug: generateRandomSlug() })}
-                    className="border-[#716C70] text-[#9A969A] hover:text-white shrink-0"
+                    className="border-[#716C70] text-[#9A969A] hover:text-[#2A2628] shrink-0"
                   >
                     קוד אקראי
                   </Button>
@@ -701,7 +701,7 @@ export default function SmartLinksPage() {
                   placeholder="utm_source=facebook&utm_medium=cpc&utm_campaign=summer"
                   value={form.utmParams}
                   onChange={(e) => setForm({ ...form, utmParams: e.target.value })}
-                  className="bg-[#1e1c1d] border-[#716C70] text-white font-mono text-sm placeholder:text-[#716C70]"
+                  className="bg-[#1e1c1d] border-[#716C70] text-[#2A2628] font-mono text-sm placeholder:text-[#716C70]"
                   dir="ltr"
                 />
               </div>
@@ -714,7 +714,7 @@ export default function SmartLinksPage() {
                     type="datetime-local"
                     value={form.expiresAt}
                     onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
-                    className="bg-[#1e1c1d] border-[#716C70] text-white"
+                    className="bg-[#1e1c1d] border-[#716C70] text-[#2A2628]"
                     dir="ltr"
                   />
                 </div>
@@ -726,7 +726,7 @@ export default function SmartLinksPage() {
                     placeholder="https://example.com/expired"
                     value={form.fallbackUrl}
                     onChange={(e) => setForm({ ...form, fallbackUrl: e.target.value })}
-                    className="bg-[#1e1c1d] border-[#716C70] text-white font-mono text-sm placeholder:text-[#716C70]"
+                    className="bg-[#1e1c1d] border-[#716C70] text-[#2A2628] font-mono text-sm placeholder:text-[#716C70]"
                     dir="ltr"
                   />
                 </div>
@@ -757,7 +757,7 @@ export default function SmartLinksPage() {
                     setShowCreateForm(false);
                     setFormError("");
                   }}
-                  className="text-[#9A969A] hover:text-white"
+                  className="text-[#9A969A] hover:text-[#2A2628]"
                 >
                   ביטול
                 </Button>
@@ -775,10 +775,10 @@ export default function SmartLinksPage() {
 
         {/* Empty state */}
         {!loading && links.length === 0 && (
-          <Card className="bg-[#2A2628] border-[#716C70]">
+          <Card className="bg-white border-[#E5E5E5]">
             <CardContent className="flex flex-col items-center justify-center py-16">
               <Link2 className="w-12 h-12 text-[#716C70] mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">אין קישורים חכמים עדיין</h3>
+              <h3 className="text-lg font-semibold text-[#2A2628] mb-2">אין קישורים חכמים עדיין</h3>
               <p className="text-[#9A969A] text-sm mb-4">
                 צרו את הקישור הראשון כדי לעקוב אחרי הקלקות ותנועה
               </p>
@@ -803,13 +803,13 @@ export default function SmartLinksPage() {
               const shortUrl = `${SHORT_LINK_BASE}${link.slug}`;
 
               return (
-                <Card key={link.id} className="bg-[#2A2628] border-[#716C70] hover:border-[#9A969A] transition-colors">
+                <Card key={link.id} className="bg-white border-[#E5E5E5] hover:border-[#B8D900]/50 transition-colors">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between gap-4">
                       {/* Link info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-white truncate">{link.label}</h3>
+                          <h3 className="font-semibold text-[#2A2628] truncate">{link.label}</h3>
                           <Badge className={`text-xs ${statusDisplay.color} border`}>
                             {statusDisplay.label}
                           </Badge>
@@ -821,7 +821,7 @@ export default function SmartLinksPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 text-[#9A969A] hover:text-white"
+                            className="h-6 w-6 p-0 text-[#9A969A] hover:text-[#2A2628]"
                             onClick={() => handleCopy(link.slug)}
                           >
                             {copiedSlug === link.slug ? (
@@ -842,11 +842,11 @@ export default function SmartLinksPage() {
                       {/* Stats */}
                       <div className="flex items-center gap-6 text-center shrink-0">
                         <div>
-                          <p className="text-lg font-bold text-white">{counts.total}</p>
+                          <p className="text-lg font-bold text-[#2A2628]">{counts.total}</p>
                           <p className="text-[#9A969A] text-xs">הקלקות</p>
                         </div>
                         <div>
-                          <p className="text-lg font-bold text-white">{counts.unique}</p>
+                          <p className="text-lg font-bold text-[#2A2628]">{counts.unique}</p>
                           <p className="text-[#9A969A] text-xs">מבקרים</p>
                         </div>
                       </div>
@@ -856,7 +856,7 @@ export default function SmartLinksPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-[#9A969A] hover:text-white"
+                          className="text-[#9A969A] hover:text-[#2A2628]"
                           onClick={() => handleOpenAnalytics(link)}
                           title="אנליטיקס"
                         >
@@ -865,7 +865,7 @@ export default function SmartLinksPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-[#9A969A] hover:text-white"
+                          className="text-[#9A969A] hover:text-[#2A2628]"
                           onClick={() => handleOpenQR(link)}
                           title="QR Code"
                         >
@@ -874,7 +874,7 @@ export default function SmartLinksPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-[#9A969A] hover:text-white"
+                          className="text-[#9A969A] hover:text-[#2A2628]"
                           onClick={() => handleToggleActive(link)}
                           disabled={togglingId === link.id}
                           title={link.is_active ? "השהה" : "הפעל"}
@@ -913,7 +913,7 @@ export default function SmartLinksPage() {
 
       {/* Analytics Dialog */}
       <Dialog open={!!analyticsLink} onOpenChange={() => setAnalyticsLink(null)}>
-        <DialogContent className="bg-[#2A2628] border-[#716C70] text-white max-w-2xl max-h-[85vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="bg-white border-[#E5E5E5] text-[#2A2628] max-w-2xl max-h-[85vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-[#B8D900]" />
@@ -999,7 +999,7 @@ export default function SmartLinksPage() {
                   <div className="space-y-1">
                     {analyticsStats.referrers.map((ref) => (
                       <div key={ref.domain} className="flex items-center justify-between py-1 px-2 rounded hover:bg-[#1e1c1d]">
-                        <span className="text-sm text-white truncate" dir="ltr">{ref.domain}</span>
+                        <span className="text-sm text-[#2A2628] truncate" dir="ltr">{ref.domain}</span>
                         <Badge variant="secondary" className="bg-[#1e1c1d] text-[#B8D900] text-xs">
                           {ref.count}
                         </Badge>
@@ -1027,7 +1027,7 @@ export default function SmartLinksPage() {
                               )}px`,
                             }}
                           />
-                          <span className="text-xs text-white w-8 text-left" dir="ltr">{day.count}</span>
+                          <span className="text-xs text-[#2A2628] w-8 text-left" dir="ltr">{day.count}</span>
                         </div>
                       </div>
                     ))}
@@ -1049,7 +1049,7 @@ export default function SmartLinksPage() {
 
       {/* QR Code Dialog */}
       <Dialog open={!!qrLink} onOpenChange={() => setQrLink(null)}>
-        <DialogContent className="bg-[#2A2628] border-[#716C70] text-white max-w-sm" dir="rtl">
+        <DialogContent className="bg-white border-[#E5E5E5] text-[#2A2628] max-w-sm" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <QrCode className="w-5 h-5 text-[#B8D900]" />
@@ -1082,7 +1082,7 @@ export default function SmartLinksPage() {
               <Button
                 variant="outline"
                 onClick={() => qrLink && handleCopy(qrLink.slug)}
-                className="border-[#716C70] text-[#9A969A] hover:text-white"
+                className="border-[#716C70] text-[#9A969A] hover:text-[#2A2628]"
               >
                 <Copy className="w-4 h-4 ml-1" />
                 העתק URL
@@ -1109,7 +1109,7 @@ function MetricCard({ icon, label, value }: { icon: React.ReactNode; label: stri
       <div className="flex items-center justify-center text-[#B8D900] mb-1">
         {icon}
       </div>
-      <p className="text-xl font-bold text-white">{value.toLocaleString()}</p>
+      <p className="text-xl font-bold text-[#2A2628]">{value.toLocaleString()}</p>
       <p className="text-[#9A969A] text-xs">{label}</p>
     </div>
   );
