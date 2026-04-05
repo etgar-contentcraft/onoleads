@@ -15,6 +15,7 @@ import type {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ImageUploadField } from "@/components/ui/image-upload-field";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -945,15 +946,19 @@ export function ProgramForm({ program, programId }: ProgramFormProps) {
                 <CardTitle>תמונת Hero</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  <Label htmlFor="hero_image_url">כתובת תמונה</Label>
-                  <Input
-                    id="hero_image_url"
-                    dir="ltr"
-                    placeholder="https://..."
-                    {...register("hero_image_url")}
-                  />
-                </div>
+                <Controller
+                  name="hero_image_url"
+                  control={control}
+                  render={({ field }) => (
+                    <ImageUploadField
+                      value={field.value || ""}
+                      onChange={field.onChange}
+                      recommendedSize="1920×600"
+                      hint="JPG/WebP · banner רחב"
+                      previewAspect="aspect-video"
+                    />
+                  )}
+                />
               </CardContent>
             </Card>
 

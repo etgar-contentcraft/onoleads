@@ -21,6 +21,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ImageUploadField } from "@/components/ui/image-upload-field";
 import {
   Megaphone,
   Plus,
@@ -838,13 +839,39 @@ function CampaignsPage() {
                       </FieldGroup>
                     </div>
                     {(formContent as PopupContent).media_type && (formContent as PopupContent).media_type !== "none" && (
-                      <FieldGroup label={(formContent as PopupContent).media_type === "video" ? "כתובת YouTube / Vimeo" : "כתובת תמונה (URL)"}>
-                        <Input
-                          value={(formContent as PopupContent).media_url || ""}
-                          onChange={(e) => updateContent("media_url", e.target.value)}
-                          dir="ltr"
-                          placeholder={(formContent as PopupContent).media_type === "video" ? "https://youtube.com/watch?v=..." : "https://..."}
-                        />
+                      <FieldGroup label={(formContent as PopupContent).media_type === "video" ? "כתובת YouTube / Vimeo" : "תמונת פופאפ"}>
+                        {(formContent as PopupContent).media_type === "image" ? (
+                          <ImageUploadField
+                            value={(formContent as PopupContent).media_url || ""}
+                            onChange={(url) => updateContent("media_url", url)}
+                            recommendedSize={
+                              (formContent as PopupContent).media_position === "background"
+                                ? "1200×800"
+                                : (formContent as PopupContent).media_position === "side"
+                                  ? "600×400"
+                                  : "800×450"
+                            }
+                            hint={
+                              (formContent as PopupContent).media_position === "background"
+                                ? "רקע מלא · 3:2"
+                                : (formContent as PopupContent).media_position === "side"
+                                  ? "תמונה בצד · 3:2"
+                                  : "מעל הטקסט · 16:9"
+                            }
+                            previewAspect={
+                              (formContent as PopupContent).media_position === "background"
+                                ? "aspect-[3/2]"
+                                : "aspect-video"
+                            }
+                          />
+                        ) : (
+                          <Input
+                            value={(formContent as PopupContent).media_url || ""}
+                            onChange={(e) => updateContent("media_url", e.target.value)}
+                            dir="ltr"
+                            placeholder="https://youtube.com/watch?v=... או https://vimeo.com/..."
+                          />
+                        )}
                       </FieldGroup>
                     )}
                   </div>
@@ -954,15 +981,17 @@ function CampaignsPage() {
                         rows={2}
                       />
                     </FieldGroup>
-                    <FieldGroup label="תמונה מובייל (URL)">
-                      <Input
+                    <FieldGroup label="תמונה מובייל">
+                      <ImageUploadField
                         value={(formContent as PopupContent).mobile_override?.media_url || ""}
-                        onChange={(e) => updateContent("mobile_override", {
+                        onChange={(url) => updateContent("mobile_override", {
                           ...(formContent as PopupContent).mobile_override,
-                          media_url: e.target.value || undefined,
+                          media_url: url || undefined,
                         })}
-                        dir="ltr"
-                        placeholder="(כמו דסקטופ)"
+                        recommendedSize="390×500"
+                        hint="פורטרט · 4:5 למובייל"
+                        previewAspect="aspect-[4/3]"
+                        placeholder="(ישתמש בתמונת דסקטופ)"
                       />
                     </FieldGroup>
                     <FieldGroup label="הוכחה חברתית מובייל">

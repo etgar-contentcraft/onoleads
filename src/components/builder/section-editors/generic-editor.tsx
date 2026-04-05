@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2, Loader2, ListVideo } from "lucide-react";
 import { CharCount } from "../char-count";
 import { extractYoutubeId, fetchVideoMeta, fetchPlaylistMeta, extractPlaylistId } from "@/lib/utils/youtube";
+import { ImageUploadField } from "@/components/ui/image-upload-field";
 
 type GenericContent = Record<string, unknown>;
 
@@ -65,19 +66,14 @@ function BackgroundMediaFields({ content, onChange }: { content: GenericContent;
   return (
     <div className="p-3 rounded-lg border border-dashed border-[#D0D0D0] bg-[#FAFAFA] space-y-3">
       <p className="text-[11px] font-semibold text-[#716C70]">🎨 רקע (אופציונלי)</p>
-      <F label="תמונת רקע" tip="URL לתמונה שתוצג ברקע הסקשן עם שכבת הכהיה מעליה.">
-        <Input
+      <F label="תמונת רקע" tip="תמונה שתוצג ברקע הסקשן עם שכבת הכהיה מעליה. מומלץ 1920×800px לפחות.">
+        <ImageUploadField
           value={(content.background_image_url as string) || ""}
-          onChange={(e) => onChange({ ...content, background_image_url: e.target.value })}
-          placeholder="https://..."
-          dir="ltr"
+          onChange={(url) => onChange({ ...content, background_image_url: url })}
+          recommendedSize="1920×800"
+          hint="JPG/WebP"
+          previewAspect="aspect-[4/3]"
         />
-        {(content.background_image_url as string) && (
-          <div className="mt-1 rounded-md overflow-hidden border h-20 bg-muted">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={content.background_image_url as string} alt="" className="w-full h-full object-cover" />
-          </div>
-        )}
       </F>
       <F label="סרטון רקע YouTube" tip="לינק YouTube רגיל — הסרטון יתנגן ברקע, מושתק, בלולאה אינסופית.">
         <Input

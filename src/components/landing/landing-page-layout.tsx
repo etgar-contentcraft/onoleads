@@ -536,6 +536,8 @@ function InnerLayout({
           pageId={pageId}
           programId={programId}
           pageSlug={pageSlug}
+          pageInterestAreas={pageInterestAreas}
+          unknownOption={unknownOption}
         />
       )}
 

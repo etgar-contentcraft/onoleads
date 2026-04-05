@@ -21,6 +21,14 @@ import { useCtaModal, type LeadSource } from "@/components/landing/cta-modal";
 // Props
 // ============================================================================
 
+/** Interest area option passed down from the page */
+interface InterestAreaOption {
+  id: string;
+  name_he: string;
+  name_en: string | null;
+  slug: string;
+}
+
 interface PopupOverlayProps {
   content: PopupContent;
   language?: "he" | "en" | "ar";
@@ -28,6 +36,10 @@ interface PopupOverlayProps {
   pageId?: string;
   programId?: string;
   pageSlug?: string;
+  /** Interest areas assigned to the page — when >1, shows a dropdown in the form */
+  pageInterestAreas?: InterestAreaOption[];
+  /** Optional "I don't know" option shown first in the interest dropdown */
+  unknownOption?: { text: string; mapsToName: string };
   /** Campaign trigger type — used for lead source tracking */
   triggerType?: "exit_intent" | "timed" | "scroll_triggered" | "sticky_bar";
   onDismiss: () => void;
@@ -310,6 +322,22 @@ function MediaRenderer({
  *  - Confetti on form submit
  *  - Mobile-specific content override
  */
+/** Privacy policy URLs per language */
+const PRIVACY_URLS: Record<string, { privacy: string; terms: string }> = {
+  he: {
+    privacy: "https://www.ono.ac.il/privacy-policy-2/",
+    terms: "https://www.ono.ac.il/terms-for-using-the-site/",
+  },
+  en: {
+    privacy: "https://www.ono.ac.il/eng/privacy-policy-4/",
+    terms: "https://www.ono.ac.il/eng/privacy-policy-4/",
+  },
+  ar: {
+    privacy: "https://www.ono.ac.il/privacy-policy-2/",
+    terms: "https://www.ono.ac.il/terms-for-using-the-site/",
+  },
+};
+
 export function PopupOverlay({
   content: basePropContent,
   language = "he",
@@ -317,6 +345,8 @@ export function PopupOverlay({
   pageId,
   programId,
   pageSlug,
+  pageInterestAreas,
+  unknownOption,
   triggerType,
   onDismiss,
   onCtaClick,
@@ -367,6 +397,11 @@ export function PopupOverlay({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [selectedInterestArea, setSelectedInterestArea] = useState("");
+  const [privacyExpanded, setPrivacyExpanded] = useState(false);
+  const hasMultipleAreas = (pageInterestAreas?.length ?? 0) > 1;
+  const singleAreaName = pageInterestAreas?.length === 1 ? pageInterestAreas[0].name_he : undefined;
+  const privacyUrls = PRIVACY_URLS[language] || PRIVACY_URLS.he;
 
   // ---------------------------------------------------------------------------
   // Animation
@@ -420,9 +455,12 @@ export function PopupOverlay({
     if (formData.email && !EMAIL_REGEX.test(formData.email)) {
       newErrors.email = isRtl ? "אימייל לא תקין" : "Invalid email";
     }
+    if (hasMultipleAreas && !selectedInterestArea) {
+      newErrors.interest_area = isRtl ? "יש לבחור תחום עניין" : "Please select an area";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData, isRtl]);
+  }, [formData, isRtl, hasMultipleAreas, selectedInterestArea]);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -432,6 +470,12 @@ export function PopupOverlay({
 
     try {
       const urlParams = new URLSearchParams(window.location.search);
+      const resolvedInterestArea = hasMultipleAreas
+        ? (selectedInterestArea === "__unknown__"
+            ? (unknownOption?.mapsToName || null)
+            : (selectedInterestArea || null))
+        : (singleAreaName || null);
+
       const payload = {
         full_name: formData.full_name.trim(),
         phone: formData.phone.trim() || null,
@@ -439,6 +483,7 @@ export function PopupOverlay({
         page_id: pageId || null,
         page_slug: pageSlug || null,
         program_id: programId || null,
+        interest_area: resolvedInterestArea,
         utm_source: urlParams.get("utm_source"),
         utm_medium: urlParams.get("utm_medium"),
         utm_campaign: urlParams.get("utm_campaign"),
@@ -605,6 +650,66 @@ export function PopupOverlay({
                 className="w-full h-11 rounded-xl bg-black/5 border border-black/10 px-4 text-[#2a2628] text-sm placeholder:text-[#9A969A] text-left focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
                 aria-invalid={!!errors.email} />
               {errors.email && <p role="alert" className="text-red-500 text-xs mt-1 font-medium">{errors.email}</p>}
+            </div>
+
+            {/* Interest area dropdown — shown only when page has multiple areas */}
+            {hasMultipleAreas && (
+              <div>
+                <label htmlFor="popup_interest_area" className="sr-only">
+                  {isRtl ? "תחום עניין" : "Area of interest"}
+                </label>
+                <select
+                  id="popup_interest_area"
+                  value={selectedInterestArea}
+                  onChange={(e) => setSelectedInterestArea(e.target.value)}
+                  className={`w-full h-11 rounded-xl bg-black/5 border px-4 text-[#2a2628] text-sm focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none ${errors.interest_area ? "border-red-400/60" : "border-black/10"}`}
+                  aria-required="true"
+                  aria-invalid={!!errors.interest_area}
+                >
+                  <option value="">{isRtl ? "בחרו תחום עניין *" : "Select area of interest *"}</option>
+                  {unknownOption && (
+                    <option value="__unknown__">{unknownOption.text}</option>
+                  )}
+                  {pageInterestAreas!.map((area) => (
+                    <option key={area.id} value={area.name_he}>{area.name_he}</option>
+                  ))}
+                </select>
+                {errors.interest_area && (
+                  <p role="alert" className="text-red-500 text-xs mt-1 font-medium flex items-center gap-1">
+                    <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    {errors.interest_area}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Privacy disclaimer — collapsed by default */}
+            <div className="text-[10px] leading-relaxed text-[#9A969A] pt-1">
+              <p>
+                {isRtl
+                  ? "מילוי הפרטים מהווה הסכמה לשימוש במידע לפי "
+                  : "Submitting constitutes consent per "}
+                <a href={privacyUrls.privacy} target="_blank" rel="noopener noreferrer"
+                  className="underline hover:text-[#716C70] transition-colors">
+                  {isRtl ? "מדיניות הפרטיות" : "our privacy policy"}
+                </a>
+                {isRtl ? " ולקבלת פניות בקשר ללימודים." : " and to receive study-related communications."}
+              </p>
+              <button
+                type="button"
+                onClick={() => setPrivacyExpanded(!privacyExpanded)}
+                className="flex items-center gap-1 mt-1 text-[#B8D900]/70 hover:text-[#B8D900] transition-colors"
+              >
+                <span className="text-[9px]">{privacyExpanded ? "▲" : "▼"}</span>
+                {isRtl ? "קרא עוד" : "Read more"}
+              </button>
+              {privacyExpanded && (
+                <p className="mt-1 text-[9px] text-[#B0B0B0] leading-relaxed">
+                  {isRtl
+                    ? "ניתן להפסיק לקבל פניות בכל עת באמצעות פנייה אל marketing@ono.ac.il או בלחיצה על קישור \"הסר מרשימת התפוצה\" בכל הודעת דוא\"ל."
+                    : "You can stop receiving messages at any time by contacting marketing@ono.ac.il or by clicking the unsubscribe link in any email."}
+                </p>
+              )}
             </div>
 
             {/* Submit */}

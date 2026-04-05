@@ -44,6 +44,8 @@ interface PopupManagerProps {
   pageId?: string;
   programId?: string;
   pageSlug?: string;
+  pageInterestAreas?: { id: string; name_he: string; name_en: string | null; slug: string }[];
+  unknownOption?: { text: string; mapsToName: string };
 }
 
 // ============================================================================
@@ -154,6 +156,8 @@ export function PopupManager({
   pageId,
   programId,
   pageSlug,
+  pageInterestAreas,
+  unknownOption,
 }: PopupManagerProps) {
   /** ID of the currently-visible popup overlay (null when none is shown) */
   const [activePopupId, setActivePopupId] = useState<string | null>(null);
@@ -385,6 +389,8 @@ export function PopupManager({
           pageId={pageId}
           programId={programId}
           pageSlug={pageSlug}
+          pageInterestAreas={pageInterestAreas}
+          unknownOption={unknownOption}
           triggerType={activeCampaign.campaign_type}
           onDismiss={() => handleDismiss(activeCampaign.id)}
           onCtaClick={() => handleCtaClick(activeCampaign.id)}

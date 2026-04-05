@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CharCount } from "../char-count";
+import { ImageUploadField } from "@/components/ui/image-upload-field";
 
 /** Recommended character limits per field */
 const LIMITS = {
@@ -265,25 +266,16 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
         <h3 className="text-xs font-semibold text-[#9A969A] uppercase tracking-wider">הגדרות משותפות</h3>
 
         <Field
-          label="תמונת רקע (URL)"
+          label="תמונת רקע"
           tooltip="תמונה שתכסה את כל הרקע של ה-Hero. מידות מומלצות: 1920×1080px לפחות. פורמט JPG/WebP."
         >
-          <Input
+          <ImageUploadField
             value={content.background_image_url || ""}
-            onChange={(e) => update("background_image_url", e.target.value)}
-            placeholder="https://..."
-            type="url"
+            onChange={(url) => update("background_image_url", url)}
+            recommendedSize="1920×1080"
+            hint="JPG/WebP · לפחות Full HD"
+            previewAspect="aspect-video"
           />
-          {content.background_image_url && (
-            <div className="mt-2 rounded-md overflow-hidden border h-24 bg-muted">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={content.background_image_url}
-                alt="Background preview"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
         </Field>
 
         <Field
