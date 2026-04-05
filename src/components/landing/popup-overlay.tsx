@@ -126,10 +126,14 @@ export function PopupOverlay({
     return () => window.removeEventListener("keydown", handleKey);
   }, [onDismiss]);
 
-  /** Generate a CSRF token for the inline form */
+  /** Read CSRF token from cookie (set by middleware) for the inline form */
   useEffect(() => {
     if (content.include_form) {
-      setCsrfToken(crypto.randomUUID());
+      const token = document.cookie
+        .split("; ")
+        .find((c) => c.startsWith("csrf_token="))
+        ?.split("=")[1] || "";
+      setCsrfToken(token);
     }
   }, [content.include_form]);
 
@@ -174,12 +178,22 @@ export function PopupOverlay({
     setSubmitting(true);
 
     try {
+      const urlParams = new URLSearchParams(window.location.search);
+
       const payload = {
         full_name: formData.full_name.trim(),
         phone: formData.phone.trim() || null,
         email: formData.email.trim() || null,
         page_id: pageId || null,
+        page_slug: pageSlug || null,
         program_id: programId || null,
+        utm_source: urlParams.get("utm_source"),
+        utm_medium: urlParams.get("utm_medium"),
+        utm_campaign: urlParams.get("utm_campaign"),
+        utm_content: urlParams.get("utm_content"),
+        utm_term: urlParams.get("utm_term"),
+        referrer: document.referrer || null,
+        device_type: window.innerWidth < 768 ? "mobile" : window.innerWidth < 1024 ? "tablet" : "desktop" as "mobile" | "tablet" | "desktop",
         lead_source: popupLeadSource,
         csrf_token: csrfToken,
         /* Honeypot — bots will fill this, real users never see it */

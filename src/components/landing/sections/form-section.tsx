@@ -18,9 +18,10 @@ interface FormSectionProps {
   language: Language;
   pageId?: string;
   programId?: string;
+  pageSlug?: string;
 }
 
-export function FormSection({ content, language, pageId, programId }: FormSectionProps) {
+export function FormSection({ content, language, pageId, programId, pageSlug }: FormSectionProps) {
   const isRtl = language === "he" || language === "ar";
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "השאירו פרטים ונחזור אליכם" : "Leave your details");
   const subheading = (content[`subheading_${language}`] as string) || (content.subheading_he as string) || (isRtl ? "יועץ לימודים אישי יחזור אליכם תוך 24 שעות" : "");
@@ -116,6 +117,7 @@ export function FormSection({ content, language, pageId, programId }: FormSectio
         phone: formData.phone || null,
         email: formData.email || null,
         page_id: pageId || null,
+        page_slug: pageSlug || null,
         program_id: programId || null,
         program_interest: formData.program_interest || null,
         utm_source: urlParams.get("utm_source"),
