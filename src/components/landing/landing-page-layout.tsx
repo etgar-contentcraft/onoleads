@@ -504,7 +504,13 @@ function InnerLayout({
       {/* Floating WhatsApp button — appears only when whatsapp_number is configured in settings */}
       {settings?.whatsapp_number && (
         <WhatsappSection
-          content={{ phone: settings.whatsapp_number }}
+          content={{
+            phone: settings.whatsapp_number,
+            /* Pre-filled message per language, mentioning the program/page */
+            message_he: `שלום! ראיתי את העמוד${program?.name_he ? ` על ${program.name_he}` : pageTitle ? ` - ${pageTitle}` : ""} ואשמח לשמוע פרטים נוספים.`,
+            message_en: `Hi! I saw the page${program?.name_en || program?.name_he ? ` about ${program.name_en || program.name_he}` : pageTitle ? ` - ${pageTitle}` : ""} and would love to hear more details.`,
+            message_ar: `مرحباً! رأيت الصفحة${program?.name_he ? ` عن ${program.name_he}` : pageTitle ? ` - ${pageTitle}` : ""} وأود معرفة المزيد من التفاصيل.`,
+          }}
           language={language}
         />
       )}

@@ -65,6 +65,76 @@ const EMPTY_GLOBAL: GlobalSettings = {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Normalizes a WhatsApp phone number to international format (digits only, no +).
+ * Israeli mobile (05x) → 9725x, Israeli landline (0x) → 972x, US → 1xxx
+ * @param raw - Raw input from the user
+ * @returns Cleaned international number string
+ */
+function normalizeWhatsAppNumber(raw: string): string {
+  // Strip everything except digits and leading +
+  const stripped = raw.replace(/[^\d+]/g, "");
+  let digits = stripped.replace(/^\+/, "");
+
+  if (!digits) return "";
+
+  // Israeli mobile: 05x → 9725x
+  if (/^05\d{8}$/.test(digits)) return "972" + digits.slice(1);
+  // Israeli landline: 0[2-9]x → 972x
+  if (/^0[2-9]\d{7,8}$/.test(digits)) return "972" + digits.slice(1);
+  // Already has country code 972
+  if (digits.startsWith("972") && digits.length >= 11) return digits;
+  // US: 1 + 10 digits
+  if (digits.startsWith("1") && digits.length === 11) return digits;
+  // Return as-is if we can't determine
+  return digits;
+}
+
+/**
+ * Custom WhatsApp number input with auto-formatting on blur.
+ * Shows formatted number and a preview of the wa.me link.
+ */
+function WhatsAppNumberField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const hasValue = value.trim() !== "";
+  const preview = hasValue ? `https://wa.me/${value}` : null;
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-1.5">
+        <Label className="text-sm font-medium text-[#2a2628]">מספר WhatsApp</Label>
+        {hasValue ? (
+          <Badge className="text-[10px] bg-[#B8D900]/15 text-[#5a7000] border-0 px-1.5 py-0">ידני</Badge>
+        ) : (
+          <Badge className="text-[10px] bg-[#f3f4f6] text-[#9A969A] border-0 px-1.5 py-0">לא מוגדר — לא יוצג</Badge>
+        )}
+      </div>
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={(e) => {
+          const normalized = normalizeWhatsAppNumber(e.target.value);
+          if (normalized !== value) onChange(normalized);
+        }}
+        placeholder="הכניסו מספר (ישראלי או בינלאומי)"
+        className="h-9"
+        dir="ltr"
+      />
+      {hasValue && preview && (
+        <p className="text-[11px] text-[#716C70] mt-1 font-mono">{preview}</p>
+      )}
+      {hasValue && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className="text-[11px] text-red-400 hover:text-red-600 mt-0.5"
+        >
+          נקה — לא יוצג כפתור ווצאפ
+        </button>
+      )}
+    </div>
+  );
+}
+
 /** Known webhook host patterns — if URL doesn't match, show a warning */
 const WEBHOOK_HOST_PATTERNS = ["hook.make.com", "make.celonis.com", "hooks.zapier.com", "n8n.cloud", "n8n.io", "webhook.site", "pipedream.net"];
 
@@ -635,7 +705,8 @@ export default function PageSettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <OverrideField label="Webhook URL" fieldKey="webhook_url" globalValue={globalSettings.webhook_url} hint="כתובת לשליחת הליד של עמוד זה" overrides={overrides} onChange={set} />
-            <OverrideField label="מספר WhatsApp" fieldKey="whatsapp_number" globalValue={globalSettings.whatsapp_number} hint="פורמט בינלאומי ללא מקף" overrides={overrides} onChange={set} />
+            {/* WhatsApp number — custom field with auto-formatter */}
+            <WhatsAppNumberField value={overrides.whatsapp_number || ""} onChange={(v) => set("whatsapp_number", v)} />
             <OverrideField label="מספר טלפון" fieldKey="phone_number" globalValue={globalSettings.phone_number} overrides={overrides} onChange={set} />
           </CardContent>
         </Card>
