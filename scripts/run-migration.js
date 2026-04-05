@@ -34,7 +34,12 @@ async function main() {
     await client.connect()
     console.log('Connected to database!')
 
-    const sqlFile = path.join(__dirname, '..', 'supabase', 'migrations', '001_initial_schema.sql')
+    const migrationName = process.argv[3] || '001_initial_schema.sql'
+    const sqlFile = path.join(__dirname, '..', 'supabase', 'migrations', migrationName)
+    if (!fs.existsSync(sqlFile)) {
+      console.error('Migration file not found:', sqlFile)
+      process.exit(1)
+    }
     const sql = fs.readFileSync(sqlFile, 'utf8')
 
     console.log('Running migration...')
