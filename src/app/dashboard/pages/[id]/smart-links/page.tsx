@@ -274,6 +274,7 @@ export default function SmartLinksPage() {
   const [qrLink, setQrLink] = useState<SmartLink | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [qrStyleIndex, setQrStyleIndex] = useState(DEFAULT_QR_STYLE_INDEX);
+  const [pendingQrLink, setPendingQrLink] = useState<SmartLink | null>(null);
 
   /* Edit link dialog state */
   const [editLink, setEditLink] = useState<SmartLink | null>(null);
@@ -414,6 +415,10 @@ export default function SmartLinksPage() {
         return;
       }
 
+      /* Save the created link info for QR dialog */
+      const createdSlug = form.slug;
+      const createdLabel = form.label.trim();
+
       /* Reset form and refresh */
       setForm({
         label: "",
@@ -424,6 +429,21 @@ export default function SmartLinksPage() {
       });
       setShowCreateForm(false);
       await fetchLinks();
+
+      /* Auto-open QR code dialog for the newly created link */
+      const newLink: SmartLink = {
+        id: "",
+        page_id: pageId,
+        created_by: "",
+        slug: createdSlug,
+        label: createdLabel,
+        target_url: targetUrl,
+        is_active: true,
+        expires_at: form.expiresAt || null,
+        fallback_url: form.fallbackUrl.trim() || null,
+        created_at: new Date().toISOString(),
+      };
+      setPendingQrLink(newLink);
     } finally {
       setCreating(false);
     }
@@ -589,6 +609,14 @@ export default function SmartLinksPage() {
     );
     setQrDataUrl(dataUrl);
   }, []);
+
+  /* Auto-open QR dialog after creating a new link */
+  useEffect(() => {
+    if (pendingQrLink) {
+      handleOpenQR(pendingQrLink);
+      setPendingQrLink(null);
+    }
+  }, [pendingQrLink, handleOpenQR]);
 
   /**
    * Changes the QR code style and regenerates the image.
