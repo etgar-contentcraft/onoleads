@@ -24,10 +24,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    /* --- Verify caller has admin role --- */
-    const userRole = user.user_metadata?.role;
-    if (userRole !== 'admin' && userRole !== 'super_admin') {
-      return NextResponse.json({ error: "Forbidden — admin access required" }, { status: 403 });
+    /* --- Verify caller has admin role (from profiles table) --- */
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     /* --- Fetch all users via admin client --- */
