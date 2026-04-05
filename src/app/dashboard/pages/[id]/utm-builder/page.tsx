@@ -284,6 +284,7 @@ export default function UtmBuilderPage() {
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedGenerated, setCopiedGenerated] = useState(false);
+  const [copiedParams, setCopiedParams] = useState(false);
   const [savingPreset, setSavingPreset] = useState(false);
   const [presetDialogOpen, setPresetDialogOpen] = useState(false);
   const [presetName, setPresetName] = useState("");
@@ -449,6 +450,9 @@ export default function UtmBuilderPage() {
       if (id === "generated") {
         setCopiedGenerated(true);
         setTimeout(() => setCopiedGenerated(false), 2000);
+      } else if (id === "params") {
+        setCopiedParams(true);
+        setTimeout(() => setCopiedParams(false), 2000);
       } else {
         setCopiedId(id);
         setTimeout(() => setCopiedId(null), 2000);
@@ -864,6 +868,19 @@ export default function UtmBuilderPage() {
             >
               {copiedGenerated ? <Check className="size-4" /> : <Copy className="size-4" />}
               העתקת URL
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => {
+                const qs = generatedUrl.split("?")[1] || "";
+                copyToClipboard(qs ? `?${qs}` : "", "params");
+              }}
+              disabled={!generatedUrl || !effectiveSource || !effectiveMedium || !form.utm_campaign}
+              className="gap-1.5 border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900]/50 hover:text-[#2A2628] disabled:opacity-40"
+            >
+              {copiedParams ? <Check className="size-4" /> : <Copy className="size-4" />}
+              העתקת פרמטרים
             </Button>
 
             <Button
