@@ -54,7 +54,6 @@ export async function DELETE(
     }
 
     /* --- Delete user via admin client --- */
-    const adminClient = createAdminClient();
     const { error } = await adminClient.auth.admin.deleteUser(id);
 
     if (error) {

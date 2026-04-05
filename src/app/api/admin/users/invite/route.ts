@@ -58,7 +58,6 @@ export async function POST(request: NextRequest) {
     const trimmedEmail = email.trim().toLowerCase();
 
     /* --- Send invitation email --- */
-    const adminClient = createAdminClient();
     const { error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
       trimmedEmail,
       {
