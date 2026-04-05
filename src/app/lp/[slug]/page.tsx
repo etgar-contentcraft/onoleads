@@ -144,6 +144,15 @@ const getPageData = cache(async function getPageData(slug: string) {
     })
     .filter(Boolean) as AreaShape[];
 
+  /* Build unknownOption from page settings when enabled */
+  const unknownOption =
+    pageOverrides.interest_unknown_enabled === "true" && pageOverrides.interest_unknown_maps_to_name
+      ? {
+          text: pageOverrides.interest_unknown_text || "אני לא יודע",
+          mapsToName: pageOverrides.interest_unknown_maps_to_name,
+        }
+      : undefined;
+
   return {
     page: page as Page,
     sections,
@@ -151,6 +160,7 @@ const getPageData = cache(async function getPageData(slug: string) {
     settings,
     campaigns,
     pageInterestAreas,
+    unknownOption,
   };
 });
 
@@ -448,7 +458,7 @@ export default async function LandingPage({ params }: PageProps) {
     notFound();
   }
 
-  const { page, sections, program, settings, campaigns, pageInterestAreas } = data;
+  const { page, sections, program, settings, campaigns, pageInterestAreas, unknownOption } = data;
   const language = (page.language || "he") as Language;
   const isRtl = language === "he" || language === "ar";
 
@@ -487,6 +497,7 @@ export default async function LandingPage({ params }: PageProps) {
         settings={settings}
         campaigns={campaigns}
         pageInterestAreas={pageInterestAreas}
+        unknownOption={unknownOption}
       />
     </>
   );

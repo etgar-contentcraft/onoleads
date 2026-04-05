@@ -175,6 +175,14 @@ interface InterestAreaOption {
   slug: string;
 }
 
+/** "I don't know" option config — lets undecided visitors pick this and still be routed */
+interface UnknownOption {
+  /** Display text shown to the visitor (e.g., "אני לא יודע") */
+  text: string;
+  /** The real interest area name sent via webhook when this is selected */
+  mapsToName: string;
+}
+
 interface CtaModalProps {
   pageId?: string;
   programId?: string;
@@ -186,13 +194,15 @@ interface CtaModalProps {
   /** Interest areas assigned to this page — when >1, shows a dropdown */
   pageInterestAreas?: InterestAreaOption[];
   language?: "he" | "en" | "ar";
+  /** Optional "I don't know" first option in the interest area dropdown */
+  unknownOption?: UnknownOption;
 }
 
 /**
  * Lead capture modal with form validation, CSRF protection, and honeypot field.
  * Displayed as a bottom sheet on mobile and centered modal on desktop.
  */
-export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pageInterestAreas, language: langProp }: CtaModalProps) {
+export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pageInterestAreas, language: langProp, unknownOption }: CtaModalProps) {
   const { isOpen, close, language: ctxLanguage, leadSource } = useCtaModal();
   const language = langProp || ctxLanguage;
   const t = FORM_STRINGS[language] || FORM_STRINGS.he;
@@ -306,7 +316,11 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
         csrf_token: csrfToken,
         lead_source: leadSource || "unknown",
         page_slug: pageSlug || null,
-        interest_area: hasMultipleAreas ? (selectedInterestArea || null) : (singleAreaName || null),
+        interest_area: hasMultipleAreas
+          ? (selectedInterestArea === "__unknown__"
+              ? (unknownOption?.mapsToName || null)
+              : (selectedInterestArea || null))
+          : (singleAreaName || null),
         /* Honeypot field - bots will fill this, real users won't see it */
         website: honeypot,
       };
@@ -423,35 +437,6 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                     />
                   </div>
 
-                  {/* Interest Area dropdown — shown only when page has multiple areas */}
-                  {hasMultipleAreas && (
-                    <div>
-                      <label htmlFor="interest_area" className="sr-only">תחום עניין</label>
-                      <select
-                        id="interest_area"
-                        value={selectedInterestArea}
-                        onChange={(e) => setSelectedInterestArea(e.target.value)}
-                        className={`w-full h-13 rounded-xl bg-white/8 border px-4 text-white text-base focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none ${errors.interest_area ? "border-red-400/60" : "border-white/15"}`}
-                        style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
-                        aria-required="true"
-                        aria-invalid={!!errors.interest_area}
-                      >
-                        <option value="" className="bg-[#2a2628]">{isRtl ? "בחרו תחום עניין *" : "Select area of interest *"}</option>
-                        {pageInterestAreas!.map((area) => (
-                          <option key={area.id} value={area.name_he} className="bg-[#2a2628]">
-                            {area.name_he}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.interest_area && (
-                        <p role="alert" className="text-red-400 text-xs mt-1.5 font-medium flex items-center gap-1">
-                          <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                          {errors.interest_area}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
                   {/* Full Name */}
                   <div>
                     <label htmlFor="full_name" className="sr-only">{t.namePlaceholder}</label>
@@ -512,6 +497,41 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                       <p id="email_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{errors.email}</p>
                     )}
                   </div>
+
+                  {/* Interest Area dropdown — shown only when page has multiple areas */}
+                  {hasMultipleAreas && (
+                    <div>
+                      <label htmlFor="interest_area" className="sr-only">תחום עניין</label>
+                      <select
+                        id="interest_area"
+                        value={selectedInterestArea}
+                        onChange={(e) => setSelectedInterestArea(e.target.value)}
+                        className={`w-full h-13 rounded-xl bg-white/8 border px-4 text-white text-base focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none ${errors.interest_area ? "border-red-400/60" : "border-white/15"}`}
+                        style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+                        aria-required="true"
+                        aria-invalid={!!errors.interest_area}
+                      >
+                        <option value="" className="bg-[#2a2628]">{isRtl ? "בחרו תחום עניין *" : "Select area of interest *"}</option>
+                        {/* "I don't know" option — always first when enabled */}
+                        {unknownOption && (
+                          <option value="__unknown__" className="bg-[#2a2628]">
+                            {unknownOption.text}
+                          </option>
+                        )}
+                        {pageInterestAreas!.map((area) => (
+                          <option key={area.id} value={area.name_he} className="bg-[#2a2628]">
+                            {area.name_he}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.interest_area && (
+                        <p role="alert" className="text-red-400 text-xs mt-1.5 font-medium flex items-center gap-1">
+                          <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                          {errors.interest_area}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Disclaimer with expandable "Read more" */}
                   <div className="text-white/30 text-xs leading-relaxed space-y-1">

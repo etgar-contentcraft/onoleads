@@ -84,6 +84,8 @@ interface LandingPageLayoutProps {
   campaigns?: PopupCampaign[];
   /** Interest areas assigned to this page */
   pageInterestAreas?: PageInterestArea[];
+  /** Optional "I don't know" option shown first in the interest dropdown */
+  unknownOption?: { text: string; mapsToName: string };
 }
 
 // ============================================================================
@@ -322,6 +324,7 @@ function InnerLayout({
   settings,
   campaigns,
   pageInterestAreas,
+  unknownOption,
 }: LandingPageLayoutProps) {
   const isRtl = language === "he" || language === "ar";
   const urlParams = useUrlParams();
@@ -481,6 +484,7 @@ function InnerLayout({
         programName={pageTitle || (language === "en" ? (program?.name_en || program?.name_he) : program?.name_he)}
         ctaText={localizedCtaText}
         pageInterestAreas={pageInterestAreas}
+        unknownOption={unknownOption}
         language={language}
       />
 

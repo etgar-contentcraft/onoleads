@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Loader2, Save, ExternalLink, Tag, Search, X } from "lucide-react";
+import { ArrowRight, Loader2, Save, ExternalLink, Tag, Search, X, ChevronUp, ChevronDown } from "lucide-react";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 import type { InterestArea } from "@/lib/types/database";
@@ -48,6 +48,11 @@ interface PageOverrides {
 
   social_proof_enabled?: string;
   social_proof_days?: string;
+  /** "I don't know" option — display text shown to the visitor */
+  interest_unknown_enabled?: string;
+  interest_unknown_text?: string;
+  /** The real interest area name_he that maps to when unknown is selected */
+  interest_unknown_maps_to_name?: string;
 }
 
 const EMPTY_GLOBAL: GlobalSettings = {
@@ -285,27 +290,54 @@ export default function PageSettingsPage() {
             </p>
           ) : (
             <>
-              {/* Selected chips */}
+              {/* Selected chips with reorder controls */}
               {selectedAreaIds.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {selectedAreaIds.map((id) => {
+                <div className="flex flex-col gap-1.5">
+                  {selectedAreaIds.map((id, index) => {
                     const area = interestAreas.find((a) => a.id === id);
                     if (!area) return null;
                     return (
-                      <span
+                      <div
                         key={id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-[#B8D900]/20 border border-[#B8D900] text-[#5a7000]"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-xl text-sm font-medium bg-[#B8D900]/20 border border-[#B8D900] text-[#5a7000] w-fit"
                       >
-                        {area.name_he}
+                        {/* Reorder buttons */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAreaIds((prev) => {
+                            const arr = [...prev];
+                            [arr[index - 1], arr[index]] = [arr[index], arr[index - 1]];
+                            return arr;
+                          })}
+                          disabled={index === 0}
+                          className="p-0.5 rounded hover:bg-[#B8D900]/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          aria-label="הזז למעלה"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAreaIds((prev) => {
+                            const arr = [...prev];
+                            [arr[index], arr[index + 1]] = [arr[index + 1], arr[index]];
+                            return arr;
+                          })}
+                          disabled={index === selectedAreaIds.length - 1}
+                          className="p-0.5 rounded hover:bg-[#B8D900]/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          aria-label="הזז למטה"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="mx-1">{area.name_he}</span>
                         <button
                           type="button"
                           onClick={() => setSelectedAreaIds((prev) => prev.filter((i) => i !== id))}
-                          className="hover:text-red-500 transition-colors"
+                          className="p-0.5 rounded hover:text-red-500 transition-colors"
                           aria-label={`הסר ${area.name_he}`}
                         >
                           <X className="w-3 h-3" />
                         </button>
-                      </span>
+                      </div>
                     );
                   })}
                 </div>
@@ -359,9 +391,68 @@ export default function PageSettingsPage() {
             </>
           )}
           {selectedAreaIds.length > 1 && (
-            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-              נבחרו {selectedAreaIds.length} תחומים — הטופס יציג לגולש תפריט בחירה.
-            </p>
+            <>
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                נבחרו {selectedAreaIds.length} תחומים — הטופס יציג לגולש תפריט בחירה.
+              </p>
+
+              {/* "אני לא יודע" advanced option */}
+              <div className="border border-dashed border-gray-200 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-[#2a2628]">אפשרות &ldquo;אני לא יודע&rdquo;</p>
+                    <p className="text-xs text-[#9A969A] mt-0.5">
+                      מאפשרת לגולשים לבחור ללא ידיעה ברורה — ועדיין לשייכם לתחום קיים בוובהוק.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => set("interest_unknown_enabled", overrides.interest_unknown_enabled === "true" ? "false" : "true")}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${overrides.interest_unknown_enabled === "true" ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}
+                    role="switch"
+                    aria-checked={overrides.interest_unknown_enabled === "true"}
+                  >
+                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${overrides.interest_unknown_enabled === "true" ? "translate-x-4" : "translate-x-0"}`} />
+                  </button>
+                </div>
+
+                {overrides.interest_unknown_enabled === "true" && (
+                  <div className="space-y-3 pt-1">
+                    {/* Editable display text */}
+                    <div>
+                      <Label className="text-xs text-[#716C70]">טקסט שמוצג לגולש</Label>
+                      <Input
+                        value={overrides.interest_unknown_text || "אני לא יודע"}
+                        onChange={(e) => set("interest_unknown_text", e.target.value)}
+                        placeholder="אני לא יודע"
+                        dir="rtl"
+                        className="mt-1 h-8 text-sm"
+                      />
+                    </div>
+                    {/* Maps-to selector */}
+                    <div>
+                      <Label className="text-xs text-[#716C70]">ישויך לתחום עניין</Label>
+                      <select
+                        value={overrides.interest_unknown_maps_to_name || ""}
+                        onChange={(e) => set("interest_unknown_maps_to_name", e.target.value)}
+                        className="mt-1 w-full h-8 rounded-lg border border-gray-200 px-2 text-sm text-[#2a2628] focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 bg-white"
+                        dir="rtl"
+                      >
+                        <option value="">— בחרו תחום —</option>
+                        {interestAreas.map((area) => (
+                          <option key={area.id} value={area.name_he}>
+                            {area.name_he}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[11px] text-[#9A969A] mt-1">
+                        בוובהוק יישלח שם התחום הנבחר כאן — לא הטקסט שמוצג לגולש.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
