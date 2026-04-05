@@ -21,6 +21,8 @@ interface HelpSection {
     name: string;
     description: string;
     tip?: string;
+    /** Dark code block shown below the description (JSON examples etc.) */
+    codeExample?: string;
   }[];
 }
 
@@ -164,6 +166,98 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         name: "עמוד תודה",
         description: "לאחר שליחת הטופס המבקר מנותב לעמוד תודה מותאם אישית, הגדרות בבילדר תחת 'הגדרות עמוד'.",
+      },
+    ],
+  },
+  {
+    id: "webhook-payload",
+    icon: Zap,
+    title: "Webhook — מבנה ה-Payload",
+    description: "כל ליד שנשלח ל-Make.com / Zapier / n8n מכיל את השדות הבאים בפורמט JSON. כך תדעו בדיוק מה לצפות.",
+    color: "bg-orange-50 text-orange-700 border-orange-200",
+    features: [
+      {
+        name: "שדות הליד",
+        description: "כל שדה תמיד נשלח — גם אם ריק (מחרוזת ריקה). כך ניתן לבנות מבנה קבוע ב-Make.com בלי הפתעות.",
+        codeExample: `{
+  "full_name":       "ישראל ישראלי",
+  "phone":           "0521234567",
+  "email":           "israel@example.com",
+  "interest_area":   "MBA",
+  "program_interest":"הפקולטה למנהל עסקים — MBA",
+  "page_slug":       "mba-ono",
+  "page_id":         "de9ff543-120a-4a92-...",
+  "device_type":     "mobile",
+  "referrer_domain": "google.com",
+  "utm_source":      "google",
+  "utm_medium":      "cpc",
+  "utm_campaign":    "mba-spring-2026",
+  "utm_content":     "",
+  "utm_term":        "",
+  "created_at":      "2026-04-05T17:01:33.000Z"
+}`,
+      },
+      {
+        name: "דוגמה — עמוד עברי (MBA)",
+        description: "ליד שהגיע מקמפיין גוגל לעמוד MBA, בחר תחום עניין ומילא טופס:",
+        codeExample: `{
+  "full_name":       "נועה כהן",
+  "phone":           "0527654321",
+  "email":           "noa@gmail.com",
+  "interest_area":   "MBA",
+  "program_interest":"הפקולטה למנהל עסקים | MBA עם התמחות בפיננסים",
+  "page_slug":       "mba-finance",
+  "page_id":         "abc123...",
+  "device_type":     "desktop",
+  "referrer_domain": "google.com",
+  "utm_source":      "google",
+  "utm_medium":      "cpc",
+  "utm_campaign":    "mba-2026",
+  "utm_content":     "ad-variant-b",
+  "utm_term":        "mba תואר שני",
+  "created_at":      "2026-04-05T10:30:00.000Z"
+}`,
+      },
+      {
+        name: "דוגמה — עמוד אנגלי (Law)",
+        description: "Lead from an English-language page, direct traffic (no UTM):",
+        codeExample: `{
+  "full_name":       "John Smith",
+  "phone":           "0541111222",
+  "email":           "john@example.com",
+  "interest_area":   "Law",
+  "program_interest":"Faculty of Law — LL.B",
+  "page_slug":       "llb-english",
+  "page_id":         "xyz789...",
+  "device_type":     "mobile",
+  "referrer_domain": "direct",
+  "utm_source":      "",
+  "utm_medium":      "",
+  "utm_campaign":    "",
+  "utm_content":     "",
+  "utm_term":        "",
+  "created_at":      "2026-04-05T14:22:00.000Z"
+}`,
+      },
+      {
+        name: "לוגיקת Webhook — גלובלי מול per-page",
+        description: "המערכת בודקת קודם אם לעמוד יש webhook ייעודי. אם כן — שולח רק אליו. אם לא — שולח לגלובלי. לעולם לא נשלח לשניהם.",
+        tip: "הגדרת Webhook ייעודי לעמוד: הגדרות העמוד ← כרטיסיית 'אינטגרציות' ← שדה 'Webhook URL'. ריק = נופל לגלובלי.",
+      },
+      {
+        name: "UTM Cookie — attribution חכם",
+        description: "אם גולש הגיע בביקורו הראשון עם UTM params (קמפיין), הערכים נשמרים ב-cookie ל-90 יום. בביקור חוזר — הליד יישא את ה-UTM המקורי גם אם הגיע ישיר.",
+        tip: "דוגמה: גולש הגיע מ-facebook ב-1 לינואר, חזר ישיר ב-5 לינואר ומילא טופס. utm_source יהיה 'facebook' — כי זו הייתה הנקודת המגע המקורית.",
+      },
+      {
+        name: "referrer_domain — מה המשמעות",
+        description: "מציין מאיפה הגיע הגולש: 'google.com' = חיפוש, 'facebook.com' = מדיה חברתית, 'direct' = הגיע ישיר / הקליד כתובת / חזר מ-bookmark.",
+        tip: "אם המפנה הוא האתר עצמו (onoleads.vercel.app), המערכת כותבת 'direct' ולא את כתובת האתר.",
+      },
+      {
+        name: "תחומי עניין — interest_area מול program_interest",
+        description: "interest_area הוא הקטגוריה שהגולש בחר (MBA, משפטים, פסיכולוגיה). program_interest הוא שם התוכנית המלא מהעמוד (כולל פקולטה). שניהם נשלחים.",
+        tip: "אם הגולש בחר 'אני לא יודע' — interest_area יכיל את שם הקטגוריה שהוגדרה בהגדרות העמוד (לא את הטקסט שהוצג לגולש).",
       },
     ],
   },
@@ -668,6 +762,17 @@ function HelpCard({ section }: { section: HelpSection }) {
                   <p className="text-xs mt-1.5 px-2.5 py-1.5 rounded-lg bg-white/70 border border-current/10 opacity-80 font-mono">
                     💡 {feature.tip}
                   </p>
+                )}
+                {feature.codeExample && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-semibold opacity-50 uppercase tracking-wider">דוגמה</span>
+                      <CopyButton text={feature.codeExample} />
+                    </div>
+                    <pre className="bg-[#2A2628] rounded-xl p-3 text-[10px] text-[#B8D900] font-mono overflow-x-auto whitespace-pre leading-relaxed">
+                      {feature.codeExample}
+                    </pre>
+                  </div>
                 )}
               </div>
             </div>
