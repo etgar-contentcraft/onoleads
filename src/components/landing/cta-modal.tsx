@@ -298,6 +298,39 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
 
       const urlParams = new URLSearchParams(window.location.search);
 
+      /* --- UTM cookie persistence ---
+       * On first visit with UTM params, store them in a cookie.
+       * On subsequent visits without UTM, reuse the stored values. */
+      const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
+      const utmFromUrl: Record<string, string> = {};
+      for (const k of UTM_KEYS) {
+        const v = urlParams.get(k);
+        if (v) utmFromUrl[k] = v;
+      }
+
+      const hasUrlUtm = Object.keys(utmFromUrl).length > 0;
+
+      /* Read previously stored UTM from cookie */
+      const storedUtmCookie = document.cookie.split("; ").find((c) => c.startsWith("ono_utm="))?.split("=").slice(1).join("=") || "";
+      let storedUtm: Record<string, string> = {};
+      if (storedUtmCookie) {
+        try { storedUtm = JSON.parse(decodeURIComponent(storedUtmCookie)); } catch { /* ignore */ }
+      }
+
+      /* If current visit has UTM params, save them to cookie for future visits */
+      if (hasUrlUtm) {
+        const utmJson = encodeURIComponent(JSON.stringify(utmFromUrl));
+        document.cookie = `ono_utm=${utmJson}; path=/; max-age=${90 * 24 * 60 * 60}; SameSite=Lax`;
+        storedUtm = utmFromUrl;
+      }
+
+      /* Use URL params first, fall back to stored cookie values */
+      const utmSource = utmFromUrl.utm_source || storedUtm.utm_source || null;
+      const utmMedium = utmFromUrl.utm_medium || storedUtm.utm_medium || null;
+      const utmCampaign = utmFromUrl.utm_campaign || storedUtm.utm_campaign || null;
+      const utmContent = utmFromUrl.utm_content || storedUtm.utm_content || null;
+      const utmTerm = utmFromUrl.utm_term || storedUtm.utm_term || null;
+
       const payload = {
         full_name: formData.full_name.trim(),
         phone: formData.phone.trim() || null,
@@ -305,11 +338,11 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
         page_id: pageId || null,
         program_id: programId || null,
         program_interest: programName || null,
-        utm_source: urlParams.get("utm_source"),
-        utm_medium: urlParams.get("utm_medium"),
-        utm_campaign: urlParams.get("utm_campaign"),
-        utm_content: urlParams.get("utm_content"),
-        utm_term: urlParams.get("utm_term"),
+        utm_source: utmSource,
+        utm_medium: utmMedium,
+        utm_campaign: utmCampaign,
+        utm_content: utmContent,
+        utm_term: utmTerm,
         referrer: document.referrer || null,
         cookie_id: cookieId,
         device_type: window.innerWidth < 768 ? "mobile" : window.innerWidth < 1024 ? "tablet" : "desktop",

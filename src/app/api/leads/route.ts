@@ -190,7 +190,13 @@ export async function POST(request: NextRequest) {
     const supabase = createAdminClient();
     const cookieId = data.cookie_id || crypto.randomUUID();
     const pageId = data.page_id ? sanitizeGeneral(data.page_id) : null;
-    const referrerDomain = extractDomain(data.referrer);
+
+    /* Referrer: if it's our own domain treat as "direct" */
+    const OWN_DOMAINS = ["onoleads.vercel.app", "localhost"];
+    const rawReferrerDomain = extractDomain(data.referrer);
+    const referrerDomain = rawReferrerDomain && OWN_DOMAINS.some((d) => rawReferrerDomain.includes(d))
+      ? null
+      : rawReferrerDomain;
 
     const utmSource = data.utm_source ? sanitizeGeneral(data.utm_source) : null;
     const utmMedium = data.utm_medium ? sanitizeGeneral(data.utm_medium) : null;
@@ -199,31 +205,26 @@ export async function POST(request: NextRequest) {
     const utmTerm = data.utm_term ? sanitizeGeneral(data.utm_term) : null;
 
     /* --- Build Make.com-friendly webhook payload ---
-     * Flat structure, no nulls for empty fields, UTM grouped for readability.
-     * Only include fields that have actual values. */
-    const webhookPayload: Record<string, string | Record<string, string>> = {
+     * All UTM fields always included (empty string if no value).
+     * referrer_domain = "direct" when visitor arrived directly. */
+    const webhookPayload: Record<string, string> = {
       full_name: nameResult.value,
+      phone: sanitizedPhone || "",
+      email: sanitizedEmail || "",
+      page_id: pageId || "",
+      page_slug: data.page_slug ? sanitizeGeneral(data.page_slug) : "",
+      interest_area: data.interest_area ? sanitizeGeneral(data.interest_area) : "",
+      program_id: data.program_id ? sanitizeGeneral(data.program_id) : "",
+      program_interest: data.program_interest ? sanitizeGeneral(data.program_interest) : "",
+      device_type: data.device_type || "",
+      referrer_domain: referrerDomain || "direct",
+      utm_source: utmSource || "",
+      utm_medium: utmMedium || "",
+      utm_campaign: utmCampaign || "",
+      utm_content: utmContent || "",
+      utm_term: utmTerm || "",
       created_at: new Date().toISOString(),
     };
-
-    if (sanitizedPhone) webhookPayload.phone = sanitizedPhone;
-    if (sanitizedEmail) webhookPayload.email = sanitizedEmail;
-    if (pageId) webhookPayload.page_id = pageId;
-    if (data.page_slug) webhookPayload.page_slug = sanitizeGeneral(data.page_slug);
-    if (data.interest_area) webhookPayload.interest_area = sanitizeGeneral(data.interest_area);
-    if (data.program_id) webhookPayload.program_id = sanitizeGeneral(data.program_id);
-    if (data.program_interest) webhookPayload.program_interest = sanitizeGeneral(data.program_interest);
-    if (data.device_type) webhookPayload.device_type = data.device_type;
-    if (referrerDomain) webhookPayload.referrer_domain = referrerDomain;
-
-    /* Group UTM params under a nested object — cleaner in Make.com */
-    const utm: Record<string, string> = {};
-    if (utmSource) utm.source = utmSource;
-    if (utmMedium) utm.medium = utmMedium;
-    if (utmCampaign) utm.campaign = utmCampaign;
-    if (utmContent) utm.content = utmContent;
-    if (utmTerm) utm.term = utmTerm;
-    if (Object.keys(utm).length > 0) webhookPayload.utm = utm;
 
     let webhookStatus = "sent";
     try {
@@ -333,8 +334,10 @@ async function fireWebhook(
         .select("custom_styles")
         .eq("id", pageId)
         .single();
-      const overrides = pageData?.custom_styles as Record<string, string> | null;
-      const pageWebhook = overrides?.webhook_url;
+      const cs = pageData?.custom_styles as Record<string, unknown> | null;
+      /* Page overrides are stored under custom_styles.page_settings */
+      const pageSettings = (cs?.page_settings || cs) as Record<string, string> | null;
+      const pageWebhook = pageSettings?.webhook_url;
       if (pageWebhook && typeof pageWebhook === "string" && pageWebhook.trim()) {
         webhookUrl = pageWebhook.trim();
       }
