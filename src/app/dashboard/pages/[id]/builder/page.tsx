@@ -70,6 +70,8 @@ import {
   Globe,
   Search,
   Rocket,
+  Link2,
+  Zap,
 } from "lucide-react";
 import { sanitizeSlug } from "@/lib/utils/slug";
 import { extractYoutubeId } from "@/lib/utils/youtube";
@@ -488,6 +490,7 @@ function SortableSectionRow({
   onToggleVisibility,
   onEdit,
   onDelete,
+  onSaveAsGlobal,
 }: {
   section: PageSection;
   index: number;
@@ -497,6 +500,7 @@ function SortableSectionRow({
   onToggleVisibility: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onSaveAsGlobal?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: section.id,
@@ -626,6 +630,19 @@ function SortableSectionRow({
         >
           <Pencil className="w-3.5 h-3.5" />
         </Button>
+
+        {/* Save as Global */}
+        {!section.shared_section_id && onSaveAsGlobal && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onSaveAsGlobal}
+            className="h-8 w-8 p-0 text-[#C8C4C8] hover:text-blue-500 md:opacity-0 md:group-hover:opacity-100 transition-all"
+            title="שמור כסקציה גלובלית"
+          >
+            <Globe className="w-3.5 h-3.5" />
+          </Button>
+        )}
 
         {/* Delete */}
         <Button
@@ -2477,6 +2494,10 @@ export default function PageBuilderPage() {
   const [globalSearch, setGlobalSearch] = useState("");
   const [globalEditDialogOpen, setGlobalEditDialogOpen] = useState(false);
   const [globalEditSection, setGlobalEditSection] = useState<PageSection | null>(null);
+  const [saveAsGlobalSection, setSaveAsGlobalSection] = useState<PageSection | null>(null);
+  const [saveAsGlobalName, setSaveAsGlobalName] = useState("");
+  const [saveAsGlobalCategory, setSaveAsGlobalCategory] = useState("");
+  const [saveAsGlobalSaving, setSaveAsGlobalSaving] = useState(false);
   const [versions, setVersions] = useState<PageVersion[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -2629,6 +2650,40 @@ export default function PageBuilderPage() {
     }
     setEditSaving(false);
   }, [supabase, showToast]);
+
+  /** Saves a local section as a new global (shared) section and links it */
+  const handleSaveAsGlobal = useCallback(async () => {
+    if (!saveAsGlobalSection || !saveAsGlobalName.trim()) return;
+    setSaveAsGlobalSaving(true);
+    const { data, error } = await supabase
+      .from("shared_sections")
+      .insert({
+        name_he: saveAsGlobalName.trim(),
+        section_type: saveAsGlobalSection.section_type,
+        category: saveAsGlobalCategory.trim() || null,
+        content: saveAsGlobalSection.content,
+        styles: saveAsGlobalSection.styles ?? null,
+      })
+      .select("id")
+      .single();
+    if (!error && data) {
+      // Link this page section to the new global section
+      await supabase
+        .from("page_sections")
+        .update({ shared_section_id: data.id })
+        .eq("id", saveAsGlobalSection.id);
+      setSections((prev) =>
+        prev.map((s) => s.id === saveAsGlobalSection.id ? { ...s, shared_section_id: data.id } : s)
+      );
+      showToast(`הסקציה נשמרה כגלובלית: "${saveAsGlobalName.trim()}"`);
+      setSaveAsGlobalSection(null);
+      setSaveAsGlobalName("");
+      setSaveAsGlobalCategory("");
+    } else {
+      showToast("שגיאה בשמירת הסקציה הגלובלית", "error");
+    }
+    setSaveAsGlobalSaving(false);
+  }, [saveAsGlobalSection, saveAsGlobalName, saveAsGlobalCategory, supabase, showToast]);
 
   // ---- Version History ----
 
@@ -3149,6 +3204,26 @@ export default function PageBuilderPage() {
           <Button
             variant="outline"
             size="sm"
+            onClick={() => router.push(`/dashboard/pages/${pageId}/utm-builder`)}
+            className="h-9 gap-2 border-[#E5E5E5] text-[#4A4648] hover:border-[#B8D900]"
+          >
+            <Link2 className="w-3.5 h-3.5" />
+            UTM
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push(`/dashboard/pages/${pageId}/smart-links`)}
+            className="h-9 gap-2 border-[#E5E5E5] text-[#4A4648] hover:border-[#B8D900]"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            Smart Links
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => window.open(`/lp/${page.slug}`, "_blank")}
             className="h-9 gap-2 border-[#E5E5E5] text-[#4A4648] hover:border-[#B8D900]"
           >
@@ -3466,6 +3541,12 @@ export default function PageBuilderPage() {
                             }
                           }}
                           onDelete={() => setDeleteTargetId(section.id)}
+                          onSaveAsGlobal={() => {
+                            setSaveAsGlobalSection(section);
+                            const label = SECTION_LABELS[section.section_type] || section.section_type;
+                            const heading = (section.content as Record<string, unknown>)?.heading_he;
+                            setSaveAsGlobalName(typeof heading === "string" && heading ? heading : label);
+                          }}
                         />
                       ))}
                     </div>
@@ -3639,6 +3720,59 @@ export default function PageBuilderPage() {
             </div>
             <button
               onClick={() => setGlobalEditDialogOpen(false)}
+              className="text-xs text-[#9A969A] hover:text-[#4A4648] transition-colors self-center"
+            >
+              ביטול
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Save as Global Section Dialog ── */}
+      {saveAsGlobalSection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-[360px] p-6 flex flex-col gap-4" dir="rtl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                <Globe className="w-5 h-5 text-blue-500" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-[#2A2628]">שמירה כסקציה גלובלית</h2>
+                <p className="text-[11px] text-[#9A969A]">הסקציה תהיה זמינה לשימוש בכל העמודים</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-[#4A4648] mb-1">שם הסקציה</label>
+                <input
+                  type="text"
+                  value={saveAsGlobalName}
+                  onChange={(e) => setSaveAsGlobalName(e.target.value)}
+                  placeholder="לדוגמה: Hero משפטים"
+                  className="w-full rounded-lg border border-[#E5E5E5] px-3 py-2 text-sm focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[#4A4648] mb-1">קטגוריה (אופציונלי)</label>
+                <input
+                  type="text"
+                  value={saveAsGlobalCategory}
+                  onChange={(e) => setSaveAsGlobalCategory(e.target.value)}
+                  placeholder="לדוגמה: מנהל עסקים, משפטים"
+                  className="w-full rounded-lg border border-[#E5E5E5] px-3 py-2 text-sm focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleSaveAsGlobal}
+              disabled={!saveAsGlobalName.trim() || saveAsGlobalSaving}
+              className="w-full py-2.5 rounded-xl bg-[#B8D900] text-[#2a2628] font-bold text-sm hover:bg-[#c8e920] transition-colors disabled:opacity-50"
+            >
+              {saveAsGlobalSaving ? "שומר..." : "שמור כגלובלית"}
+            </button>
+            <button
+              onClick={() => { setSaveAsGlobalSection(null); setSaveAsGlobalName(""); setSaveAsGlobalCategory(""); }}
               className="text-xs text-[#9A969A] hover:text-[#4A4648] transition-colors self-center"
             >
               ביטול
