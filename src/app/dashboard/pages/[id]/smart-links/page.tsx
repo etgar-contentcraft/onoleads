@@ -202,13 +202,20 @@ interface QrStyle {
 }
 
 /** Available QR code color themes */
+/**
+ * QR style presets based on Ono Academic College brand book (Pantone 382U / 431U).
+ * Brand Green: #B8D900 (Pantone 382U, C28 M0 Y100 K0, R184 G217 B0)
+ * Brand Gray:  #716C70 (Pantone 431U, C9 M9 Y0 K62, R113 G108 B112)
+ */
 const QR_STYLES: QrStyle[] = [
-  { id: "classic", name: "קלאסי", dark: "#2A2628", light: "#FFFFFF" },
-  { id: "ono_green", name: "ירוק אונו", dark: "#4A7A00", light: "#FFFFFF" },
-  { id: "ono_dark", name: "כהה + ירוק", dark: "#2A2628", light: "#F0F7D4" },
-  { id: "green_on_dark", name: "ירוק על כהה", dark: "#B8D900", light: "#2A2628" },
-  { id: "elegant", name: "אלגנטי", dark: "#1A1618", light: "#F5F5F0" },
-  { id: "fresh", name: "רענן", dark: "#3D6B00", light: "#F8FDE8" },
+  { id: "classic", name: "קלאסי", dark: "#000000", light: "#FFFFFF" },
+  { id: "ono_green", name: "ירוק אונו", dark: "#B8D900", light: "#FFFFFF" },
+  { id: "ono_gray", name: "אפור אונו", dark: "#716C70", light: "#FFFFFF" },
+  { id: "green_on_gray", name: "ירוק על אפור", dark: "#B8D900", light: "#716C70" },
+  { id: "gray_on_green", name: "אפור על ירוק", dark: "#716C70", light: "#D4ED6E" },
+  { id: "dark_green", name: "ירוק כהה", dark: "#4A7A00", light: "#FFFFFF" },
+  { id: "ono_elegant", name: "אלגנטי", dark: "#716C70", light: "#F5F5F0" },
+  { id: "ono_fresh", name: "רענן", dark: "#6B9B00", light: "#F0F7D4" },
 ];
 
 /**
