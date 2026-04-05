@@ -193,25 +193,32 @@ export async function POST(request: NextRequest) {
     const utmContent = data.utm_content ? sanitizeGeneral(data.utm_content) : null;
     const utmTerm = data.utm_term ? sanitizeGeneral(data.utm_term) : null;
 
-    /* --- Fire webhook with full PII (transient — not stored) --- */
-    const webhookPayload = {
+    /* --- Build Make.com-friendly webhook payload ---
+     * Flat structure, no nulls for empty fields, UTM grouped for readability.
+     * Only include fields that have actual values. */
+    const webhookPayload: Record<string, string | Record<string, string>> = {
       full_name: nameResult.value,
-      phone: sanitizedPhone,
-      email: sanitizedEmail,
-      page_id: pageId,
-      page_slug: data.page_slug ? sanitizeGeneral(data.page_slug) : null,
-      interest_area: data.interest_area ? sanitizeGeneral(data.interest_area) : null,
-      program_id: data.program_id ? sanitizeGeneral(data.program_id) : null,
-      program_interest: data.program_interest ? sanitizeGeneral(data.program_interest) : null,
-      utm_source: utmSource,
-      utm_medium: utmMedium,
-      utm_campaign: utmCampaign,
-      utm_content: utmContent,
-      utm_term: utmTerm,
-      referrer: data.referrer ? sanitizeGeneral(data.referrer) : null,
-      device_type: data.device_type || null,
       created_at: new Date().toISOString(),
     };
+
+    if (sanitizedPhone) webhookPayload.phone = sanitizedPhone;
+    if (sanitizedEmail) webhookPayload.email = sanitizedEmail;
+    if (pageId) webhookPayload.page_id = pageId;
+    if (data.page_slug) webhookPayload.page_slug = sanitizeGeneral(data.page_slug);
+    if (data.interest_area) webhookPayload.interest_area = sanitizeGeneral(data.interest_area);
+    if (data.program_id) webhookPayload.program_id = sanitizeGeneral(data.program_id);
+    if (data.program_interest) webhookPayload.program_interest = sanitizeGeneral(data.program_interest);
+    if (data.device_type) webhookPayload.device_type = data.device_type;
+    if (referrerDomain) webhookPayload.referrer_domain = referrerDomain;
+
+    /* Group UTM params under a nested object — cleaner in Make.com */
+    const utm: Record<string, string> = {};
+    if (utmSource) utm.source = utmSource;
+    if (utmMedium) utm.medium = utmMedium;
+    if (utmCampaign) utm.campaign = utmCampaign;
+    if (utmContent) utm.content = utmContent;
+    if (utmTerm) utm.term = utmTerm;
+    if (Object.keys(utm).length > 0) webhookPayload.utm = utm;
 
     let webhookStatus = "sent";
     try {
@@ -329,44 +336,51 @@ async function fireWebhook(
     }
 
     if (!webhookUrl) {
-      const { data: settings } = await supabase
+      /* Fetch all relevant keys in one query — supports both old (make_webhook_url) and new (webhook_url) key names */
+      const { data: settingsRows } = await supabase
         .from("settings")
-        .select("value")
-        .eq("key", "webhook_url")
-        .single();
-      webhookUrl = settings?.value ?? null;
+        .select("key, value")
+        .in("key", ["webhook_url", "make_webhook_url"]);
+
+      const settingsMap: Record<string, string> = {};
+      for (const row of settingsRows || []) {
+        /* value column is JSONB — unwrap if stored as a JSON-encoded string */
+        const raw = row.value;
+        settingsMap[row.key] = typeof raw === "string" ? raw : (raw as Record<string, unknown>)?.toString?.() ?? "";
+      }
+
+      webhookUrl = (settingsMap["webhook_url"] || settingsMap["make_webhook_url"] || "").trim() || null;
     }
 
-    if (!webhookUrl || typeof webhookUrl !== "string") {
+    if (!webhookUrl) {
       /* No webhook configured — skip silently */
+      console.log("[webhook] no URL configured, skipping");
       return true;
     }
 
+    /* Strip surrounding quotes if the value was double-encoded in JSONB */
+    if (webhookUrl.startsWith('"') && webhookUrl.endsWith('"')) {
+      webhookUrl = webhookUrl.slice(1, -1);
+    }
+
     /* Validate webhook URL against allowlist to prevent SSRF */
+    let parsedHost: string;
     try {
-      const parsed = new URL(webhookUrl);
-      if (!ALLOWED_WEBHOOK_HOSTS.includes(parsed.hostname)) {
-        console.error("Webhook URL host not in allowlist:", parsed.hostname);
-        return false;
-      }
+      parsedHost = new URL(webhookUrl).hostname;
     } catch {
-      console.error("Invalid webhook URL:", webhookUrl);
+      console.error("[webhook] invalid URL:", webhookUrl);
       return false;
     }
 
-    /* Get optional webhook secret for HMAC signing */
-    const { data: secretSetting } = await supabase
-      .from("settings")
-      .select("value")
-      .eq("key", "webhook_secret")
-      .single();
+    if (!ALLOWED_WEBHOOK_HOSTS.includes(parsedHost)) {
+      console.error("[webhook] host not in allowlist:", parsedHost);
+      return false;
+    }
 
-    const webhookSecret =
-      secretSetting?.value && typeof secretSetting.value === "string"
-        ? secretSetting.value
-        : process.env.WEBHOOK_SECRET || null;
+    console.log("[webhook] firing to", parsedHost);
 
-    const result = await sendWebhookWithRetry(webhookUrl, payload, webhookSecret);
+    const result = await sendWebhookWithRetry(webhookUrl, payload, null);
+    console.log("[webhook] result:", result);
     return result.success;
   } catch (err) {
     console.error("Webhook error:", err);
