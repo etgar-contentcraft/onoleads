@@ -65,6 +65,30 @@ const EMPTY_GLOBAL: GlobalSettings = {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Known webhook host patterns — if URL doesn't match, show a warning */
+const WEBHOOK_HOST_PATTERNS = ["hook.make.com", "make.celonis.com", "hooks.zapier.com", "n8n.cloud", "n8n.io", "webhook.site", "pipedream.net"];
+
+/**
+ * Checks if a URL looks like a valid webhook endpoint.
+ * Returns a warning message if suspicious, null if OK.
+ * @param url - The URL string to validate
+ * @returns Warning string or null
+ */
+function getWebhookWarning(url: string): string | null {
+  if (!url.trim()) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") return "Webhook URL חייב להתחיל ב-https://";
+    const isKnownWebhook = WEBHOOK_HOST_PATTERNS.some((p) => parsed.hostname.includes(p));
+    if (!isKnownWebhook) {
+      return "כתובת זו לא נראית כמו webhook (Make.com / Zapier / n8n). ודאו שהכתובת נכונה.";
+    }
+  } catch {
+    return "כתובת URL לא תקינה";
+  }
+  return null;
+}
+
 function OverrideField({
   label, hint, fieldKey, globalValue, dir = "ltr",
   overrides, onChange,
@@ -75,6 +99,8 @@ function OverrideField({
 }) {
   const val = overrides[fieldKey] ?? "";
   const hasOverride = val.trim() !== "";
+  /* Show webhook validation only for webhook_url field */
+  const webhookWarning = fieldKey === "webhook_url" ? getWebhookWarning(val) : null;
   return (
     <div>
       <div className="flex items-center gap-2 mb-1.5">
@@ -89,9 +115,14 @@ function OverrideField({
         value={val}
         onChange={(e) => onChange(fieldKey, e.target.value)}
         placeholder={globalValue ? `ברירת מחדל: ${globalValue}` : "ריק = ייורש מהגדרות ראשיות"}
-        className="h-9"
+        className={`h-9 ${webhookWarning ? "border-amber-400 focus:border-amber-500 focus:ring-amber-400/20" : ""}`}
         dir={dir}
       />
+      {webhookWarning && (
+        <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 rounded px-2 py-1 mt-1 flex items-center gap-1">
+          ⚠️ {webhookWarning}
+        </p>
+      )}
       {hint && <p className="text-[11px] text-[#9A969A] mt-1">{hint}</p>}
       {hasOverride && (
         <button

@@ -208,10 +208,29 @@ export default function SettingsPage() {
               <Input
                 value={settings.webhook_url}
                 onChange={(e) => updateSetting("webhook_url", e.target.value)}
-                placeholder="https://hooks.zapier.com/..."
-                className="mt-1.5 h-9"
+                placeholder="https://hook.eu1.make.celonis.com/..."
+                className={`mt-1.5 h-9 ${settings.webhook_url.trim() && (() => {
+                  try {
+                    const h = new URL(settings.webhook_url).hostname;
+                    return !["make.com","make.celonis.com","zapier.com","n8n.cloud","n8n.io","webhook.site","pipedream.net"].some((p) => h.includes(p));
+                  } catch { return true; }
+                })() ? "border-amber-400" : ""}`}
                 dir="ltr"
               />
+              {settings.webhook_url.trim() && (() => {
+                const url = settings.webhook_url.trim();
+                try {
+                  const parsed = new URL(url);
+                  if (parsed.protocol !== "https:") return <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 rounded px-2 py-1 mt-1">⚠️ Webhook URL חייב להתחיל ב-https://</p>;
+                  const knownHosts = ["make.com","make.celonis.com","zapier.com","n8n.cloud","n8n.io","webhook.site","pipedream.net"];
+                  if (!knownHosts.some((p) => parsed.hostname.includes(p))) {
+                    return <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 rounded px-2 py-1 mt-1">⚠️ כתובת זו לא נראית כמו webhook (Make.com / Zapier / n8n). ודאו שהכתובת נכונה.</p>;
+                  }
+                } catch {
+                  return <p className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 rounded px-2 py-1 mt-1">⚠️ כתובת URL לא תקינה</p>;
+                }
+                return null;
+              })()}
               <p className="text-[11px] text-[#9A969A] mt-1">כתובת URL לשליחת לידים חדשים</p>
             </div>
 
