@@ -14,14 +14,16 @@ const SESSION_TIMEOUT_SECONDS = 30 * 60;
  */
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com",
+  // Google Tag Manager + GA4 + Facebook Pixel scripts are injected from landing pages
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  // YouTube thumbnails (i.ytimg.com = YouTube's image CDN) + Supabase storage
-  "img-src 'self' data: blob: https://www.ono.ac.il https://*.supabase.co https://i.ytimg.com https://img.youtube.com",
+  // YouTube thumbnails (i.ytimg.com = YouTube's image CDN) + Supabase storage + Facebook pixel
+  "img-src 'self' data: blob: https://www.ono.ac.il https://*.supabase.co https://i.ytimg.com https://img.youtube.com https://www.facebook.com https://www.google-analytics.com",
   "font-src 'self' https://fonts.gstatic.com",
-  "connect-src 'self' https://*.supabase.co https://fonts.googleapis.com",
+  // Google Analytics, GTM, and Facebook Pixel reporting endpoints
+  "connect-src 'self' https://*.supabase.co https://fonts.googleapis.com https://www.google-analytics.com https://analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net",
   // Allow YouTube embeds (privacy-enhanced domain) inside iframes
-  "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
+  "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.facebook.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

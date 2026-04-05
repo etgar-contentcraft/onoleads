@@ -133,7 +133,7 @@ export default function SettingsPage() {
 
     showToast("ההגדרות נשמרו בהצלחה");
     setSaving(false);
-  }, [settings, showToast]);
+  }, [settings, tySettings, showToast]);
 
   /** Updates a single setting value in local state */
   const updateSetting = useCallback((key: keyof AppSettings, value: string) => {

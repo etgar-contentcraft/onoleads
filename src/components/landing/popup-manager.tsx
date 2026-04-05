@@ -363,10 +363,11 @@ export function PopupManager({
 
   const handleStickyShow = useCallback(
     (campaignId: string) => {
-      markCampaignShown(campaignId, "once_per_session");
+      const campaign = campaigns.find((c) => c.id === campaignId);
+      markCampaignShown(campaignId, campaign?.frequency || "once_per_session");
       trackEvent(campaignId, pageId, "view");
     },
-    [pageId]
+    [campaigns, pageId]
   );
 
   // ── Render ────────────────────────────────────────────────────────────

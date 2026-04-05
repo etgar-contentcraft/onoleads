@@ -6,6 +6,9 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+/** Admin client singleton — used for settings reads that require bypassing RLS */
+const getAdminClient = () => createAdminClient();
 import type { Page, PageSection, Language, Program } from "@/lib/types/database";
 import type { PopupCampaign } from "@/lib/types/popup-campaigns";
 import { LandingPageLayout, type PageSettings } from "@/components/landing/landing-page-layout";
@@ -54,10 +57,13 @@ function getEducationalLevel(degreeType: string): string {
  */
 const getPageData = cache(async function getPageData(slug: string) {
   const supabase = await createClient();
+  // Settings table is restricted to authenticated users via RLS.
+  // Landing pages are public, so we must use the admin client to read settings.
+  const adminClient = getAdminClient();
 
   const [pageRes, globalSettingsRes] = await Promise.all([
     supabase.from("pages").select("*").eq("slug", slug).eq("status", "published").single(),
-    supabase.from("settings").select("key, value"),
+    adminClient.from("settings").select("key, value"),
   ]);
 
   if (!pageRes.data) return null;

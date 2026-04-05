@@ -318,7 +318,8 @@ export default function PagesManagementPage() {
     if (!deleteConfirmId) return;
     const { error } = await supabase.from("pages").delete().eq("id", deleteConfirmId);
     if (error) {
-      alert("שגיאה במחיקת העמוד. נסו שוב.");
+      showToast("error", "שגיאה במחיקת העמוד. נסו שוב.");
+      setDeleteConfirmId(null);
       return;
     }
     fetchPages();

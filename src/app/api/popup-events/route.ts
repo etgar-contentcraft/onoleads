@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
 import { z } from "zod";
 
@@ -53,7 +53,9 @@ export async function POST(request: Request) {
 
     const { campaign_id, event_type } = parsed.data;
 
-    const supabase = await createClient();
+    // Use admin client — landing page visitors are unauthenticated, and the
+    // settings/popup_campaigns table requires auth. Admin client bypasses RLS.
+    const supabase = createAdminClient();
 
     /* --- Increment the appropriate counter on the campaign --- */
     if (event_type === "view") {

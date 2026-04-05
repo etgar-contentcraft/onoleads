@@ -12,6 +12,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { ThankYouPage } from "@/components/landing/thank-you-page";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
@@ -31,11 +32,14 @@ export const metadata: Metadata = {
 export default async function ThankYouRoute({ searchParams }: PageProps) {
   const { slug } = await searchParams;
   const supabase = await createClient();
+  // Settings table is restricted to authenticated users via RLS.
+  // The thank-you page is public so we use the admin client for settings reads.
+  const adminClient = createAdminClient();
 
   // ── Fetch global TY settings ──────────────────────────────────────────────
   const [{ data: globalTyRow }, { data: globalWaRow }] = await Promise.all([
-    supabase.from("settings").select("value").eq("key", "thank_you_page_settings").single(),
-    supabase.from("settings").select("value").eq("key", "whatsapp_number").single(),
+    adminClient.from("settings").select("value").eq("key", "thank_you_page_settings").single(),
+    adminClient.from("settings").select("value").eq("key", "whatsapp_number").single(),
   ]);
 
   let globalTySettings: ThankYouPageSettings = { ...ONO_TY_DEFAULTS };
