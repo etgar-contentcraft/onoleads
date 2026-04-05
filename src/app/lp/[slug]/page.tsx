@@ -104,7 +104,9 @@ const getPageData = cache(async function getPageData(slug: string) {
   // Merge: page overrides win over global defaults when non-empty
   const settings: PageSettings = {
     webhook_url: pageOverrides.webhook_url || globalMap.webhook_url,
-    whatsapp_number: pageOverrides.whatsapp_number || globalMap.whatsapp_number,
+    /* WhatsApp is opt-in per page — no global fallback intentionally.
+     * Button only appears when explicitly set in per-page settings. */
+    whatsapp_number: pageOverrides.whatsapp_number || undefined,
     phone_number: pageOverrides.phone_number || globalMap.phone_number,
     logo_url: pageOverrides.logo_url || globalMap.logo_url,
     default_cta_text: pageOverrides.default_cta_text || globalMap.default_cta_text,
