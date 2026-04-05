@@ -329,9 +329,22 @@ export default function PagesManagementPage() {
 
   /**
    * Sets a page's status to "published" with the current timestamp.
+   * Blocks publishing if no interest areas are assigned to the page.
    * @param pageId - ID of the page to publish
    */
   async function handlePublish(pageId: string) {
+    /* Validate: at least one interest area must be assigned before publishing */
+    const { data: areas, error: areasError } = await supabase
+      .from("page_interest_areas")
+      .select("interest_area_id")
+      .eq("page_id", pageId)
+      .limit(1);
+
+    if (areasError || !areas || areas.length === 0) {
+      showToast("error", "לא ניתן לפרסם עמוד ללא תחום עניין משויך. הגדירו תחום עניין בהגדרות העמוד.");
+      return;
+    }
+
     const { error } = await supabase
       .from("pages")
       .update({ status: "published", published_at: new Date().toISOString() })

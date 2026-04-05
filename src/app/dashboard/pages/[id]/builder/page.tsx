@@ -2591,6 +2591,22 @@ export default function PageBuilderPage() {
     if (!page) return;
     setPublishing(true);
     const isPublished = page.status === "published";
+
+    /* Validate before publishing: at least one interest area must be assigned */
+    if (!isPublished) {
+      const { data: areas } = await supabase
+        .from("page_interest_areas")
+        .select("interest_area_id")
+        .eq("page_id", pageId)
+        .limit(1);
+
+      if (!areas || areas.length === 0) {
+        showToast("לא ניתן לפרסם ללא תחום עניין משויך. הגדירו תחום עניין בהגדרות העמוד.", "error");
+        setPublishing(false);
+        return;
+      }
+    }
+
     const newStatus = isPublished ? "draft" : "published";
     const updateData: Record<string, unknown> = { status: newStatus };
     if (!isPublished) updateData.published_at = new Date().toISOString();
