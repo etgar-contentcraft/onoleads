@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Loader2, Save, ExternalLink, Tag } from "lucide-react";
+import { ArrowRight, Loader2, Save, ExternalLink, Tag, Search, X } from "lucide-react";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 import type { InterestArea } from "@/lib/types/database";
@@ -118,6 +118,7 @@ export default function PageSettingsPage() {
   const [tySettings, setTySettings] = useState<ThankYouPageSettings>({ ...ONO_TY_DEFAULTS });
   const [interestAreas, setInterestAreas] = useState<InterestArea[]>([]);
   const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([]);
+  const [areaSearch, setAreaSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -274,7 +275,7 @@ export default function PageSettingsPage() {
             כשיש יותר מאחד — מופיעה תיבת בחירה בטופס.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {interestAreas.length === 0 ? (
             <p className="text-sm text-gray-400">
               אין תחומי עניין פעילים.{" "}
@@ -283,32 +284,82 @@ export default function PageSettingsPage() {
               </a>
             </p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {interestAreas.map((area) => {
-                const selected = selectedAreaIds.includes(area.id);
-                return (
+            <>
+              {/* Selected chips */}
+              {selectedAreaIds.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedAreaIds.map((id) => {
+                    const area = interestAreas.find((a) => a.id === id);
+                    if (!area) return null;
+                    return (
+                      <span
+                        key={id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-[#B8D900]/20 border border-[#B8D900] text-[#5a7000]"
+                      >
+                        {area.name_he}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedAreaIds((prev) => prev.filter((i) => i !== id))}
+                          className="hover:text-red-500 transition-colors"
+                          aria-label={`הסר ${area.name_he}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Search input */}
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={areaSearch}
+                  onChange={(e) => setAreaSearch(e.target.value)}
+                  placeholder="חפש תחום עניין..."
+                  dir="rtl"
+                  className="w-full h-9 pr-9 pl-3 rounded-lg border border-gray-200 text-sm focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 transition-all"
+                />
+                {areaSearch && (
                   <button
-                    key={area.id}
                     type="button"
-                    onClick={() =>
-                      setSelectedAreaIds((prev) =>
-                        selected ? prev.filter((id) => id !== area.id) : [...prev, area.id]
-                      )
-                    }
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                      selected
-                        ? "bg-[#B8D900]/20 border-[#B8D900] text-[#5a7000]"
-                        : "bg-white border-gray-200 text-gray-600 hover:border-gray-400"
-                    }`}
+                    onClick={() => setAreaSearch("")}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {area.name_he}
+                    <X className="w-3.5 h-3.5" />
                   </button>
-                );
-              })}
-            </div>
+                )}
+              </div>
+
+              {/* Filtered list */}
+              <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
+                {interestAreas
+                  .filter((area) =>
+                    !areaSearch ||
+                    area.name_he.includes(areaSearch) ||
+                    (area.name_en?.toLowerCase() || "").includes(areaSearch.toLowerCase())
+                  )
+                  .filter((area) => !selectedAreaIds.includes(area.id))
+                  .map((area) => (
+                    <button
+                      key={area.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedAreaIds((prev) => [...prev, area.id]);
+                        setAreaSearch("");
+                      }}
+                      className="px-3 py-1.5 rounded-full text-sm font-medium border bg-white border-gray-200 text-gray-600 hover:border-[#B8D900] hover:text-[#5a7000] hover:bg-[#B8D900]/10 transition-all"
+                    >
+                      + {area.name_he}
+                    </button>
+                  ))}
+              </div>
+            </>
           )}
           {selectedAreaIds.length > 1 && (
-            <p className="text-xs text-amber-600 mt-3 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
               נבחרו {selectedAreaIds.length} תחומים — הטופס יציג לגולש תפריט בחירה.
             </p>
           )}
