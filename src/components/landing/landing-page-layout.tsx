@@ -343,7 +343,8 @@ function InnerLayout({
   const localizedCtaText = rawCtaText && (isRtl === hasHebrew) ? rawCtaText : undefined;
 
   const visibleSections = sections.filter((s) => s.is_visible);
-  const whatsappSection = visibleSections.find((s) => s.section_type === "whatsapp");
+  /* WhatsApp section is now purely settings-driven — no builder section needed.
+   * Filter it out from the main sections list to avoid duplicates. */
   const mainSections = visibleSections.filter(
     (s) => s.section_type !== "sticky_header" && s.section_type !== "whatsapp"
   );
@@ -500,14 +501,10 @@ function InnerLayout({
         </div>
       </footer>
 
-      {/* Floating elements */}
-      {whatsappSection && (
+      {/* Floating WhatsApp button — appears only when whatsapp_number is configured in settings */}
+      {settings?.whatsapp_number && (
         <WhatsappSection
-          content={{
-            ...(whatsappSection.content || {}) as Record<string, unknown>,
-            // Override phone number from page settings if set
-            ...(settings?.whatsapp_number ? { phone: settings.whatsapp_number } : {}),
-          }}
+          content={{ phone: settings.whatsapp_number }}
           language={language}
         />
       )}
