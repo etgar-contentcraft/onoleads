@@ -168,6 +168,13 @@ const FORM_STRINGS: Record<Lang, {
 // CTA Modal Component
 // ============================================================================
 
+interface InterestAreaOption {
+  id: string;
+  name_he: string;
+  name_en: string | null;
+  slug: string;
+}
+
 interface CtaModalProps {
   pageId?: string;
   programId?: string;
@@ -176,14 +183,18 @@ interface CtaModalProps {
   pageSlug?: string;
   /** Override the CTA button text */
   ctaText?: string;
+  /** Interest areas assigned to this page — when >1, shows a dropdown */
+  pageInterestAreas?: InterestAreaOption[];
+  language?: "he" | "en" | "ar";
 }
 
 /**
  * Lead capture modal with form validation, CSRF protection, and honeypot field.
  * Displayed as a bottom sheet on mobile and centered modal on desktop.
  */
-export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: CtaModalProps) {
-  const { isOpen, close, language, leadSource } = useCtaModal();
+export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pageInterestAreas, language: langProp }: CtaModalProps) {
+  const { isOpen, close, language: ctxLanguage, leadSource } = useCtaModal();
+  const language = langProp || ctxLanguage;
   const t = FORM_STRINGS[language] || FORM_STRINGS.he;
   const isRtl = language === "he" || language === "ar";
   const router = useRouter();
@@ -195,6 +206,10 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  /** Selected interest area name — required when page has multiple areas */
+  const [selectedInterestArea, setSelectedInterestArea] = useState<string>("");
+  const hasMultipleAreas = (pageInterestAreas?.length ?? 0) > 1;
+  const singleAreaName = pageInterestAreas?.length === 1 ? pageInterestAreas[0].name_he : undefined;
 
   /* Lock body scroll when modal is open */
   useEffect(() => {
@@ -249,6 +264,9 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "אימייל לא תקין";
     }
+    if (hasMultipleAreas && !selectedInterestArea) {
+      newErrors.interest_area = "יש לבחור תחום עניין";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -287,6 +305,8 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
         device_type: window.innerWidth < 768 ? "mobile" : window.innerWidth < 1024 ? "tablet" : "desktop",
         csrf_token: csrfToken,
         lead_source: leadSource || "unknown",
+        page_slug: pageSlug || null,
+        interest_area: hasMultipleAreas ? (selectedInterestArea || null) : (singleAreaName || null),
         /* Honeypot field - bots will fill this, real users won't see it */
         website: honeypot,
       };
@@ -329,6 +349,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
       setHoneypot("");
       setErrors({});
       setSubmitError(null);
+      setSelectedInterestArea("");
     }, 300);
   };
 
@@ -401,6 +422,35 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
                       autoComplete="off"
                     />
                   </div>
+
+                  {/* Interest Area dropdown — shown only when page has multiple areas */}
+                  {hasMultipleAreas && (
+                    <div>
+                      <label htmlFor="interest_area" className="sr-only">תחום עניין</label>
+                      <select
+                        id="interest_area"
+                        value={selectedInterestArea}
+                        onChange={(e) => setSelectedInterestArea(e.target.value)}
+                        className={`w-full h-13 rounded-xl bg-white/8 border px-4 text-white text-base focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none ${errors.interest_area ? "border-red-400/60" : "border-white/15"}`}
+                        style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+                        aria-required="true"
+                        aria-invalid={!!errors.interest_area}
+                      >
+                        <option value="" className="bg-[#2a2628]">{isRtl ? "בחרו תחום עניין *" : "Select area of interest *"}</option>
+                        {pageInterestAreas!.map((area) => (
+                          <option key={area.id} value={area.name_he} className="bg-[#2a2628]">
+                            {area.name_he}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.interest_area && (
+                        <p role="alert" className="text-red-400 text-xs mt-1.5 font-medium flex items-center gap-1">
+                          <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                          {errors.interest_area}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Full Name */}
                   <div>

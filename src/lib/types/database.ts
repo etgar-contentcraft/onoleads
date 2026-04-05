@@ -30,6 +30,34 @@ export type DeviceType = "desktop" | "mobile" | "tablet";
 export type EventType = string; // e.g. "open_day", "webinar", "info_session"
 
 // ---------------------------------------------------------------------------
+// Interest Areas (תחומי עניין)
+// ---------------------------------------------------------------------------
+
+export interface InterestArea {
+  id: string;
+  name_he: string;
+  name_en: string | null;
+  name_ar: string | null;
+  slug: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type InterestAreaInsert = Omit<InterestArea, "id" | "created_at" | "updated_at">;
+export type InterestAreaUpdate = Partial<InterestAreaInsert>;
+
+export interface PageInterestArea {
+  id: string;
+  page_id: string;
+  interest_area_id: string;
+  sort_order: number;
+  created_at?: string;
+  interest_area?: InterestArea;
+}
+
+// ---------------------------------------------------------------------------
 // Faculty
 // ---------------------------------------------------------------------------
 

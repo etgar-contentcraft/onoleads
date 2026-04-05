@@ -42,6 +42,8 @@ const leadSchema = z.object({
   device_type: z.enum(["desktop", "mobile", "tablet"]).optional().nullable(),
   csrf_token: z.string().optional().nullable(),
   lead_source: z.string().optional().nullable(),
+  page_slug: z.string().optional().nullable(),
+  interest_area: z.string().optional().nullable(),
   /* Honeypot field — should always be empty for real users */
   website: z.string().optional().nullable(),
 });
@@ -189,6 +191,8 @@ export async function POST(request: NextRequest) {
       phone: sanitizedPhone,
       email: sanitizedEmail,
       page_id: pageId,
+      page_slug: data.page_slug ? sanitizeGeneral(data.page_slug) : null,
+      interest_area: data.interest_area ? sanitizeGeneral(data.interest_area) : null,
       program_id: data.program_id ? sanitizeGeneral(data.program_id) : null,
       program_interest: data.program_interest ? sanitizeGeneral(data.program_interest) : null,
       utm_source: utmSource,

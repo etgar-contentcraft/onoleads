@@ -63,6 +63,14 @@ export interface PageSettings {
   sticky_header_title?: string;
 }
 
+/** Minimal interest area shape needed on the client */
+export interface PageInterestArea {
+  id: string;
+  name_he: string;
+  name_en: string | null;
+  slug: string;
+}
+
 interface LandingPageLayoutProps {
   sections: PageSection[];
   language: Language;
@@ -74,6 +82,8 @@ interface LandingPageLayoutProps {
   settings?: PageSettings;
   /** Popup campaigns assigned to this page (fetched server-side) */
   campaigns?: PopupCampaign[];
+  /** Interest areas assigned to this page */
+  pageInterestAreas?: PageInterestArea[];
 }
 
 // ============================================================================
@@ -165,6 +175,7 @@ function renderSection(
   pageId?: string,
   programId?: string,
   urlParams?: URLSearchParams,
+  pageSlug?: string,
 ) {
   const rawContent = (section.content || {}) as Record<string, unknown>;
   const content = urlParams ? replaceDynamicContent(rawContent, urlParams) : rawContent;
@@ -203,7 +214,7 @@ function renderSection(
     case "countdown":
       return <CountdownSection content={content} language={language} />;
     case "form":
-      return <FormSection content={content} language={language} pageId={pageId} programId={programId} />;
+      return <FormSection content={content} language={language} pageId={pageId} programId={programId} pageSlug={pageSlug} />;
     default:
       return null;
   }
@@ -310,6 +321,7 @@ function InnerLayout({
   program,
   settings,
   campaigns,
+  pageInterestAreas,
 }: LandingPageLayoutProps) {
   const isRtl = language === "he" || language === "ar";
   const urlParams = useUrlParams();
@@ -369,7 +381,7 @@ function InnerLayout({
         {/* Render explicit sections with auto-sections injected after hero */}
         {mainSections.map((section, index) => (
           <div key={section.id}>
-            {renderSection(section, language, pageId, programId, urlParams)}
+            {renderSection(section, language, pageId, programId, urlParams, pageSlug)}
             {/* After hero, inject auto-generated sections */}
             {index === heroIndex && filteredAutoSections.length > 0 && (
               <>{filteredAutoSections}</>
@@ -468,6 +480,8 @@ function InnerLayout({
         pageSlug={pageSlug}
         programName={pageTitle || (language === "en" ? (program?.name_en || program?.name_he) : program?.name_he)}
         ctaText={localizedCtaText}
+        pageInterestAreas={pageInterestAreas}
+        language={language}
       />
 
       {/* Popup campaigns — managed via /dashboard/campaigns */}

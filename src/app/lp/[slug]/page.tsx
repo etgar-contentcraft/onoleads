@@ -69,7 +69,7 @@ const getPageData = cache(async function getPageData(slug: string) {
   if (!pageRes.data) return null;
   const page = pageRes.data;
 
-  const [sectionsRes, programRes, campaignsRes] = await Promise.all([
+  const [sectionsRes, programRes, campaignsRes, interestAreasRes] = await Promise.all([
     supabase
       .from("page_sections")
       .select("*, shared_sections:shared_section_id(content, styles)")
@@ -84,6 +84,11 @@ const getPageData = cache(async function getPageData(slug: string) {
       .eq("page_id", page.id)
       .eq("is_enabled", true)
       .order("priority", { ascending: false }),
+    supabase
+      .from("page_interest_areas")
+      .select("interest_area_id, sort_order, interest_area:interest_areas(id, name_he, name_en, slug)")
+      .eq("page_id", page.id)
+      .order("sort_order", { ascending: true }),
   ]);
 
   // Build global settings map from key-value rows
@@ -126,12 +131,26 @@ const getPageData = cache(async function getPageData(slug: string) {
     .filter((c) => !c.start_date || c.start_date <= now)
     .filter((c) => !c.end_date || c.end_date >= now);
 
+  /* Extract interest areas assigned to this page.
+     Supabase returns the joined row as an object or array depending on relation type. */
+  type AreaShape = { id: string; name_he: string; name_en: string | null; slug: string };
+  const pageInterestAreas = (interestAreasRes.data || [])
+    .map((r) => {
+      const area = r.interest_area;
+      if (!area) return null;
+      // Supabase may return object or single-item array — normalise
+      if (Array.isArray(area)) return (area[0] as AreaShape) || null;
+      return area as unknown as AreaShape;
+    })
+    .filter(Boolean) as AreaShape[];
+
   return {
     page: page as Page,
     sections,
     program: (programRes.data as Program | null),
     settings,
     campaigns,
+    pageInterestAreas,
   };
 });
 
@@ -429,7 +448,7 @@ export default async function LandingPage({ params }: PageProps) {
     notFound();
   }
 
-  const { page, sections, program, settings, campaigns } = data;
+  const { page, sections, program, settings, campaigns, pageInterestAreas } = data;
   const language = (page.language || "he") as Language;
   const isRtl = language === "he" || language === "ar";
 
@@ -467,6 +486,7 @@ export default async function LandingPage({ params }: PageProps) {
         program={program}
         settings={settings}
         campaigns={campaigns}
+        pageInterestAreas={pageInterestAreas}
       />
     </>
   );

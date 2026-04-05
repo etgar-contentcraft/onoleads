@@ -14,9 +14,10 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Loader2, Save, ExternalLink } from "lucide-react";
+import { ArrowRight, Loader2, Save, ExternalLink, Tag } from "lucide-react";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
+import type { InterestArea } from "@/lib/types/database";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -115,6 +116,8 @@ export default function PageSettingsPage() {
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(EMPTY_GLOBAL);
   const [overrides, setOverrides] = useState<PageOverrides>({});
   const [tySettings, setTySettings] = useState<ThankYouPageSettings>({ ...ONO_TY_DEFAULTS });
+  const [interestAreas, setInterestAreas] = useState<InterestArea[]>([]);
+  const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -130,10 +133,15 @@ export default function PageSettingsPage() {
   // Load global settings + page overrides
   const load = useCallback(async () => {
     setLoading(true);
-    const [globalRes, pageRes] = await Promise.all([
+    const [globalRes, pageRes, areasRes, assignedRes] = await Promise.all([
       supabase.from("settings").select("key, value"),
       supabase.from("pages").select("title_he, slug, custom_styles").eq("id", pageId).single(),
+      supabase.from("interest_areas").select("*").eq("is_active", true).order("sort_order"),
+      supabase.from("page_interest_areas").select("interest_area_id").eq("page_id", pageId),
     ]);
+
+    if (areasRes.data) setInterestAreas(areasRes.data as InterestArea[]);
+    if (assignedRes.data) setSelectedAreaIds(assignedRes.data.map((r) => r.interest_area_id));
 
     if (globalRes.data) {
       const m: Record<string, string> = {};
@@ -168,14 +176,15 @@ export default function PageSettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    // Load current custom_styles to preserve other keys (e.g. page_settings)
+
+    /* Save page custom_styles */
     const { data: existing } = await supabase
       .from("pages")
       .select("custom_styles")
       .eq("id", pageId)
       .single();
     const currentCs = ((existing?.custom_styles) || {}) as Record<string, unknown>;
-    const { error } = await supabase
+    const { error: pageError } = await supabase
       .from("pages")
       .update({
         custom_styles: {
@@ -185,8 +194,21 @@ export default function PageSettingsPage() {
         },
       })
       .eq("id", pageId);
+
+    /* Save interest area assignments (replace all) */
+    await supabase.from("page_interest_areas").delete().eq("page_id", pageId);
+    if (selectedAreaIds.length > 0) {
+      await supabase.from("page_interest_areas").insert(
+        selectedAreaIds.map((areaId, i) => ({
+          page_id: pageId,
+          interest_area_id: areaId,
+          sort_order: i,
+        }))
+      );
+    }
+
     setSaving(false);
-    if (error) showToast("שגיאה בשמירה", false);
+    if (pageError) showToast("שגיאה בשמירה", false);
     else showToast("הגדרות נשמרו בהצלחה");
   };
 
@@ -239,6 +261,59 @@ export default function PageSettingsPage() {
         שדות ריקים יירשו את ערכי ברירת המחדל מ<a href="/dashboard/settings" className="text-blue-600 font-medium hover:underline">ההגדרות הראשיות</a>.
         מלאו שדה רק אם רוצים לדרוס את הברירת מחדל לעמוד זה.
       </p>
+
+      {/* Interest Areas — full width before grid */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base text-[#2a2628] flex items-center gap-2">
+            <Tag className="w-4 h-4 text-[#B8D900]" />
+            תחומי עניין
+          </CardTitle>
+          <CardDescription>
+            בחרו תחום אחד או יותר. כשיש תחום אחד — הוא נשלח אוטומטית בוובהוק.
+            כשיש יותר מאחד — מופיעה תיבת בחירה בטופס.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {interestAreas.length === 0 ? (
+            <p className="text-sm text-gray-400">
+              אין תחומי עניין פעילים.{" "}
+              <a href="/dashboard/interest-areas" className="text-blue-600 hover:underline">
+                צרו תחומים
+              </a>
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {interestAreas.map((area) => {
+                const selected = selectedAreaIds.includes(area.id);
+                return (
+                  <button
+                    key={area.id}
+                    type="button"
+                    onClick={() =>
+                      setSelectedAreaIds((prev) =>
+                        selected ? prev.filter((id) => id !== area.id) : [...prev, area.id]
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                      selected
+                        ? "bg-[#B8D900]/20 border-[#B8D900] text-[#5a7000]"
+                        : "bg-white border-gray-200 text-gray-600 hover:border-gray-400"
+                    }`}
+                  >
+                    {area.name_he}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {selectedAreaIds.length > 1 && (
+            <p className="text-xs text-amber-600 mt-3 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+              נבחרו {selectedAreaIds.length} תחומים — הטופס יציג לגולש תפריט בחירה.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
