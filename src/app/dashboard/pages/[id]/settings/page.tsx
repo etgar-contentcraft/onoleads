@@ -126,6 +126,8 @@ export default function PageSettingsPage() {
   const [interestAreas, setInterestAreas] = useState<InterestArea[]>([]);
   const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([]);
   const [areaSearch, setAreaSearch] = useState("");
+  const [mapsToSearch, setMapsToSearch] = useState("");
+  const [mapsToOpen, setMapsToOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -509,22 +511,67 @@ export default function PageSettingsPage() {
                         className="mt-1 h-8 text-sm"
                       />
                     </div>
-                    {/* Maps-to selector */}
-                    <div>
+                    {/* Maps-to selector — searchable combobox */}
+                    <div className="relative">
                       <Label className="text-xs text-[#716C70]">ישויך לתחום עניין</Label>
-                      <select
-                        value={overrides.interest_unknown_maps_to_name || ""}
-                        onChange={(e) => set("interest_unknown_maps_to_name", e.target.value)}
-                        className="mt-1 w-full h-8 rounded-lg border border-gray-200 px-2 text-sm text-[#2a2628] focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 bg-white"
-                        dir="rtl"
-                      >
-                        <option value="">— בחרו תחום —</option>
-                        {interestAreas.map((area) => (
-                          <option key={area.id} value={area.name_he}>
-                            {area.name_he}
-                          </option>
-                        ))}
-                      </select>
+                      {/* Selected value display / search input */}
+                      <div className="relative mt-1">
+                        <input
+                          type="text"
+                          dir="rtl"
+                          placeholder={overrides.interest_unknown_maps_to_name || "— חיפוש תחום —"}
+                          value={mapsToSearch}
+                          onFocus={() => setMapsToOpen(true)}
+                          onChange={(e) => { setMapsToSearch(e.target.value); setMapsToOpen(true); }}
+                          onBlur={() => setTimeout(() => setMapsToOpen(false), 150)}
+                          className="w-full h-8 rounded-lg border border-gray-200 px-2 pr-7 text-sm text-[#2a2628] focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 bg-white"
+                        />
+                        <Search className="absolute top-1.5 left-2 w-4 h-4 text-[#9A969A] pointer-events-none" />
+                        {overrides.interest_unknown_maps_to_name && (
+                          <button
+                            type="button"
+                            onMouseDown={(e) => { e.preventDefault(); set("interest_unknown_maps_to_name", ""); setMapsToSearch(""); }}
+                            className="absolute top-1.5 right-2 text-[#9A969A] hover:text-red-400"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      {/* Current selection badge */}
+                      {overrides.interest_unknown_maps_to_name && (
+                        <p className="text-xs text-[#2a2628] font-medium mt-1">
+                          נבחר: <span className="text-[#6b8d00]">{overrides.interest_unknown_maps_to_name}</span>
+                        </p>
+                      )}
+                      {/* Dropdown list */}
+                      {mapsToOpen && (
+                        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto" dir="rtl">
+                          {interestAreas
+                            .filter((a) => !mapsToSearch || a.name_he.includes(mapsToSearch))
+                            .map((area) => (
+                              <button
+                                key={area.id}
+                                type="button"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  set("interest_unknown_maps_to_name", area.name_he);
+                                  setMapsToSearch("");
+                                  setMapsToOpen(false);
+                                }}
+                                className={`w-full text-right px-3 py-2 text-sm hover:bg-[#B8D900]/10 transition-colors ${
+                                  overrides.interest_unknown_maps_to_name === area.name_he
+                                    ? "bg-[#B8D900]/15 font-semibold text-[#2a2628]"
+                                    : "text-[#2a2628]"
+                                }`}
+                              >
+                                {area.name_he}
+                              </button>
+                            ))}
+                          {interestAreas.filter((a) => !mapsToSearch || a.name_he.includes(mapsToSearch)).length === 0 && (
+                            <p className="text-center text-xs text-[#9A969A] py-3">לא נמצאו תחומים</p>
+                          )}
+                        </div>
+                      )}
                       <p className="text-[11px] text-[#9A969A] mt-1">
                         בוובהוק יישלח שם התחום הנבחר כאן — לא הטקסט שמוצג לגולש.
                       </p>
