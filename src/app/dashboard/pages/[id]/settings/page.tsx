@@ -466,7 +466,7 @@ export default function PageSettingsPage() {
         <CardHeader>
           <CardTitle className="text-base text-[#2a2628] flex items-center gap-2">
             <Tag className="w-4 h-4 text-[#B8D900]" />
-            תחומי עניין
+            חיבור לגלבוע
           </CardTitle>
           <CardDescription>
             בחרו תחום אחד או יותר. כשיש תחום אחד — הוא נשלח אוטומטית בוובהוק.

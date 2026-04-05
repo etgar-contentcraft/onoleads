@@ -83,7 +83,8 @@ const getPageData = cache(async function getPageData(slug: string) {
       .select("*, campaign:campaign_id(*)")
       .eq("page_id", page.id)
       .eq("is_enabled", true)
-      .order("priority", { ascending: false }),
+      .order("priority", { ascending: false })
+      .then((res) => ({ data: res.error ? [] : res.data })),
     supabase
       .from("page_interest_areas")
       .select("interest_area_id, sort_order, interest_area:interest_areas(id, name_he, name_en, slug)")

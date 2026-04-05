@@ -273,10 +273,17 @@ function CampaignsPage() {
   const loadCampaigns = useCallback(async () => {
     setLoading(true);
 
-    const { data: campaignsData } = await supabase
+    const { data: campaignsData, error: campaignsError } = await supabase
       .from("popup_campaigns")
       .select("*")
       .order("created_at", { ascending: false });
+
+    /* Table may not exist yet in this environment — treat as empty */
+    if (campaignsError) {
+      console.warn("[campaigns] table not available:", campaignsError.message);
+      setLoading(false);
+      return;
+    }
 
     if (campaignsData) {
       const { data: assignmentsData } = await supabase
