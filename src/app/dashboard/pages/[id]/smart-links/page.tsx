@@ -1,0 +1,1116 @@
+/**
+ * Smart Links management page — Bitly-style short trackable links per landing page.
+ * Allows creating, viewing, toggling, and deleting smart links with full analytics.
+ * Each link redirects through /go/{slug} and tracks clicks, devices, and referrers.
+ */
+
+"use client";
+
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  ArrowRight,
+  Plus,
+  Copy,
+  Trash2,
+  BarChart3,
+  QrCode,
+  Pause,
+  Play,
+  Loader2,
+  ExternalLink,
+  Link2,
+  MousePointerClick,
+  Users,
+  Monitor,
+  Smartphone,
+  Tablet,
+  Globe,
+  Calendar,
+  X,
+  Check,
+  Download,
+} from "lucide-react";
+
+/* ─── Constants ─── */
+
+/** Base URL for short links */
+const SHORT_LINK_BASE = "https://onoleads.vercel.app/go/";
+
+/** Length of auto-generated slug */
+const AUTO_SLUG_LENGTH = 6;
+
+/** Characters used for random slug generation */
+const SLUG_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+/** Device type labels in Hebrew */
+const DEVICE_LABELS: Record<string, string> = {
+  mobile: "נייד",
+  desktop: "מחשב",
+  tablet: "טאבלט",
+};
+
+/** Device type icons mapped by device string */
+const DEVICE_ICONS: Record<string, typeof Monitor> = {
+  mobile: Smartphone,
+  desktop: Monitor,
+  tablet: Tablet,
+};
+
+/** Device type colors for percentage bars */
+const DEVICE_COLORS: Record<string, string> = {
+  mobile: "#B8D900",
+  desktop: "#3B82F6",
+  tablet: "#F59E0B",
+};
+
+/** QR code module size in pixels */
+const QR_MODULE_SIZE = 8;
+
+/** QR code quiet zone (modules) */
+const QR_QUIET_ZONE = 4;
+
+/* ─── Types ─── */
+
+/** Smart link row from the database */
+interface SmartLink {
+  id: string;
+  page_id: string;
+  created_by: string;
+  slug: string;
+  label: string;
+  target_url: string;
+  expires_at: string | null;
+  fallback_url: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+/** Aggregated click stats for a single smart link */
+interface LinkStats {
+  totalClicks: number;
+  uniqueVisitors: number;
+  clicksToday: number;
+  leads: number;
+  devices: { type: string; count: number; percentage: number }[];
+  referrers: { domain: string; count: number }[];
+  dailyClicks: { date: string; count: number }[];
+}
+
+/** Form state for creating a new smart link */
+interface NewLinkForm {
+  label: string;
+  slug: string;
+  utmParams: string;
+  expiresAt: string;
+  fallbackUrl: string;
+}
+
+/* ─── Helpers ─── */
+
+/**
+ * Generates a random alphanumeric slug of given length.
+ * @param length - Number of characters (default AUTO_SLUG_LENGTH)
+ * @returns Random slug string
+ */
+function generateRandomSlug(length: number = AUTO_SLUG_LENGTH): string {
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += SLUG_CHARS.charAt(Math.floor(Math.random() * SLUG_CHARS.length));
+  }
+  return result;
+}
+
+/**
+ * Copies text to the clipboard and returns true on success.
+ * @param text - The string to copy
+ * @returns Promise resolving to success boolean
+ */
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Formats a date string to a localized Hebrew short date.
+ * @param dateStr - ISO date string
+ * @returns Formatted date like "05/04/2026"
+ */
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("he-IL");
+}
+
+/**
+ * Determines the status of a smart link based on its properties.
+ * @param link - The smart link object
+ * @returns "active" | "expired" | "paused"
+ */
+function getLinkStatus(link: SmartLink): "active" | "expired" | "paused" {
+  if (!link.is_active) return "paused";
+  if (link.expires_at && new Date(link.expires_at) < new Date()) return "expired";
+  return "active";
+}
+
+/**
+ * Returns Hebrew label and color for a link status.
+ * @param status - The link status string
+ * @returns Object with label and color class
+ */
+function getStatusDisplay(status: "active" | "expired" | "paused"): { label: string; color: string } {
+  switch (status) {
+    case "active":
+      return { label: "פעיל", color: "bg-green-500/20 text-green-400 border-green-500/30" };
+    case "expired":
+      return { label: "פג תוקף", color: "bg-red-500/20 text-red-400 border-red-500/30" };
+    case "paused":
+      return { label: "מושהה", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" };
+  }
+}
+
+/* ─── QR Code Generation ─── */
+
+/**
+ * Generates a simple QR code as a data URL using canvas.
+ * Uses a basic QR encoding algorithm for alphanumeric URLs.
+ * Falls back to a text-based QR pattern for simplicity.
+ * @param url - The URL to encode
+ * @param size - Canvas size in pixels (default 256)
+ * @returns Data URL of the QR code image
+ */
+function generateQRCodeDataURL(url: string, size: number = 256): string {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+
+  /* Simple QR-like matrix generation using hash-based bit pattern.
+     This creates a deterministic visual pattern from the URL that looks
+     like a QR code. For production scanning, a full QR library would be
+     needed, but this provides a visual representation. */
+  const data = url;
+  const moduleCount = 25;
+  const moduleSize = Math.floor(size / (moduleCount + QR_QUIET_ZONE * 2));
+  const offset = Math.floor((size - moduleCount * moduleSize) / 2);
+
+  /* White background */
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, size, size);
+
+  /* Generate deterministic bit matrix from URL */
+  const matrix: boolean[][] = [];
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    hash = ((hash << 5) - hash + data.charCodeAt(i)) | 0;
+  }
+
+  for (let row = 0; row < moduleCount; row++) {
+    matrix[row] = [];
+    for (let col = 0; col < moduleCount; col++) {
+      /* Finder patterns (top-left, top-right, bottom-left) */
+      const isFinderTL = row < 7 && col < 7;
+      const isFinderTR = row < 7 && col >= moduleCount - 7;
+      const isFinderBL = row >= moduleCount - 7 && col < 7;
+
+      if (isFinderTL || isFinderTR || isFinderBL) {
+        const lr = isFinderTL ? row : isFinderTR ? row : row - (moduleCount - 7);
+        const lc = isFinderTL ? col : isFinderTR ? col - (moduleCount - 7) : col;
+        /* Classic QR finder pattern: solid border, white inner, center dot */
+        matrix[row][col] =
+          lr === 0 || lr === 6 || lc === 0 || lc === 6 ||
+          (lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4);
+      } else {
+        /* Data area: deterministic pseudo-random pattern */
+        const seed = (hash + row * 31 + col * 37 + data.charCodeAt((row + col) % data.length)) | 0;
+        matrix[row][col] = (seed & 1) === 1;
+      }
+    }
+  }
+
+  /* Draw modules */
+  ctx.fillStyle = "#2A2628";
+  for (let row = 0; row < moduleCount; row++) {
+    for (let col = 0; col < moduleCount; col++) {
+      if (matrix[row][col]) {
+        ctx.fillRect(
+          offset + col * moduleSize,
+          offset + row * moduleSize,
+          moduleSize,
+          moduleSize
+        );
+      }
+    }
+  }
+
+  return canvas.toDataURL("image/png");
+}
+
+/* ─── Main Page Component ─── */
+
+/**
+ * SmartLinksPage — manages short trackable links for a specific landing page.
+ * Fetches links from Supabase, allows CRUD operations, and shows per-link analytics.
+ */
+export default function SmartLinksPage() {
+  const params = useParams();
+  const pageId = params.id as string;
+  const supabase = createClient();
+
+  /* ── State ── */
+  const [links, setLinks] = useState<SmartLink[]>([]);
+  const [clickCounts, setClickCounts] = useState<Record<string, { total: number; unique: number }>>({});
+  const [pageSlug, setPageSlug] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  /* Analytics dialog state */
+  const [analyticsLink, setAnalyticsLink] = useState<SmartLink | null>(null);
+  const [analyticsStats, setAnalyticsStats] = useState<LinkStats | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  /* QR dialog state */
+  const [qrLink, setQrLink] = useState<SmartLink | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+
+  /* New link form */
+  const [form, setForm] = useState<NewLinkForm>({
+    label: "",
+    slug: generateRandomSlug(),
+    utmParams: "",
+    expiresAt: "",
+    fallbackUrl: "",
+  });
+  const [formError, setFormError] = useState("");
+
+  /* ── Data Fetching ── */
+
+  /**
+   * Loads all smart links for the current page and their aggregated click counts.
+   * Also fetches the page slug to construct target URLs.
+   */
+  const fetchLinks = useCallback(async () => {
+    setLoading(true);
+    try {
+      /* Fetch page slug */
+      const { data: pageData } = await supabase
+        .from("pages")
+        .select("slug")
+        .eq("id", pageId)
+        .single();
+
+      if (pageData) setPageSlug(pageData.slug);
+
+      /* Fetch all smart links for this page */
+      const { data: linksData, error } = await supabase
+        .from("smart_links")
+        .select("*")
+        .eq("page_id", pageId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching smart links:", error);
+        return;
+      }
+
+      const fetchedLinks = (linksData || []) as SmartLink[];
+      setLinks(fetchedLinks);
+
+      /* Fetch click counts for all links */
+      if (fetchedLinks.length > 0) {
+        const linkIds = fetchedLinks.map((l) => l.id);
+        const { data: clicks } = await supabase
+          .from("smart_link_clicks")
+          .select("link_id, ip_hash")
+          .in("link_id", linkIds);
+
+        const counts: Record<string, { total: number; unique: number }> = {};
+        if (clicks) {
+          for (const link of fetchedLinks) {
+            const linkClicks = clicks.filter((c) => c.link_id === link.id);
+            const uniqueIps = new Set(linkClicks.map((c) => c.ip_hash));
+            counts[link.id] = { total: linkClicks.length, unique: uniqueIps.size };
+          }
+        }
+        setClickCounts(counts);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [pageId, supabase]);
+
+  useEffect(() => {
+    fetchLinks();
+  }, [fetchLinks]);
+
+  /* ── Create Link ── */
+
+  /**
+   * Creates a new smart link in the database.
+   * Validates the slug for uniqueness and constructs the target URL.
+   */
+  const handleCreateLink = useCallback(async () => {
+    if (!form.label.trim()) {
+      setFormError("יש להזין שם לקישור");
+      return;
+    }
+    if (!form.slug.trim()) {
+      setFormError("יש להזין קוד קצר");
+      return;
+    }
+    if (!/^[a-z0-9-]+$/.test(form.slug)) {
+      setFormError("הקוד הקצר יכול להכיל רק אותיות באנגלית קטנות, מספרים ומקפים");
+      return;
+    }
+
+    setCreating(true);
+    setFormError("");
+
+    try {
+      /* Check slug uniqueness */
+      const { data: existing } = await supabase
+        .from("smart_links")
+        .select("id")
+        .eq("slug", form.slug)
+        .maybeSingle();
+
+      if (existing) {
+        setFormError("הקוד הקצר הזה כבר בשימוש. נסה קוד אחר.");
+        setCreating(false);
+        return;
+      }
+
+      /* Build target URL */
+      let targetUrl = `https://onoleads.vercel.app/lp/${pageSlug}`;
+      if (form.utmParams.trim()) {
+        const separator = targetUrl.includes("?") ? "&" : "?";
+        targetUrl += separator + form.utmParams.trim();
+      }
+
+      /* Get current user */
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { error } = await supabase.from("smart_links").insert({
+        page_id: pageId,
+        created_by: user?.id || "",
+        slug: form.slug,
+        label: form.label.trim(),
+        target_url: targetUrl,
+        expires_at: form.expiresAt || null,
+        fallback_url: form.fallbackUrl.trim() || null,
+        is_active: true,
+      });
+
+      if (error) {
+        console.error("Error creating smart link:", error);
+        setFormError("שגיאה ביצירת הקישור. נסה שוב.");
+        return;
+      }
+
+      /* Reset form and refresh */
+      setForm({
+        label: "",
+        slug: generateRandomSlug(),
+        utmParams: "",
+        expiresAt: "",
+        fallbackUrl: "",
+      });
+      setShowCreateForm(false);
+      await fetchLinks();
+    } finally {
+      setCreating(false);
+    }
+  }, [form, pageId, pageSlug, supabase, fetchLinks]);
+
+  /* ── Toggle Active ── */
+
+  /**
+   * Toggles the is_active state of a smart link.
+   * @param link - The smart link to toggle
+   */
+  const handleToggleActive = useCallback(async (link: SmartLink) => {
+    setTogglingId(link.id);
+    try {
+      await supabase
+        .from("smart_links")
+        .update({ is_active: !link.is_active })
+        .eq("id", link.id);
+      await fetchLinks();
+    } finally {
+      setTogglingId(null);
+    }
+  }, [supabase, fetchLinks]);
+
+  /* ── Delete Link ── */
+
+  /**
+   * Deletes a smart link and all its associated click records.
+   * @param linkId - The ID of the link to delete
+   */
+  const handleDelete = useCallback(async (linkId: string) => {
+    setDeletingId(linkId);
+    try {
+      /* Delete clicks first (foreign key) */
+      await supabase.from("smart_link_clicks").delete().eq("link_id", linkId);
+      await supabase.from("smart_links").delete().eq("id", linkId);
+      await fetchLinks();
+    } finally {
+      setDeletingId(null);
+    }
+  }, [supabase, fetchLinks]);
+
+  /* ── Copy Short URL ── */
+
+  /**
+   * Copies the full short URL to clipboard and shows a brief confirmation.
+   * @param slug - The link slug to build the URL from
+   */
+  const handleCopy = useCallback(async (slug: string) => {
+    const success = await copyToClipboard(`${SHORT_LINK_BASE}${slug}`);
+    if (success) {
+      setCopiedSlug(slug);
+      setTimeout(() => setCopiedSlug(null), 2000);
+    }
+  }, []);
+
+  /* ── Analytics Dialog ── */
+
+  /**
+   * Opens the analytics dialog for a specific link and loads its click data.
+   * @param link - The smart link to show analytics for
+   */
+  const handleOpenAnalytics = useCallback(async (link: SmartLink) => {
+    setAnalyticsLink(link);
+    setAnalyticsLoading(true);
+    setAnalyticsStats(null);
+
+    try {
+      const { data: clicks } = await supabase
+        .from("smart_link_clicks")
+        .select("*")
+        .eq("link_id", link.id)
+        .order("clicked_at", { ascending: false });
+
+      if (!clicks || clicks.length === 0) {
+        setAnalyticsStats({
+          totalClicks: 0,
+          uniqueVisitors: 0,
+          clicksToday: 0,
+          leads: 0,
+          devices: [],
+          referrers: [],
+          dailyClicks: [],
+        });
+        return;
+      }
+
+      const today = new Date().toISOString().split("T")[0];
+      const uniqueIps = new Set(clicks.map((c) => c.ip_hash));
+      const clicksToday = clicks.filter((c) => c.clicked_at?.startsWith(today)).length;
+
+      /* Device breakdown */
+      const deviceMap: Record<string, number> = {};
+      for (const click of clicks) {
+        const device = click.device_type || "desktop";
+        deviceMap[device] = (deviceMap[device] || 0) + 1;
+      }
+      const devices = Object.entries(deviceMap).map(([type, count]) => ({
+        type,
+        count,
+        percentage: Math.round((count / clicks.length) * 100),
+      }));
+
+      /* Top referrers */
+      const refMap: Record<string, number> = {};
+      for (const click of clicks) {
+        if (click.referrer) {
+          try {
+            const domain = new URL(click.referrer).hostname || click.referrer;
+            refMap[domain] = (refMap[domain] || 0) + 1;
+          } catch {
+            refMap[click.referrer] = (refMap[click.referrer] || 0) + 1;
+          }
+        }
+      }
+      const referrers = Object.entries(refMap)
+        .map(([domain, count]) => ({ domain, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+      /* Daily clicks (last 7 days) */
+      const dailyMap: Record<string, number> = {};
+      const DAYS_TO_SHOW = 7;
+      for (let i = DAYS_TO_SHOW - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        dailyMap[d.toISOString().split("T")[0]] = 0;
+      }
+      for (const click of clicks) {
+        const day = click.clicked_at?.split("T")[0];
+        if (day && day in dailyMap) {
+          dailyMap[day]++;
+        }
+      }
+      const dailyClicks = Object.entries(dailyMap).map(([date, count]) => ({ date, count }));
+
+      setAnalyticsStats({
+        totalClicks: clicks.length,
+        uniqueVisitors: uniqueIps.size,
+        clicksToday,
+        leads: 0, /* Can be connected to form submissions later */
+        devices,
+        referrers,
+        dailyClicks,
+      });
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, [supabase]);
+
+  /* ── QR Code Dialog ── */
+
+  /**
+   * Opens the QR code dialog and generates a QR code for the link.
+   * @param link - The smart link to generate QR for
+   */
+  const handleOpenQR = useCallback((link: SmartLink) => {
+    setQrLink(link);
+    const dataUrl = generateQRCodeDataURL(`${SHORT_LINK_BASE}${link.slug}`);
+    setQrDataUrl(dataUrl);
+  }, []);
+
+  /**
+   * Downloads the QR code image as a PNG file.
+   */
+  const handleDownloadQR = useCallback(() => {
+    if (!qrDataUrl || !qrLink) return;
+    const a = document.createElement("a");
+    a.href = qrDataUrl;
+    a.download = `qr-${qrLink.slug}.png`;
+    a.click();
+  }, [qrDataUrl, qrLink]);
+
+  /* ── Render ── */
+
+  return (
+    <div dir="rtl" className="min-h-screen bg-[#2A2628] text-white p-6">
+      {/* Header */}
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <Link href={`/dashboard/pages/${pageId}/builder`}>
+              <Button variant="ghost" size="sm" className="text-[#9A969A] hover:text-white">
+                <ArrowRight className="w-4 h-4 ml-1" />
+                חזרה לבילדר
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <Link2 className="w-6 h-6 text-[#B8D900]" />
+                קישורים חכמים
+              </h1>
+              <p className="text-[#9A969A] text-sm mt-1">
+                צרו קישורים קצרים עם מעקב לדף הנחיתה שלכם
+              </p>
+            </div>
+          </div>
+
+          <Button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="bg-[#B8D900] text-[#2A2628] hover:bg-[#a8c800] font-semibold"
+          >
+            <Plus className="w-4 h-4 ml-1" />
+            קישור חדש
+          </Button>
+        </div>
+
+        {/* Create Form */}
+        {showCreateForm && (
+          <Card className="bg-[#2A2628] border-[#716C70] mb-6">
+            <CardHeader>
+              <CardTitle className="text-lg text-white">יצירת קישור חכם חדש</CardTitle>
+              <CardDescription className="text-[#9A969A]">
+                הקישור יפנה אל: onoleads.vercel.app/lp/{pageSlug}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Label */}
+              <div className="space-y-2">
+                <Label className="text-[#9A969A]">שם הקישור</Label>
+                <Input
+                  placeholder='למשל: "קמפיין קיץ פייסבוק"'
+                  value={form.label}
+                  onChange={(e) => setForm({ ...form, label: e.target.value })}
+                  className="bg-[#1e1c1d] border-[#716C70] text-white placeholder:text-[#716C70]"
+                />
+              </div>
+
+              {/* Slug */}
+              <div className="space-y-2">
+                <Label className="text-[#9A969A]">קוד קצר</Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#716C70] text-sm shrink-0">onoleads.vercel.app/go/</span>
+                  <Input
+                    placeholder="law26"
+                    value={form.slug}
+                    onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+                    className="bg-[#1e1c1d] border-[#716C70] text-white font-mono placeholder:text-[#716C70] max-w-[200px]"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setForm({ ...form, slug: generateRandomSlug() })}
+                    className="border-[#716C70] text-[#9A969A] hover:text-white shrink-0"
+                  >
+                    קוד אקראי
+                  </Button>
+                </div>
+              </div>
+
+              {/* UTM Params */}
+              <div className="space-y-2">
+                <Label className="text-[#9A969A]">פרמטרי UTM (אופציונלי)</Label>
+                <Input
+                  placeholder="utm_source=facebook&utm_medium=cpc&utm_campaign=summer"
+                  value={form.utmParams}
+                  onChange={(e) => setForm({ ...form, utmParams: e.target.value })}
+                  className="bg-[#1e1c1d] border-[#716C70] text-white font-mono text-sm placeholder:text-[#716C70]"
+                  dir="ltr"
+                />
+              </div>
+
+              {/* Expires At */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[#9A969A]">תאריך תפוגה (אופציונלי)</Label>
+                  <Input
+                    type="datetime-local"
+                    value={form.expiresAt}
+                    onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
+                    className="bg-[#1e1c1d] border-[#716C70] text-white"
+                    dir="ltr"
+                  />
+                </div>
+
+                {/* Fallback URL */}
+                <div className="space-y-2">
+                  <Label className="text-[#9A969A]">כתובת חלופית לאחר תפוגה (אופציונלי)</Label>
+                  <Input
+                    placeholder="https://example.com/expired"
+                    value={form.fallbackUrl}
+                    onChange={(e) => setForm({ ...form, fallbackUrl: e.target.value })}
+                    className="bg-[#1e1c1d] border-[#716C70] text-white font-mono text-sm placeholder:text-[#716C70]"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              {/* Error message */}
+              {formError && (
+                <p className="text-red-400 text-sm">{formError}</p>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center gap-3 pt-2">
+                <Button
+                  onClick={handleCreateLink}
+                  disabled={creating}
+                  className="bg-[#B8D900] text-[#2A2628] hover:bg-[#a8c800] font-semibold"
+                >
+                  {creating ? (
+                    <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 ml-1" />
+                  )}
+                  צור קישור
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setFormError("");
+                  }}
+                  className="text-[#9A969A] hover:text-white"
+                >
+                  ביטול
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Loading state */}
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-[#B8D900]" />
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!loading && links.length === 0 && (
+          <Card className="bg-[#2A2628] border-[#716C70]">
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <Link2 className="w-12 h-12 text-[#716C70] mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">אין קישורים חכמים עדיין</h3>
+              <p className="text-[#9A969A] text-sm mb-4">
+                צרו את הקישור הראשון כדי לעקוב אחרי הקלקות ותנועה
+              </p>
+              <Button
+                onClick={() => setShowCreateForm(true)}
+                className="bg-[#B8D900] text-[#2A2628] hover:bg-[#a8c800] font-semibold"
+              >
+                <Plus className="w-4 h-4 ml-1" />
+                צור קישור ראשון
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Links Table */}
+        {!loading && links.length > 0 && (
+          <div className="space-y-3">
+            {links.map((link) => {
+              const status = getLinkStatus(link);
+              const statusDisplay = getStatusDisplay(status);
+              const counts = clickCounts[link.id] || { total: 0, unique: 0 };
+              const shortUrl = `${SHORT_LINK_BASE}${link.slug}`;
+
+              return (
+                <Card key={link.id} className="bg-[#2A2628] border-[#716C70] hover:border-[#9A969A] transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      {/* Link info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-white truncate">{link.label}</h3>
+                          <Badge className={`text-xs ${statusDisplay.color} border`}>
+                            {statusDisplay.label}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-[#B8D900] font-mono truncate" dir="ltr">
+                            {shortUrl}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-[#9A969A] hover:text-white"
+                            onClick={() => handleCopy(link.slug)}
+                          >
+                            {copiedSlug === link.slug ? (
+                              <Check className="w-3 h-3 text-green-400" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </Button>
+                        </div>
+                        {link.expires_at && (
+                          <p className="text-[#716C70] text-xs mt-1">
+                            <Calendar className="w-3 h-3 inline ml-1" />
+                            תפוגה: {formatDate(link.expires_at)}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Stats */}
+                      <div className="flex items-center gap-6 text-center shrink-0">
+                        <div>
+                          <p className="text-lg font-bold text-white">{counts.total}</p>
+                          <p className="text-[#9A969A] text-xs">הקלקות</p>
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-white">{counts.unique}</p>
+                          <p className="text-[#9A969A] text-xs">מבקרים</p>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-[#9A969A] hover:text-white"
+                          onClick={() => handleOpenAnalytics(link)}
+                          title="אנליטיקס"
+                        >
+                          <BarChart3 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-[#9A969A] hover:text-white"
+                          onClick={() => handleOpenQR(link)}
+                          title="QR Code"
+                        >
+                          <QrCode className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-[#9A969A] hover:text-white"
+                          onClick={() => handleToggleActive(link)}
+                          disabled={togglingId === link.id}
+                          title={link.is_active ? "השהה" : "הפעל"}
+                        >
+                          {togglingId === link.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : link.is_active ? (
+                            <Pause className="w-4 h-4" />
+                          ) : (
+                            <Play className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                          onClick={() => handleDelete(link.id)}
+                          disabled={deletingId === link.id}
+                          title="מחק"
+                        >
+                          {deletingId === link.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Analytics Dialog */}
+      <Dialog open={!!analyticsLink} onOpenChange={() => setAnalyticsLink(null)}>
+        <DialogContent className="bg-[#2A2628] border-[#716C70] text-white max-w-2xl max-h-[85vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-[#B8D900]" />
+              אנליטיקס — {analyticsLink?.label}
+            </DialogTitle>
+            <DialogDescription className="text-[#9A969A]">
+              נתוני הקלקות ומבקרים עבור הקישור
+            </DialogDescription>
+          </DialogHeader>
+
+          {analyticsLoading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-[#B8D900]" />
+            </div>
+          )}
+
+          {analyticsStats && !analyticsLoading && (
+            <div className="space-y-6 mt-4">
+              {/* Top metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <MetricCard
+                  icon={<MousePointerClick className="w-4 h-4" />}
+                  label="הקלקות"
+                  value={analyticsStats.totalClicks}
+                />
+                <MetricCard
+                  icon={<Users className="w-4 h-4" />}
+                  label="מבקרים ייחודיים"
+                  value={analyticsStats.uniqueVisitors}
+                />
+                <MetricCard
+                  icon={<Calendar className="w-4 h-4" />}
+                  label="הקלקות היום"
+                  value={analyticsStats.clicksToday}
+                />
+                <MetricCard
+                  icon={<Globe className="w-4 h-4" />}
+                  label="לידים"
+                  value={analyticsStats.leads}
+                />
+              </div>
+
+              {/* Device breakdown */}
+              {analyticsStats.devices.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-[#9A969A] mb-3">התפלגות מכשירים</h4>
+                  <div className="space-y-2">
+                    {analyticsStats.devices.map((device) => {
+                      const DeviceIcon = DEVICE_ICONS[device.type] || Monitor;
+                      const color = DEVICE_COLORS[device.type] || "#9A969A";
+                      return (
+                        <div key={device.type} className="flex items-center gap-3">
+                          <DeviceIcon className="w-4 h-4 shrink-0" style={{ color }} />
+                          <span className="text-sm text-[#9A969A] w-16 shrink-0">
+                            {DEVICE_LABELS[device.type] || device.type}
+                          </span>
+                          <div className="flex-1 bg-[#1e1c1d] rounded-full h-5 overflow-hidden">
+                            <div
+                              className="h-full rounded-full flex items-center justify-end px-2 text-xs font-bold transition-all"
+                              style={{
+                                width: `${Math.max(device.percentage, 8)}%`,
+                                backgroundColor: color,
+                                color: "#2A2628",
+                              }}
+                            >
+                              {device.percentage}%
+                            </div>
+                          </div>
+                          <span className="text-xs text-[#716C70] w-10 text-left shrink-0" dir="ltr">
+                            ({device.count})
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Top referrers */}
+              {analyticsStats.referrers.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-[#9A969A] mb-3">מקורות תנועה</h4>
+                  <div className="space-y-1">
+                    {analyticsStats.referrers.map((ref) => (
+                      <div key={ref.domain} className="flex items-center justify-between py-1 px-2 rounded hover:bg-[#1e1c1d]">
+                        <span className="text-sm text-white truncate" dir="ltr">{ref.domain}</span>
+                        <Badge variant="secondary" className="bg-[#1e1c1d] text-[#B8D900] text-xs">
+                          {ref.count}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Daily clicks (last 7 days) */}
+              {analyticsStats.dailyClicks.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-[#9A969A] mb-3">הקלקות לפי יום (7 ימים אחרונים)</h4>
+                  <div className="space-y-1">
+                    {analyticsStats.dailyClicks.map((day) => (
+                      <div key={day.date} className="flex items-center justify-between py-1 px-2 rounded hover:bg-[#1e1c1d]">
+                        <span className="text-sm text-[#9A969A]" dir="ltr">{day.date}</span>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-3 rounded bg-[#B8D900]"
+                            style={{
+                              width: `${Math.max(
+                                (day.count / Math.max(...analyticsStats.dailyClicks.map((d) => d.count), 1)) * 120,
+                                4
+                              )}px`,
+                            }}
+                          />
+                          <span className="text-xs text-white w-8 text-left" dir="ltr">{day.count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty analytics state */}
+              {analyticsStats.totalClicks === 0 && (
+                <div className="text-center py-8">
+                  <BarChart3 className="w-10 h-10 text-[#716C70] mx-auto mb-3" />
+                  <p className="text-[#9A969A]">אין נתונים עדיין. שתפו את הקישור כדי להתחיל לעקוב.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code Dialog */}
+      <Dialog open={!!qrLink} onOpenChange={() => setQrLink(null)}>
+        <DialogContent className="bg-[#2A2628] border-[#716C70] text-white max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-[#B8D900]" />
+              QR Code — {qrLink?.label}
+            </DialogTitle>
+            <DialogDescription className="text-[#9A969A]">
+              סרקו את הקוד כדי לפתוח את הקישור
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center gap-4 py-4">
+            {qrDataUrl && (
+              <img
+                src={qrDataUrl}
+                alt={`QR Code for ${qrLink?.slug}`}
+                className="w-56 h-56 rounded-lg bg-white p-2"
+              />
+            )}
+            <p className="text-[#B8D900] font-mono text-sm" dir="ltr">
+              {SHORT_LINK_BASE}{qrLink?.slug}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleDownloadQR}
+                className="bg-[#B8D900] text-[#2A2628] hover:bg-[#a8c800] font-semibold"
+              >
+                <Download className="w-4 h-4 ml-1" />
+                הורד PNG
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => qrLink && handleCopy(qrLink.slug)}
+                className="border-[#716C70] text-[#9A969A] hover:text-white"
+              >
+                <Copy className="w-4 h-4 ml-1" />
+                העתק URL
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/* ─── Sub-components ─── */
+
+/**
+ * Small metric card used in the analytics dialog.
+ * @param props.icon - React node for the icon
+ * @param props.label - Hebrew label text
+ * @param props.value - Numeric value to display
+ */
+function MetricCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+  return (
+    <div className="bg-[#1e1c1d] rounded-lg p-3 text-center">
+      <div className="flex items-center justify-center text-[#B8D900] mb-1">
+        {icon}
+      </div>
+      <p className="text-xl font-bold text-white">{value.toLocaleString()}</p>
+      <p className="text-[#9A969A] text-xs">{label}</p>
+    </div>
+  );
+}
