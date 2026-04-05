@@ -17,15 +17,20 @@ const MAX_SUBMISSIONS_PER_MINUTE = 5;
 
 /** Allowed webhook destination hosts — prevents SSRF via settings table manipulation */
 const ALLOWED_WEBHOOK_HOSTS = [
-  // Make.com (all regions)
+  // Make.com / Celonis (all regions — Make rebranded under celonis.com)
   "hook.eu1.make.com",
   "hook.eu2.make.com",
   "hook.us1.make.com",
   "hook.us2.make.com",
   "hook.make.com",
+  "hook.eu1.make.celonis.com",
+  "hook.eu2.make.celonis.com",
+  "hook.us1.make.celonis.com",
+  "hook.us2.make.celonis.com",
+  "hook.make.celonis.com",
   // Zapier
   "hooks.zapier.com",
-  // n8n cloud + self-hosted common patterns
+  // n8n cloud
   "n8n.cloud",
   "app.n8n.cloud",
   // Additional domains from env variable (comma-separated)
