@@ -25,7 +25,10 @@ export type AuditAction =
   | "admin_settings_updated"
   | "rate_limit_exceeded"
   | "bot_detected"
-  | "csrf_validation_failed";
+  | "csrf_validation_failed"
+  | "form_token_invalid"
+  | "session_cooldown_blocked"
+  | "behavior_score_too_low";
 
 /**
  * Structure of an audit log entry

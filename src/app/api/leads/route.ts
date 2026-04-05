@@ -15,6 +15,56 @@ import { sendWebhookWithRetry } from "@/lib/security/webhook";
 /** Maximum lead submissions per IP per minute */
 const MAX_SUBMISSIONS_PER_MINUTE = 5;
 
+/** Minimum seconds a real user takes to fill the form (bots submit instantly) */
+const FORM_MIN_AGE_MS = 4000;
+/** Maximum form token age — tokens older than this are stale */
+const FORM_MAX_AGE_MS = 15 * 60 * 1000; // 15 minutes
+/** Seconds between submissions from the same session (cookie_id + IP) */
+const SESSION_COOLDOWN_MS = 15000;
+/** Minimum behavior score to accept (0–100) — below this is bot-like */
+const MIN_BEHAVIOR_SCORE = 20;
+
+/** In-memory store for session cooldown: key → last submit timestamp */
+const recentSubmissions = new Map<string, number>();
+
+/**
+ * Validates the form time token (base64-encoded {t, n}).
+ * Rejects if submitted too quickly (< 4s) or token is stale (> 15min).
+ */
+function validateFormToken(tokenStr: string | null | undefined): { ok: boolean; reason?: string } {
+  if (!tokenStr) return { ok: false, reason: "missing_token" };
+  try {
+    const decoded = JSON.parse(Buffer.from(tokenStr, "base64").toString("utf-8"));
+    if (!decoded || typeof decoded.t !== "number" || typeof decoded.n !== "string") {
+      return { ok: false, reason: "invalid_format" };
+    }
+    const age = Date.now() - decoded.t;
+    if (age < FORM_MIN_AGE_MS) return { ok: false, reason: "too_fast" };
+    if (age > FORM_MAX_AGE_MS) return { ok: false, reason: "expired" };
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "parse_error" };
+  }
+}
+
+/**
+ * Checks session cooldown — same cookie_id+IP must not submit more than once per 15s.
+ * Returns false if within cooldown window.
+ */
+function checkSessionCooldown(key: string): boolean {
+  const last = recentSubmissions.get(key);
+  if (last && Date.now() - last < SESSION_COOLDOWN_MS) return false;
+  recentSubmissions.set(key, Date.now());
+  /* Prevent unbounded growth — prune entries older than 2× cooldown */
+  if (recentSubmissions.size > 500) {
+    const cutoff = Date.now() - SESSION_COOLDOWN_MS * 2;
+    Array.from(recentSubmissions.entries()).forEach(([k, v]) => {
+      if (v < cutoff) recentSubmissions.delete(k);
+    });
+  }
+  return true;
+}
+
 /** Allowed webhook destination hosts — prevents SSRF via settings table manipulation */
 const ALLOWED_WEBHOOK_HOSTS = [
   // Make.com / Celonis (all regions — Make rebranded under celonis.com)
@@ -59,6 +109,9 @@ const leadSchema = z.object({
   interest_area: z.string().optional().nullable(),
   /* Honeypot field — should always be empty for real users */
   website: z.string().optional().nullable(),
+  /* Bot protection signals */
+  form_token: z.string().optional().nullable(),
+  behavior_score: z.number().min(0).max(100).optional().nullable(),
 });
 
 /**
@@ -138,6 +191,51 @@ export async function POST(request: NextRequest) {
         { success: true, id: "00000000-0000-0000-0000-000000000000" },
         { status: 201 }
       );
+    }
+
+    /* --- Time token validation --- */
+    const tokenResult = validateFormToken(data.form_token);
+    if (!tokenResult.ok) {
+      writeAuditLog({
+        action: "form_token_invalid",
+        metadata: { reason: tokenResult.reason },
+      }).catch(() => {});
+
+      if (tokenResult.reason === "too_fast") {
+        /* Silent success to avoid tipping off the bot */
+        return NextResponse.json({ success: true, id: "00000000-0000-0000-0000-000000000000" }, { status: 201 });
+      }
+      return NextResponse.json(
+        { error: "הטופס פג תוקף. אנא רעננו את הדף ונסו שוב." },
+        { status: 400 }
+      );
+    }
+
+    /* --- Session cooldown (15s between submissions, same cookie+IP) --- */
+    const cookieIdForCooldown = (body as Record<string, unknown>)?.cookie_id as string | undefined;
+    const cooldownKey = `${clientIp}:${cookieIdForCooldown || "anonymous"}`;
+    if (!checkSessionCooldown(cooldownKey)) {
+      writeAuditLog({
+        action: "session_cooldown_blocked",
+        metadata: { cooldown_ms: SESSION_COOLDOWN_MS },
+      }).catch(() => {});
+
+      return NextResponse.json(
+        { error: "אנא המתינו מספר שניות לפני שליחה נוספת." },
+        { status: 429 }
+      );
+    }
+
+    /* --- Behavioral score check --- */
+    const behaviorScore = data.behavior_score ?? 0;
+    if (behaviorScore < MIN_BEHAVIOR_SCORE) {
+      writeAuditLog({
+        action: "behavior_score_too_low",
+        metadata: { score: behaviorScore },
+      }).catch(() => {});
+
+      /* Silent success — bot should not learn our threshold */
+      return NextResponse.json({ success: true, id: "00000000-0000-0000-0000-000000000000" }, { status: 201 });
     }
 
     /* --- CSRF validation --- */

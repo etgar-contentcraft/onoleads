@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
 
 // ============================================================================
@@ -216,6 +216,16 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  /** Time token — base64-encoded {t, n} generated when modal opens */
+  const [formToken, setFormToken] = useState<string>("");
+  /** Seconds remaining in session cooldown (15s between submissions) */
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+  /** Timestamp when this modal instance was opened — for dwell-time scoring */
+  const formMountTimeRef = useRef<number>(0);
+  /** Whether the user typed anything in the form (vs. bot auto-fill) */
+  const hasKeystrokeRef = useRef<boolean>(false);
+  /** Whether the user moved mouse or touched screen before submitting */
+  const hasInteractionRef = useRef<boolean>(false);
   /** Selected interest area name — required when page has multiple areas */
   const [selectedInterestArea, setSelectedInterestArea] = useState<string>("");
   const hasMultipleAreas = (pageInterestAreas?.length ?? 0) > 1;
@@ -257,6 +267,57 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
     setCsrfToken(token);
   }, [isOpen]);
 
+  /* Generate form token + start behavioral tracking when modal opens */
+  useEffect(() => {
+    if (!isOpen) return;
+
+    /* Record when this modal instance opened (for dwell-time scoring) */
+    formMountTimeRef.current = Date.now();
+    hasKeystrokeRef.current = false;
+    hasInteractionRef.current = false;
+
+    /* Time token: base64({t: timestamp, n: nonce}) — server validates age 4s–15min */
+    const token = { t: Date.now(), n: crypto.randomUUID() };
+    setFormToken(btoa(JSON.stringify(token)));
+
+    /* Check if we're still in the 15-second session cooldown from a prior submit */
+    const last = sessionStorage.getItem("last_lead_submit");
+    if (last) {
+      const remaining = Math.ceil((15000 - (Date.now() - parseInt(last))) / 1000);
+      if (remaining > 0) setCooldownRemaining(remaining);
+    }
+
+    /* Track first mouse/touch interaction — bots have none */
+    const handleInteraction = () => { hasInteractionRef.current = true; };
+    window.addEventListener("mousemove", handleInteraction, { once: true, passive: true });
+    window.addEventListener("touchstart", handleInteraction, { once: true, passive: true });
+    return () => {
+      window.removeEventListener("mousemove", handleInteraction);
+      window.removeEventListener("touchstart", handleInteraction);
+    };
+  }, [isOpen]);
+
+  /* Tick-down the cooldown counter every second */
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
+    const timer = setInterval(() => {
+      setCooldownRemaining((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownRemaining]);
+
+  /**
+   * Computes a 0–100 behavioral score based on dwell time, keystrokes, and mouse/touch.
+   * Score < 20 indicates likely bot activity (server will reject).
+   */
+  const computeBehaviorScore = useCallback((): number => {
+    const dwell = Date.now() - formMountTimeRef.current;
+    const dwellScore = dwell < 2000 ? 0 : dwell < 5000 ? 40 : 60;
+    const keystrokeScore = hasKeystrokeRef.current ? 30 : 0;
+    const interactionScore = hasInteractionRef.current ? 30 : 0;
+    return Math.min(100, dwellScore + keystrokeScore + interactionScore);
+  }, []);
+
   /**
    * Validates form fields before submission.
    * @returns true if all required fields are valid
@@ -287,6 +348,13 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
+
+    /* Session cooldown: block re-submission within 15 seconds */
+    if (cooldownRemaining > 0) {
+      setSubmitError(`אנא המתינו ${cooldownRemaining} שניות לפני שליחה נוספת`);
+      return;
+    }
+
     if (!validate()) return;
     setSubmitting(true);
 
@@ -356,6 +424,9 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
           : (singleAreaName || null),
         /* Honeypot field - bots will fill this, real users won't see it */
         website: honeypot,
+        /* Bot protection signals — validated server-side */
+        form_token: formToken,
+        behavior_score: computeBehaviorScore(),
       };
 
       const res = await fetch("/api/leads", {
@@ -368,6 +439,10 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
         // Store first name in sessionStorage — never in the URL (PII)
         const firstName = formData.full_name.trim().split(" ")[0] || "";
         if (firstName) sessionStorage.setItem("ty_name", firstName);
+
+        /* Record submit time for 15-second session cooldown */
+        sessionStorage.setItem("last_lead_submit", Date.now().toString());
+        setCooldownRemaining(15);
 
         const tyUrl = pageSlug ? `/ty?slug=${encodeURIComponent(pageSlug)}` : "/ty";
         close();
@@ -478,6 +553,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                       type="text"
                       value={formData.full_name}
                       onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                      onKeyDown={() => { hasKeystrokeRef.current = true; }}
                       placeholder={t.namePlaceholder}
                       autoComplete="name"
                       className={`w-full h-13 rounded-xl bg-white/8 border px-4 text-white text-base placeholder:text-white/35 focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors.full_name ? "border-red-400/60" : "border-white/15"}`}
@@ -498,6 +574,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onKeyDown={() => { hasKeystrokeRef.current = true; }}
                       placeholder={t.phonePlaceholder}
                       dir="ltr"
                       autoComplete="tel"
@@ -519,6 +596,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onKeyDown={() => { hasKeystrokeRef.current = true; }}
                       placeholder={t.emailPlaceholder}
                       dir="ltr"
                       autoComplete="email"
@@ -593,7 +671,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                   {/* Submit */}
                   <button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || cooldownRemaining > 0}
                     className="w-full h-14 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_30px_rgba(184,217,0,0.4)] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {submitting ? (
@@ -604,6 +682,8 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                         </svg>
                         {t.submitting}
                       </span>
+                    ) : cooldownRemaining > 0 ? (
+                      `${ctaText || t.submit} (${cooldownRemaining})`
                     ) : (
                       ctaText || t.submit
                     )}
