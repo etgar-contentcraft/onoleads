@@ -17,11 +17,19 @@ const MAX_SUBMISSIONS_PER_MINUTE = 5;
 
 /** Allowed webhook destination hosts — prevents SSRF via settings table manipulation */
 const ALLOWED_WEBHOOK_HOSTS = [
+  // Make.com (all regions)
   "hook.eu1.make.com",
   "hook.eu2.make.com",
   "hook.us1.make.com",
   "hook.us2.make.com",
   "hook.make.com",
+  // Zapier
+  "hooks.zapier.com",
+  // n8n cloud + self-hosted common patterns
+  "n8n.cloud",
+  "app.n8n.cloud",
+  // Additional domains from env variable (comma-separated)
+  ...(process.env.WEBHOOK_EXTRA_HOSTS ? process.env.WEBHOOK_EXTRA_HOSTS.split(",").map((h) => h.trim()).filter(Boolean) : []),
 ];
 
 /** Zod schema for validating lead submission payloads */
@@ -303,14 +311,32 @@ async function fireWebhook(
   payload: Record<string, unknown>
 ): Promise<boolean> {
   try {
-    /* Get webhook URL from settings */
-    const { data: settings } = await supabase
-      .from("settings")
-      .select("value")
-      .eq("key", "make_webhook_url")
-      .single();
+    /* Check per-page webhook override first, then fall back to global */
+    let webhookUrl: string | null = null;
 
-    const webhookUrl = settings?.value;
+    const pageId = payload.page_id as string | null;
+    if (pageId) {
+      const { data: pageData } = await supabase
+        .from("pages")
+        .select("custom_styles")
+        .eq("id", pageId)
+        .single();
+      const overrides = pageData?.custom_styles as Record<string, string> | null;
+      const pageWebhook = overrides?.webhook_url;
+      if (pageWebhook && typeof pageWebhook === "string" && pageWebhook.trim()) {
+        webhookUrl = pageWebhook.trim();
+      }
+    }
+
+    if (!webhookUrl) {
+      const { data: settings } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "webhook_url")
+        .single();
+      webhookUrl = settings?.value ?? null;
+    }
+
     if (!webhookUrl || typeof webhookUrl !== "string") {
       /* No webhook configured — skip silently */
       return true;
