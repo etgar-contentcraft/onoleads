@@ -6,6 +6,7 @@
  */
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
   /* Verify caller is an authenticated admin */
@@ -15,9 +16,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  /* Verify caller has admin role — prevents cache stampede from non-admin accounts */
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (!profile || profile.role !== "admin") {
+  /* Verify caller has admin role (via admin client to bypass RLS) */
+  const adminClient = createAdminClient();
+  const { data: profile } = await adminClient.from("profiles").select("role").eq("id", user.id).single();
+  if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

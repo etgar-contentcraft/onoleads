@@ -29,8 +29,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    /* --- Verify caller has admin role (from profiles table) --- */
-    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    /* --- Verify caller has admin role (via admin client to bypass RLS) --- */
+    const adminClient = createAdminClient();
+    const { data: profile } = await adminClient.from("profiles").select("role").eq("id", user.id).single();
     if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
