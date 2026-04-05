@@ -41,6 +41,7 @@ const leadSchema = z.object({
   cookie_id: z.string().optional().nullable(),
   device_type: z.enum(["desktop", "mobile", "tablet"]).optional().nullable(),
   csrf_token: z.string().optional().nullable(),
+  lead_source: z.string().optional().nullable(),
   /* Honeypot field — should always be empty for real users */
   website: z.string().optional().nullable(),
 });
@@ -223,6 +224,7 @@ export async function POST(request: NextRequest) {
         referrer_domain: referrerDomain,
         device_type: data.device_type || null,
         webhook_status: webhookStatus,
+        lead_source: data.lead_source ? sanitizeGeneral(data.lead_source) : null,
       });
 
     if (insertError) {

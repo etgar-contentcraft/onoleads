@@ -14,11 +14,30 @@ import { useRouter } from "next/navigation";
 /** Supported language codes */
 type Lang = "he" | "en" | "ar";
 
+/** Lead source identifier — tracks which CTA triggered the form */
+export type LeadSource =
+  | "hero_cta"
+  | "floating_cta"
+  | "sticky_bar"
+  | "popup_exit_intent"
+  | "popup_timed"
+  | "popup_scroll"
+  | "section_cta"
+  | "section_testimonials"
+  | "section_benefits"
+  | "section_curriculum"
+  | "section_admission"
+  | "section_faq"
+  | "section_career"
+  | "section_about"
+  | "unknown";
+
 interface CtaModalContextType {
   isOpen: boolean;
-  open: () => void;
+  open: (source?: LeadSource) => void;
   close: () => void;
   language: Lang;
+  leadSource: LeadSource;
 }
 
 const CtaModalContext = createContext<CtaModalContextType>({
@@ -26,6 +45,7 @@ const CtaModalContext = createContext<CtaModalContextType>({
   open: () => {},
   close: () => {},
   language: "he",
+  leadSource: "unknown",
 });
 
 /**
@@ -36,15 +56,19 @@ export function useCtaModal() {
 }
 
 /**
- * Provider component that manages CTA modal state and language.
+ * Provider component that manages CTA modal state, language, and lead source.
  */
 export function CtaModalProvider({ children, language = "he" }: { children: React.ReactNode; language?: Lang }) {
   const [isOpen, setIsOpen] = useState(false);
-  const open = useCallback(() => setIsOpen(true), []);
+  const [leadSource, setLeadSource] = useState<LeadSource>("unknown");
+  const open = useCallback((source: LeadSource = "unknown") => {
+    setLeadSource(source);
+    setIsOpen(true);
+  }, []);
   const close = useCallback(() => setIsOpen(false), []);
 
   return (
-    <CtaModalContext.Provider value={{ isOpen, open, close, language }}>
+    <CtaModalContext.Provider value={{ isOpen, open, close, language, leadSource }}>
       {children}
     </CtaModalContext.Provider>
   );
@@ -54,15 +78,32 @@ export function CtaModalProvider({ children, language = "he" }: { children: Reac
 // Localized UI strings for form
 // ============================================================================
 
+/** Privacy policy URLs — Hebrew/Arabic share one, English uses a different page */
+const PRIVACY_URLS: Record<Lang, { privacy: string; terms: string }> = {
+  he: {
+    privacy: "https://www.ono.ac.il/privacy-policy-2/",
+    terms: "https://www.ono.ac.il/terms-for-using-the-site/",
+  },
+  en: {
+    privacy: "https://www.ono.ac.il/eng/privacy-policy-4/",
+    terms: "https://www.ono.ac.il/eng/privacy-policy-4/",
+  },
+  ar: {
+    privacy: "https://www.ono.ac.il/privacy-policy-2/",
+    terms: "https://www.ono.ac.il/terms-for-using-the-site/",
+  },
+};
+
 const FORM_STRINGS: Record<Lang, {
   title: string;
   namePlaceholder: string;
   phonePlaceholder: string;
   emailPlaceholder: string;
-  privacyPrefix: string;
-  termsLink: string;
-  privacyLink: string;
-  privacyAnd: string;
+  disclaimerLine1: string;
+  disclaimerPrivacyLink: string;
+  disclaimerLine2: string;
+  disclaimerReadMore: string;
+  disclaimerExpanded: string;
   submit: string;
   submitting: string;
   noCommitment: string;
@@ -75,10 +116,11 @@ const FORM_STRINGS: Record<Lang, {
     namePlaceholder: "שם מלא *",
     phonePlaceholder: "טלפון *",
     emailPlaceholder: "אימייל",
-    privacyPrefix: "בלחיצה על \"שלחו לי מידע\" אני מסכים/ה ל",
-    termsLink: "תנאי השימוש",
-    privacyLink: "מדיניות הפרטיות",
-    privacyAnd: "ול",
+    disclaimerLine1: "מילוי הפרטים והמשך התהליך מהווים הסכמה לשימוש במידע לפי",
+    disclaimerPrivacyLink: "מדיניות הפרטיות שלנו",
+    disclaimerLine2: "ולמשלוח פניות ופרסומים בקשר ללימודים בקריה האקדמית אונו, כולל בטלפון, בדוא\"ל, במסרון וב-WhatsApp.",
+    disclaimerReadMore: "קרא עוד",
+    disclaimerExpanded: "ניתן להפסיק לקבל פניות אלו בכל עת באמצעות פנייה אל: marketing@ono.ac.il או על ידי הקשה על קישור \"הסר מרשימת התפוצה\" המופיע בכל הודעת דוא\"ל כאמור או ביצוע כל הוראה שהחברה עשויה לכלול בהודעה שנשלחה אליך.",
     submit: "שלחו לי מידע",
     submitting: "שולח...",
     noCommitment: "ללא התחייבות",
@@ -91,10 +133,11 @@ const FORM_STRINGS: Record<Lang, {
     namePlaceholder: "Full Name *",
     phonePlaceholder: "Phone *",
     emailPlaceholder: "Email",
-    privacyPrefix: "By clicking \"Send\" I agree to the ",
-    termsLink: "Terms of Service",
-    privacyLink: "Privacy Policy",
-    privacyAnd: " and the ",
+    disclaimerLine1: "Filling in the details and continuing the process constitute consent to the use of information according to",
+    disclaimerPrivacyLink: "Our privacy policy",
+    disclaimerLine2: "and to send inquiries and publications regarding studies at Ono Academic College, including by phone, email, SMS and WhatsApp.",
+    disclaimerReadMore: "Read more",
+    disclaimerExpanded: "You can stop receiving these messages at any time by contacting marketing@ono.ac.il, or by clicking on Unsubscribe, or by following any other instructions included in emails sent to you.",
     submit: "Send Me Info",
     submitting: "Sending...",
     noCommitment: "No commitment",
@@ -107,10 +150,11 @@ const FORM_STRINGS: Record<Lang, {
     namePlaceholder: "الاسم الكامل *",
     phonePlaceholder: "هاتف *",
     emailPlaceholder: "بريد إلكتروني",
-    privacyPrefix: "بالنقر على \"أرسل\" أوافق على ",
-    termsLink: "شروط الاستخدام",
-    privacyLink: "سياسة الخصوصية",
-    privacyAnd: " و",
+    disclaimerLine1: "ملء التفاصيل ومتابعة العملية يشكلان موافقة على استخدام المعلومات وفقًا لـ",
+    disclaimerPrivacyLink: "سياسة الخصوصية الخاصة بنا",
+    disclaimerLine2: "ولإرسال استفسارات ومنشورات تتعلق بالدراسة في الكلية الأكاديمية أونو، بما في ذلك عبر الهاتف والبريد الإلكتروني والرسائل النصية وWhatsApp.",
+    disclaimerReadMore: "اقرأ المزيد",
+    disclaimerExpanded: "يمكنك التوقف عن تلقي هذه الرسائل في أي وقت عن طريق الاتصال بـ marketing@ono.ac.il أو بالنقر على رابط \"إلغاء الاشتراك\" الموجود في كل رسالة بريد إلكتروني أو باتباع أي تعليمات أخرى قد تتضمنها الرسالة المرسلة إليك.",
     submit: "أرسل لي معلومات",
     submitting: "جاري الإرسال...",
     noCommitment: "بدون التزام",
@@ -139,13 +183,15 @@ interface CtaModalProps {
  * Displayed as a bottom sheet on mobile and centered modal on desktop.
  */
 export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: CtaModalProps) {
-  const { isOpen, close, language } = useCtaModal();
+  const { isOpen, close, language, leadSource } = useCtaModal();
   const t = FORM_STRINGS[language] || FORM_STRINGS.he;
   const isRtl = language === "he" || language === "ar";
   const router = useRouter();
+  const privacyUrls = PRIVACY_URLS[language] || PRIVACY_URLS.he;
   const [formData, setFormData] = useState({ full_name: "", phone: "", email: "" });
   const [honeypot, setHoneypot] = useState("");
   const [csrfToken, setCsrfToken] = useState("");
+  const [disclaimerOpen, setDisclaimerOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -240,6 +286,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
         cookie_id: cookieId,
         device_type: window.innerWidth < 768 ? "mobile" : window.innerWidth < 1024 ? "tablet" : "desktop",
         csrf_token: csrfToken,
+        lead_source: leadSource || "unknown",
         /* Honeypot field - bots will fill this, real users won't see it */
         website: honeypot,
       };
@@ -416,17 +463,29 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText }: 
                     )}
                   </div>
 
-                  {/* Privacy consent notice */}
-                  <p className="text-white/30 text-xs leading-relaxed">
-                    {t.privacyPrefix}
-                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#B8D900]/70 hover:text-[#B8D900] underline mx-1">
-                      {t.termsLink}
-                    </a>
-                    {t.privacyAnd}
-                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-[#B8D900]/70 hover:text-[#B8D900] underline mx-1">
-                      {t.privacyLink}
-                    </a>
-                  </p>
+                  {/* Disclaimer with expandable "Read more" */}
+                  <div className="text-white/30 text-xs leading-relaxed space-y-1">
+                    <p>
+                      {t.disclaimerLine1}{" "}
+                      <a href={privacyUrls.privacy} target="_blank" rel="noopener noreferrer" className="text-[#B8D900]/70 hover:text-[#B8D900] underline">
+                        {t.disclaimerPrivacyLink}
+                      </a>
+                    </p>
+                    <p>{t.disclaimerLine2}</p>
+                    <button
+                      type="button"
+                      onClick={() => setDisclaimerOpen(!disclaimerOpen)}
+                      className="flex items-center gap-1 text-[#B8D900]/60 hover:text-[#B8D900] transition-colors text-xs"
+                    >
+                      <span className="text-[10px]">{disclaimerOpen ? "▲" : "▼"}</span>
+                      {t.disclaimerReadMore}
+                    </button>
+                    {disclaimerOpen && (
+                      <p className="text-white/25 text-[11px] leading-relaxed pt-0.5">
+                        {t.disclaimerExpanded}
+                      </p>
+                    )}
+                  </div>
 
                   {/* Submit */}
                   <button
@@ -499,7 +558,7 @@ export function FloatingCtaButton({ ctaText }: { ctaText?: string }) {
 
   return (
     <button
-      onClick={open}
+      onClick={() => open("floating_cta")}
       className={`fixed bottom-4 right-4 md:bottom-6 md:right-6 pb-[env(safe-area-inset-bottom)] z-40 flex items-center gap-2 px-5 py-3.5 md:px-6 md:py-3.5 rounded-full bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm shadow-[0_4px_25px_rgba(184,217,0,0.4)] hover:shadow-[0_4px_35px_rgba(184,217,0,0.6)] hover:scale-105 transition-all duration-500 ${
         visible
           ? "translate-y-0 opacity-100"

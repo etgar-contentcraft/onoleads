@@ -129,7 +129,7 @@ export function CtaSection({ content, language }: CtaSectionProps) {
           {/* Primary CTA - opens modal */}
           {ctaEnabled && buttonText && (
             <button
-              onClick={open}
+              onClick={() => open("section_cta")}
               className="group inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#2a2628] text-white font-heading font-bold text-lg transition-all duration-300 hover:bg-[#3a3638] hover:shadow-[0_8px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] active:scale-[0.98]"
             >
               {buttonText}

@@ -45,7 +45,7 @@ export function CookieConsent() {
             אתר זה משתמש בעוגיות (cookies) לצורך שיפור חוויית הגלישה, ניתוח תנועת
             גולשים ושיפור שירותינו. בהמשך גלישתכם באתר, אתם מסכימים לשימוש בעוגיות
             בהתאם ל
-            <a href="/privacy" className="text-[#B8D900] underline hover:text-[#a0c200] mx-1">
+            <a href="https://www.ono.ac.il/privacy-policy-2/" target="_blank" rel="noopener noreferrer" className="text-[#B8D900] underline hover:text-[#a0c200] mx-1">
               מדיניות הפרטיות
             </a>
             שלנו. ניתן לשנות את הגדרות העוגיות בכל עת.

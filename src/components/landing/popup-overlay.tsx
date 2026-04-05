@@ -8,7 +8,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { PopupContent } from "@/lib/types/popup-campaigns";
-import { useCtaModal } from "@/components/landing/cta-modal";
+import { useCtaModal, type LeadSource } from "@/components/landing/cta-modal";
 
 // ============================================================================
 // Props
@@ -21,6 +21,8 @@ interface PopupOverlayProps {
   pageId?: string;
   programId?: string;
   pageSlug?: string;
+  /** Campaign trigger type — used for lead source tracking */
+  triggerType?: "exit_intent" | "timed" | "scroll_triggered" | "sticky_bar";
   onDismiss: () => void;
   onCtaClick: () => void;
 }
@@ -68,10 +70,17 @@ export function PopupOverlay({
   pageId,
   programId,
   pageSlug,
+  triggerType,
   onDismiss,
   onCtaClick,
 }: PopupOverlayProps) {
   const { open: openCtaModal } = useCtaModal();
+
+  /** Map campaign trigger type to lead source identifier */
+  const popupLeadSource: LeadSource = triggerType === "exit_intent" ? "popup_exit_intent"
+    : triggerType === "timed" ? "popup_timed"
+    : triggerType === "scroll_triggered" ? "popup_scroll"
+    : "unknown";
   const router = useRouter();
   const isRtl = language === "he" || language === "ar";
 
@@ -171,7 +180,7 @@ export function PopupOverlay({
         email: formData.email.trim() || null,
         page_id: pageId || null,
         program_id: programId || null,
-        source: "popup",
+        lead_source: popupLeadSource,
         csrf_token: csrfToken,
         /* Honeypot — bots will fill this, real users never see it */
         website: honeypot,
@@ -226,7 +235,7 @@ export function PopupOverlay({
       onDismiss();
     } else {
       onDismiss();
-      openCtaModal();
+      openCtaModal(popupLeadSource);
     }
   };
 

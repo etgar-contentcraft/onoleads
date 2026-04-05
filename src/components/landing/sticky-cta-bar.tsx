@@ -60,7 +60,7 @@ export function StickyCtaBar({
    */
   const handleCtaClick = () => {
     onCtaClick();
-    open();
+    open("sticky_bar");
   };
 
   /** Format phone number for the tel: href (strip spaces and dashes) */

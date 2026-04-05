@@ -278,7 +278,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
           >
             {ctaEnabled && ctaText && (
               <button
-                onClick={open}
+                onClick={() => open("hero_cta")}
                 className="group relative inline-flex items-center justify-center gap-3 px-10 py-5 md:px-12 md:py-6 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg md:text-xl transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_60px_rgba(184,217,0,0.5)] hover:scale-[1.03] active:scale-[0.98] animate-pulse-glow"
               >
                 {ctaText}

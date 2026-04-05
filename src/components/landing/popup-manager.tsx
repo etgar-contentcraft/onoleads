@@ -384,6 +384,7 @@ export function PopupManager({
           pageId={pageId}
           programId={programId}
           pageSlug={pageSlug}
+          triggerType={activeCampaign.campaign_type}
           onDismiss={() => handleDismiss(activeCampaign.id)}
           onCtaClick={() => handleCtaClick(activeCampaign.id)}
         />

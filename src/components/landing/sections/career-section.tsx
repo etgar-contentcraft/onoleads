@@ -196,7 +196,7 @@ export function CareerSection({ content, language }: CareerSectionProps) {
             style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.5s forwards" : "none" }}
           >
             <button
-              onClick={open}
+              onClick={() => open("section_career")}
               className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_40px_rgba(184,217,0,0.35)] hover:scale-[1.02] active:scale-[0.98]"
             >
               {ctaText || (isRtl ? "רוצים לשמוע עוד?" : "Want to learn more?")}

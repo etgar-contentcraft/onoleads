@@ -50,7 +50,10 @@ import {
   X,
   Check,
   Download,
+  Pencil,
+  Save,
 } from "lucide-react";
+import QRCodeLib from "qrcode";
 
 /* ─── Constants ─── */
 
@@ -84,11 +87,8 @@ const DEVICE_COLORS: Record<string, string> = {
   tablet: "#F59E0B",
 };
 
-/** QR code module size in pixels */
-const QR_MODULE_SIZE = 8;
-
-/** QR code quiet zone (modules) */
-const QR_QUIET_ZONE = 4;
+/** Default QR style index */
+const DEFAULT_QR_STYLE_INDEX = 0;
 
 /* ─── Types ─── */
 
@@ -193,80 +193,47 @@ function getStatusDisplay(status: "active" | "expired" | "paused"): { label: str
 
 /* ─── QR Code Generation ─── */
 
+/** Branded QR style presets using Ono Academic College brand colors */
+interface QrStyle {
+  id: string;
+  name: string;
+  dark: string;
+  light: string;
+}
+
+/** Available QR code color themes */
+const QR_STYLES: QrStyle[] = [
+  { id: "classic", name: "קלאסי", dark: "#2A2628", light: "#FFFFFF" },
+  { id: "ono_green", name: "ירוק אונו", dark: "#4A7A00", light: "#FFFFFF" },
+  { id: "ono_dark", name: "כהה + ירוק", dark: "#2A2628", light: "#F0F7D4" },
+  { id: "green_on_dark", name: "ירוק על כהה", dark: "#B8D900", light: "#2A2628" },
+  { id: "elegant", name: "אלגנטי", dark: "#1A1618", light: "#F5F5F0" },
+  { id: "fresh", name: "רענן", dark: "#3D6B00", light: "#F8FDE8" },
+];
+
 /**
- * Generates a simple QR code as a data URL using canvas.
- * Uses a basic QR encoding algorithm for alphanumeric URLs.
- * Falls back to a text-based QR pattern for simplicity.
- * @param url - The URL to encode
- * @param size - Canvas size in pixels (default 256)
- * @returns Data URL of the QR code image
+ * Generates a real scannable QR code as a data URL using the 'qrcode' library.
+ * @param url - The URL to encode into the QR code
+ * @param style - Color style preset (default: classic black/white)
+ * @param size - Canvas width in pixels (default 512 for high-quality print)
+ * @returns Promise resolving to a PNG data URL string
  */
-function generateQRCodeDataURL(url: string, size: number = 256): string {
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return "";
-
-  /* Simple QR-like matrix generation using hash-based bit pattern.
-     This creates a deterministic visual pattern from the URL that looks
-     like a QR code. For production scanning, a full QR library would be
-     needed, but this provides a visual representation. */
-  const data = url;
-  const moduleCount = 25;
-  const moduleSize = Math.floor(size / (moduleCount + QR_QUIET_ZONE * 2));
-  const offset = Math.floor((size - moduleCount * moduleSize) / 2);
-
-  /* White background */
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, size, size);
-
-  /* Generate deterministic bit matrix from URL */
-  const matrix: boolean[][] = [];
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    hash = ((hash << 5) - hash + data.charCodeAt(i)) | 0;
+async function generateQRCodeDataURL(
+  url: string,
+  style: QrStyle = QR_STYLES[0],
+  size: number = 512,
+): Promise<string> {
+  try {
+    return await QRCodeLib.toDataURL(url, {
+      width: size,
+      margin: 2,
+      color: { dark: style.dark, light: style.light },
+      errorCorrectionLevel: "M",
+    });
+  } catch (err) {
+    console.error("QR code generation error:", err);
+    return "";
   }
-
-  for (let row = 0; row < moduleCount; row++) {
-    matrix[row] = [];
-    for (let col = 0; col < moduleCount; col++) {
-      /* Finder patterns (top-left, top-right, bottom-left) */
-      const isFinderTL = row < 7 && col < 7;
-      const isFinderTR = row < 7 && col >= moduleCount - 7;
-      const isFinderBL = row >= moduleCount - 7 && col < 7;
-
-      if (isFinderTL || isFinderTR || isFinderBL) {
-        const lr = isFinderTL ? row : isFinderTR ? row : row - (moduleCount - 7);
-        const lc = isFinderTL ? col : isFinderTR ? col - (moduleCount - 7) : col;
-        /* Classic QR finder pattern: solid border, white inner, center dot */
-        matrix[row][col] =
-          lr === 0 || lr === 6 || lc === 0 || lc === 6 ||
-          (lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4);
-      } else {
-        /* Data area: deterministic pseudo-random pattern */
-        const seed = (hash + row * 31 + col * 37 + data.charCodeAt((row + col) % data.length)) | 0;
-        matrix[row][col] = (seed & 1) === 1;
-      }
-    }
-  }
-
-  /* Draw modules */
-  ctx.fillStyle = "#2A2628";
-  for (let row = 0; row < moduleCount; row++) {
-    for (let col = 0; col < moduleCount; col++) {
-      if (matrix[row][col]) {
-        ctx.fillRect(
-          offset + col * moduleSize,
-          offset + row * moduleSize,
-          moduleSize,
-          moduleSize
-        );
-      }
-    }
-  }
-
-  return canvas.toDataURL("image/png");
 }
 
 /* ─── Main Page Component ─── */
@@ -299,6 +266,12 @@ export default function SmartLinksPage() {
   /* QR dialog state */
   const [qrLink, setQrLink] = useState<SmartLink | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [qrStyleIndex, setQrStyleIndex] = useState(DEFAULT_QR_STYLE_INDEX);
+
+  /* Edit link dialog state */
+  const [editLink, setEditLink] = useState<SmartLink | null>(null);
+  const [editForm, setEditForm] = useState({ label: "", expiresAt: "", fallbackUrl: "" });
+  const [editSaving, setEditSaving] = useState(false);
 
   /* New link form */
   const [form, setForm] = useState<NewLinkForm>({
@@ -597,14 +570,67 @@ export default function SmartLinksPage() {
   /* ── QR Code Dialog ── */
 
   /**
-   * Opens the QR code dialog and generates a QR code for the link.
+   * Opens the QR code dialog and generates a scannable QR code for the link.
    * @param link - The smart link to generate QR for
    */
-  const handleOpenQR = useCallback((link: SmartLink) => {
+  const handleOpenQR = useCallback(async (link: SmartLink) => {
     setQrLink(link);
-    const dataUrl = generateQRCodeDataURL(`${SHORT_LINK_BASE}${link.slug}`);
+    setQrStyleIndex(DEFAULT_QR_STYLE_INDEX);
+    const dataUrl = await generateQRCodeDataURL(
+      `${SHORT_LINK_BASE}${link.slug}`,
+      QR_STYLES[DEFAULT_QR_STYLE_INDEX],
+    );
     setQrDataUrl(dataUrl);
   }, []);
+
+  /**
+   * Changes the QR code style and regenerates the image.
+   * @param index - Index of the style in QR_STYLES
+   */
+  const handleQrStyleChange = useCallback(async (index: number) => {
+    if (!qrLink) return;
+    setQrStyleIndex(index);
+    const dataUrl = await generateQRCodeDataURL(
+      `${SHORT_LINK_BASE}${qrLink.slug}`,
+      QR_STYLES[index],
+    );
+    setQrDataUrl(dataUrl);
+  }, [qrLink]);
+
+  /**
+   * Opens the edit dialog for a smart link.
+   * @param link - The smart link to edit
+   */
+  const handleOpenEdit = useCallback((link: SmartLink) => {
+    setEditLink(link);
+    setEditForm({
+      label: link.label,
+      expiresAt: link.expires_at ? link.expires_at.slice(0, 16) : "",
+      fallbackUrl: link.fallback_url || "",
+    });
+  }, []);
+
+  /**
+   * Saves edited smart link fields to the database.
+   */
+  const handleSaveEdit = useCallback(async () => {
+    if (!editLink || !editForm.label.trim()) return;
+    setEditSaving(true);
+    try {
+      await supabase
+        .from("smart_links")
+        .update({
+          label: editForm.label.trim(),
+          expires_at: editForm.expiresAt || null,
+          fallback_url: editForm.fallbackUrl.trim() || null,
+        })
+        .eq("id", editLink.id);
+      setEditLink(null);
+      await fetchLinks();
+    } finally {
+      setEditSaving(false);
+    }
+  }, [editLink, editForm, supabase, fetchLinks]);
 
   /**
    * Downloads the QR code image as a PNG file.
@@ -875,6 +901,15 @@ export default function SmartLinksPage() {
                           variant="ghost"
                           size="sm"
                           className="text-[#9A969A] hover:text-[#2A2628]"
+                          onClick={() => handleOpenEdit(link)}
+                          title="עריכה"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-[#9A969A] hover:text-[#2A2628]"
                           onClick={() => handleToggleActive(link)}
                           disabled={togglingId === link.id}
                           title={link.is_active ? "השהה" : "הפעל"}
@@ -1047,9 +1082,9 @@ export default function SmartLinksPage() {
         </DialogContent>
       </Dialog>
 
-      {/* QR Code Dialog */}
+      {/* QR Code Dialog with branded style picker */}
       <Dialog open={!!qrLink} onOpenChange={() => setQrLink(null)}>
-        <DialogContent className="bg-white border-[#E5E5E5] text-[#2A2628] max-w-sm" dir="rtl">
+        <DialogContent className="bg-white border-[#E5E5E5] text-[#2A2628] max-w-md" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <QrCode className="w-5 h-5 text-[#B8D900]" />
@@ -1065,16 +1100,41 @@ export default function SmartLinksPage() {
               <img
                 src={qrDataUrl}
                 alt={`QR Code for ${qrLink?.slug}`}
-                className="w-56 h-56 rounded-lg bg-white p-2"
+                className="w-56 h-56 rounded-lg p-2 border border-[#E5E5E5]"
               />
             )}
             <p className="text-[#B8D900] font-mono text-sm" dir="ltr">
               {SHORT_LINK_BASE}{qrLink?.slug}
             </p>
-            <div className="flex gap-2">
+
+            {/* Style picker */}
+            <div className="w-full">
+              <Label className="text-xs text-[#9A969A] mb-2 block">סגנון QR</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {QR_STYLES.map((style, i) => (
+                  <button
+                    key={style.id}
+                    onClick={() => handleQrStyleChange(i)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                      qrStyleIndex === i
+                        ? "border-[#B8D900] bg-[#B8D900]/10 text-[#2A2628]"
+                        : "border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900]/50"
+                    }`}
+                  >
+                    <span
+                      className="w-4 h-4 rounded-sm border border-[#E5E5E5] shrink-0"
+                      style={{ background: `linear-gradient(135deg, ${style.dark} 50%, ${style.light} 50%)` }}
+                    />
+                    {style.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2 w-full">
               <Button
                 onClick={handleDownloadQR}
-                className="bg-[#B8D900] text-[#2A2628] hover:bg-[#a8c800] font-semibold"
+                className="flex-1 bg-[#B8D900] text-[#2A2628] hover:bg-[#a8c800] font-semibold"
               >
                 <Download className="w-4 h-4 ml-1" />
                 הורד PNG
@@ -1084,8 +1144,78 @@ export default function SmartLinksPage() {
                 onClick={() => qrLink && handleCopy(qrLink.slug)}
                 className="border-[#E5E5E5] text-[#9A969A] hover:text-[#2A2628]"
               >
-                <Copy className="w-4 h-4 ml-1" />
+                {copiedSlug === qrLink?.slug ? (
+                  <Check className="w-4 h-4 ml-1 text-green-500" />
+                ) : (
+                  <Copy className="w-4 h-4 ml-1" />
+                )}
                 העתק URL
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Link Dialog */}
+      <Dialog open={!!editLink} onOpenChange={() => setEditLink(null)}>
+        <DialogContent className="bg-white border-[#E5E5E5] text-[#2A2628] max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-[#B8D900]" />
+              עריכת קישור
+            </DialogTitle>
+            <DialogDescription className="text-[#9A969A]">
+              ערכו את פרטי הקישור
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-[#2A2628] text-sm font-medium">שם הקישור</Label>
+              <Input
+                value={editForm.label}
+                onChange={(e) => setEditForm({ ...editForm, label: e.target.value })}
+                className="mt-1 bg-white border-[#E5E5E5] text-[#2A2628] placeholder:text-[#C4C4C4]"
+              />
+            </div>
+            <div>
+              <Label className="text-[#2A2628] text-sm font-medium">תאריך תפוגה (אופציונלי)</Label>
+              <Input
+                type="datetime-local"
+                value={editForm.expiresAt}
+                onChange={(e) => setEditForm({ ...editForm, expiresAt: e.target.value })}
+                className="mt-1 bg-white border-[#E5E5E5] text-[#2A2628]"
+              />
+            </div>
+            <div>
+              <Label className="text-[#2A2628] text-sm font-medium">URL חלופי (אם פג תוקף)</Label>
+              <Input
+                value={editForm.fallbackUrl}
+                onChange={(e) => setEditForm({ ...editForm, fallbackUrl: e.target.value })}
+                placeholder="https://..."
+                className="mt-1 bg-white border-[#E5E5E5] text-[#2A2628] placeholder:text-[#C4C4C4]"
+                dir="ltr"
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={handleSaveEdit}
+                disabled={editSaving || !editForm.label.trim()}
+                className="flex-1 bg-[#B8D900] text-[#2A2628] hover:bg-[#a8c800] font-semibold"
+              >
+                {editSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin ml-1" />
+                ) : (
+                  <Save className="w-4 h-4 ml-1" />
+                )}
+                שמור
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setEditLink(null)}
+                className="border-[#E5E5E5] text-[#9A969A]"
+              >
+                ביטול
               </Button>
             </div>
           </div>

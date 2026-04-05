@@ -144,7 +144,7 @@ function StickyHeader({
             </a>
           </div>
           <button
-            onClick={open}
+            onClick={() => open("section_cta")}
             className="inline-flex items-center px-6 py-3 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm hover:bg-[#c8e920] hover:shadow-[0_0_20px_rgba(184,217,0,0.3)] transition-all duration-300 active:scale-[0.97]"
           >
             {isRtl ? "השאירו פרטים" : "Get Info"}

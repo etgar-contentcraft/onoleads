@@ -197,7 +197,7 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
             style={{ animation: inView ? `fade-in-up 0.6s ease-out ${0.2 + years.length * 0.1}s forwards` : "none" }}
           >
             <button
-              onClick={open}
+              onClick={() => open("section_curriculum")}
               className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#2a2628] text-white font-heading font-bold text-base transition-all duration-300 hover:bg-[#3a3638] hover:shadow-[0_8px_30px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-[0.98]"
             >
               {ctaText || (isRtl ? "רוצה לדעת עוד על תוכנית הלימודים?" : "Want to learn more about the curriculum?")}
