@@ -797,6 +797,186 @@ function CampaignsPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* ── Media ── */}
+                  <div className="border-t border-[#E5E5E5] pt-5 space-y-4">
+                    <h5 className="text-xs font-semibold text-[#9A969A] uppercase tracking-wide">מדיה</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <FieldGroup label="סוג מדיה">
+                        <select
+                          value={(formContent as PopupContent).media_type || "none"}
+                          onChange={(e) => updateContent("media_type", e.target.value)}
+                          className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"
+                          dir="rtl"
+                        >
+                          <option value="none">ללא</option>
+                          <option value="image">תמונה</option>
+                          <option value="video">וידאו (YouTube / Vimeo)</option>
+                        </select>
+                      </FieldGroup>
+                      <FieldGroup label="מיקום מדיה">
+                        <select
+                          value={(formContent as PopupContent).media_position || "top"}
+                          onChange={(e) => updateContent("media_position", e.target.value)}
+                          disabled={(formContent as PopupContent).media_type === "none" || !(formContent as PopupContent).media_type}
+                          className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm disabled:opacity-40"
+                          dir="rtl"
+                        >
+                          <option value="top">למעלה</option>
+                          <option value="side">בצד (תמונה + טקסט)</option>
+                          <option value="background">רקע מלא</option>
+                        </select>
+                      </FieldGroup>
+                      <FieldGroup label="WhatsApp / חלון">
+                        <div className="flex items-center gap-3 h-10">
+                          <Switch
+                            checked={(formContent as PopupContent).whatsapp_action || false}
+                            onCheckedChange={(val) => updateContent("whatsapp_action", val)}
+                          />
+                          <Label className="text-sm">CTA פותח WhatsApp</Label>
+                        </div>
+                      </FieldGroup>
+                    </div>
+                    {(formContent as PopupContent).media_type && (formContent as PopupContent).media_type !== "none" && (
+                      <FieldGroup label={(formContent as PopupContent).media_type === "video" ? "כתובת YouTube / Vimeo" : "כתובת תמונה (URL)"}>
+                        <Input
+                          value={(formContent as PopupContent).media_url || ""}
+                          onChange={(e) => updateContent("media_url", e.target.value)}
+                          dir="ltr"
+                          placeholder={(formContent as PopupContent).media_type === "video" ? "https://youtube.com/watch?v=..." : "https://..."}
+                        />
+                      </FieldGroup>
+                    )}
+                  </div>
+
+                  {/* ── Engagement elements ── */}
+                  <div className="border-t border-[#E5E5E5] pt-5 space-y-4">
+                    <h5 className="text-xs font-semibold text-[#9A969A] uppercase tracking-wide">אלמנטים מתקדמים</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FieldGroup label="ספירה לאחור (תאריך סיום)">
+                        <Input
+                          type="datetime-local"
+                          value={(formContent as PopupContent).countdown_end?.slice(0, 16) || ""}
+                          onChange={(e) => updateContent("countdown_end", e.target.value ? new Date(e.target.value).toISOString() : null)}
+                          className="text-sm"
+                        />
+                      </FieldGroup>
+                      <FieldGroup label="הוכחה חברתית (Social Proof)">
+                        <Input
+                          value={(formContent as PopupContent).social_proof_text || ""}
+                          onChange={(e) => updateContent("social_proof_text", e.target.value)}
+                          dir="rtl"
+                          placeholder="כבר 47 אנשים נרשמו השבוע"
+                        />
+                      </FieldGroup>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FieldGroup label="דירוג כוכבים (0–5)">
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={5}
+                            step={0.1}
+                            value={(formContent as PopupContent).rating?.score ?? ""}
+                            onChange={(e) => {
+                              const score = parseFloat(e.target.value);
+                              const count = (formContent as PopupContent).rating?.count || 0;
+                              updateContent("rating", e.target.value ? { score: Math.min(5, Math.max(0, score)), count } : null);
+                            }}
+                            placeholder="4.8"
+                            className="w-24"
+                          />
+                          <Input
+                            type="number"
+                            min={0}
+                            value={(formContent as PopupContent).rating?.count ?? ""}
+                            onChange={(e) => {
+                              const count = parseInt(e.target.value) || 0;
+                              const score = (formContent as PopupContent).rating?.score || 5;
+                              updateContent("rating", e.target.value ? { score, count } : null);
+                            }}
+                            placeholder="ביקורות (מס׳)"
+                          />
+                        </div>
+                      </FieldGroup>
+                      <div className="flex items-end pb-1">
+                        <div className="flex items-center gap-3">
+                          <Switch
+                            checked={(formContent as PopupContent).confetti_on_submit || false}
+                            onCheckedChange={(val) => updateContent("confetti_on_submit", val)}
+                          />
+                          <Label className="text-sm">קונפטי בשליחת טופס</Label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Mobile variant ── */}
+                  <div className="border-t border-[#E5E5E5] pt-5 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-xs font-semibold text-[#9A969A] uppercase tracking-wide">גרסת מובייל (שונה מדסקטופ)</h5>
+                      <span className="text-[10px] text-[#9A969A]">שאר השדות יורשים מהדסקטופ</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FieldGroup label="כותרת מובייל">
+                        <Input
+                          value={(formContent as PopupContent).mobile_override?.title_he || ""}
+                          onChange={(e) => updateContent("mobile_override", {
+                            ...(formContent as PopupContent).mobile_override,
+                            title_he: e.target.value || undefined,
+                          })}
+                          dir="rtl"
+                          placeholder="(כמו דסקטופ)"
+                        />
+                      </FieldGroup>
+                      <FieldGroup label="CTA מובייל">
+                        <Input
+                          value={(formContent as PopupContent).mobile_override?.cta_text_he || ""}
+                          onChange={(e) => updateContent("mobile_override", {
+                            ...(formContent as PopupContent).mobile_override,
+                            cta_text_he: e.target.value || undefined,
+                          })}
+                          dir="rtl"
+                          placeholder="(כמו דסקטופ)"
+                        />
+                      </FieldGroup>
+                    </div>
+                    <FieldGroup label="גוף טקסט מובייל">
+                      <Textarea
+                        value={(formContent as PopupContent).mobile_override?.body_he || ""}
+                        onChange={(e) => updateContent("mobile_override", {
+                          ...(formContent as PopupContent).mobile_override,
+                          body_he: e.target.value || undefined,
+                        })}
+                        dir="rtl"
+                        placeholder="(כמו דסקטופ)"
+                        rows={2}
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="תמונה מובייל (URL)">
+                      <Input
+                        value={(formContent as PopupContent).mobile_override?.media_url || ""}
+                        onChange={(e) => updateContent("mobile_override", {
+                          ...(formContent as PopupContent).mobile_override,
+                          media_url: e.target.value || undefined,
+                        })}
+                        dir="ltr"
+                        placeholder="(כמו דסקטופ)"
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="הוכחה חברתית מובייל">
+                      <Input
+                        value={(formContent as PopupContent).mobile_override?.social_proof_text || ""}
+                        onChange={(e) => updateContent("mobile_override", {
+                          ...(formContent as PopupContent).mobile_override,
+                          social_proof_text: e.target.value || undefined,
+                        })}
+                        dir="rtl"
+                        placeholder="(כמו דסקטופ)"
+                      />
+                    </FieldGroup>
+                  </div>
                 </>
               ) : (
                 /* Sticky bar content fields */
@@ -845,6 +1025,24 @@ function CampaignsPage() {
                       <option value="bottom">למטה</option>
                     </select>
                   </FieldGroup>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FieldGroup label="הוכחה חברתית (Social Proof)">
+                      <Input
+                        value={(formContent as StickyBarContent).social_proof_text || ""}
+                        onChange={(e) => updateContent("social_proof_text", e.target.value)}
+                        dir="rtl"
+                        placeholder="כבר 47 אנשים נרשמו"
+                      />
+                    </FieldGroup>
+                    <FieldGroup label="ספירה לאחור (תאריך סיום)">
+                      <Input
+                        type="datetime-local"
+                        value={(formContent as StickyBarContent).countdown_end?.slice(0, 16) || ""}
+                        onChange={(e) => updateContent("countdown_end", e.target.value ? new Date(e.target.value).toISOString() : null)}
+                        className="text-sm"
+                      />
+                    </FieldGroup>
+                  </div>
                 </>
               )}
 

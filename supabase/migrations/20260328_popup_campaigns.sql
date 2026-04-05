@@ -61,6 +61,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS popup_campaigns_updated_at ON popup_campaigns;
 CREATE TRIGGER popup_campaigns_updated_at
   BEFORE UPDATE ON popup_campaigns
   FOR EACH ROW EXECUTE FUNCTION update_popup_campaigns_updated_at();

@@ -13,7 +13,7 @@ import { sanitizeGeneral } from "@/lib/security/sanitize";
 const MAX_EVENTS_PER_MINUTE = 30;
 
 /** Valid event types for this endpoint (form_submit is handled by /api/leads) */
-const ALLOWED_EVENT_TYPES = ["page_view", "cta_click", "popup_view", "popup_dismiss"] as const;
+const ALLOWED_EVENT_TYPES = ["page_view", "cta_click", "popup_view", "popup_dismiss", "scroll_depth"] as const;
 
 /** Zod schema for analytics event payloads */
 const eventSchema = z.object({
@@ -27,6 +27,12 @@ const eventSchema = z.object({
   utm_term: z.string().optional().nullable(),
   referrer_domain: z.string().optional().nullable(),
   device_type: z.enum(["desktop", "mobile", "tablet"]).optional().nullable(),
+  /** Scroll depth percentage (0–100) — only sent with scroll_depth events */
+  scroll_depth: z.number().int().min(0).max(100).optional().nullable(),
+  /** Time on page in seconds — sent on page unload */
+  time_on_page: z.number().int().min(0).optional().nullable(),
+  /** Section identifier for section-level click events */
+  section_id: z.string().max(100).optional().nullable(),
 });
 
 /**
@@ -87,6 +93,9 @@ export async function POST(request: NextRequest) {
     utm_term: data.utm_term ? sanitizeGeneral(data.utm_term) : null,
     referrer_domain: cleanDomain(data.referrer_domain),
     device_type: data.device_type || null,
+    scroll_depth: data.scroll_depth ?? null,
+    time_on_page: data.time_on_page ?? null,
+    section_id: data.section_id ? sanitizeGeneral(data.section_id.slice(0, 100)) : null,
   });
 
   if (error) {

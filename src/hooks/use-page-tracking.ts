@@ -84,9 +84,10 @@ function setCookie(name: string, value: string, days: number): void {
 
 /**
  * Return the anonymous visitor cookie ID, creating and persisting one if needed.
+ * Exported so other tracking components (e.g. ScrollTracker) can share the same cookie.
  * @returns The visitor's cookie ID string
  */
-function getOrCreateCookieId(): string {
+export function getOrCreateCookieId(): string {
   let cookieId = getCookie(COOKIE_NAME);
   if (!cookieId) {
     cookieId = generateUUID();

@@ -45,6 +45,9 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
+  Activity,
+  MousePointerClick,
+  BarChart3,
 } from "lucide-react";
 
 /* ─── Constants ─── */
@@ -105,7 +108,17 @@ interface AnalyticsEvent {
   referrer_domain: string | null;
   device_type: string | null;
   webhook_status: string | null;
+  scroll_depth: number | null;
+  time_on_page: number | null;
   created_at: string;
+}
+
+/** Scroll depth band for the scroll depth chart */
+interface ScrollDepthBand {
+  depth: number;
+  label: string;
+  visitors: number;
+  pct: number;
 }
 
 /** Aggregated metrics for a single period */
@@ -115,6 +128,8 @@ interface PeriodMetrics {
   formSubmissions: number;
   ctaClicks: number;
   conversionRate: number;
+  avgTimeOnPage: number;
+  bounceRate: number;
 }
 
 /** Daily breakdown entry for the timeline chart */
@@ -162,6 +177,8 @@ interface PageAnalytics {
   devices: DeviceRow[];
   referrers: ReferrerRow[];
   webhook: WebhookStats;
+  scrollDepthBands: ScrollDepthBand[];
+  recentEvents: AnalyticsEvent[];
 }
 
 /* ─── Helpers ─── */
@@ -351,7 +368,23 @@ export default function PageAnalyticsPage() {
     const ctaClicks = ctaClickEvents.length;
     const conversionRate = uniqueVisitors > 0 ? (formSubmissions / uniqueVisitors) * 100 : 0;
 
-    return { pageViews, uniqueVisitors, formSubmissions, ctaClicks, conversionRate };
+    /* Average time on page (from events with time_on_page set) */
+    const timeEvents = events.filter((e) => e.time_on_page != null && e.time_on_page > 0);
+    const avgTimeOnPage = timeEvents.length > 0
+      ? Math.round(timeEvents.reduce((s, e) => s + (e.time_on_page || 0), 0) / timeEvents.length)
+      : 0;
+
+    /* Bounce rate: visitors with exactly one event total */
+    const visitorEventCounts = new Map<string, number>();
+    for (const e of events) {
+      if (!e.cookie_id) continue;
+      visitorEventCounts.set(e.cookie_id, (visitorEventCounts.get(e.cookie_id) || 0) + 1);
+    }
+    let bounces = 0;
+    Array.from(visitorEventCounts.values()).forEach(count => { if (count === 1) bounces++; });
+    const bounceRate = uniqueVisitors > 0 ? (bounces / uniqueVisitors) * 100 : 0;
+
+    return { pageViews, uniqueVisitors, formSubmissions, ctaClicks, conversionRate, avgTimeOnPage, bounceRate };
   }, []);
 
   /**
@@ -422,6 +455,27 @@ export default function PageAnalyticsPage() {
       ).length,
     };
 
+    /* --- Scroll depth bands --- */
+    const SCROLL_MILESTONES = [25, 50, 75, 90];
+    const scrollDepthBands: ScrollDepthBand[] = SCROLL_MILESTONES.map(depth => {
+      const visitors = new Set(
+        currentEvents
+          .filter(e => e.event_type === "scroll_depth" && (e.scroll_depth ?? 0) >= depth && e.cookie_id)
+          .map(e => e.cookie_id)
+      ).size;
+      return {
+        depth,
+        label: `${depth}%`,
+        visitors,
+        pct: current.uniqueVisitors > 0 ? Math.round((visitors / current.uniqueVisitors) * 100) : 0,
+      };
+    });
+
+    /* --- Recent events for activity feed --- */
+    const recentEvents = [...currentEvents]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 20);
+
     setData({
       current,
       previous,
@@ -432,6 +486,8 @@ export default function PageAnalyticsPage() {
       devices,
       referrers,
       webhook,
+      scrollDepthBands,
+      recentEvents,
     });
     setLoading(false);
   }, [getPeriodBounds, fetchEvents, computeMetrics]);
@@ -563,6 +619,22 @@ export default function PageAnalyticsPage() {
       color: "bg-emerald-500/10 text-emerald-600",
       isPercentage: true,
     },
+    {
+      label: "זמן ממוצע בדף",
+      value: data.current.avgTimeOnPage,
+      prev: data.previous.avgTimeOnPage,
+      icon: Clock,
+      color: "bg-purple-500/10 text-purple-600",
+      formatFn: (v: number) => v > 0 ? (v < 60 ? `${v}ש׳` : `${Math.floor(v/60)}:${String(v%60).padStart(2,"0")} דק׳`) : "—",
+    },
+    {
+      label: "שיעור נטישה",
+      value: data.current.bounceRate,
+      prev: data.previous.bounceRate,
+      icon: Activity,
+      color: "bg-red-500/10 text-red-500",
+      isPercentage: true,
+    },
   ];
 
   /** Campaigns to display (collapsed or expanded) */
@@ -638,7 +710,7 @@ export default function PageAnalyticsPage() {
       </div>
 
       {/* ── Key Metric Cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {metricCards.map((card) => {
           const change = card.isPercentage
             ? Math.round(card.value - card.prev)
@@ -647,32 +719,32 @@ export default function PageAnalyticsPage() {
           const ChangeIcon = change > 0 ? TrendingUp : change < 0 ? TrendingDown : Minus;
           const changeColor =
             change > 0 ? "text-emerald-600" : change < 0 ? "text-red-500" : "text-[#9A969A]";
+          const displayValue = "formatFn" in card && card.formatFn
+            ? card.formatFn(card.value)
+            : card.isPercentage
+              ? `${card.value.toFixed(1)}%`
+              : formatNum(card.value);
 
           return (
             <Card key={card.label} className="border-0 shadow-sm rounded-2xl">
-              <CardContent className="pt-5 pb-5">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <p className="text-sm text-[#9A969A] font-medium">{card.label}</p>
-                    <p className="text-3xl font-bold text-[#2a2628] tabular-nums">
-                      {card.isPercentage
-                        ? `${card.value.toFixed(1)}%`
-                        : formatNum(card.value)}
-                    </p>
-                    <div className={`flex items-center gap-1 text-xs ${changeColor}`}>
-                      <ChangeIcon className="w-3 h-3" />
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-0.5 min-w-0">
+                    <p className="text-xs text-[#9A969A] font-medium truncate">{card.label}</p>
+                    <p className="text-2xl font-bold text-[#2a2628] tabular-nums">{displayValue}</p>
+                    <div className={`flex items-center gap-1 text-[10px] ${changeColor}`}>
+                      <ChangeIcon className="w-2.5 h-2.5" />
                       <span>
                         {card.isPercentage
                           ? `${change > 0 ? "+" : ""}${change} נק׳`
                           : formatPct(change)}
                       </span>
-                      <span className="text-[#9A969A]">לעומת תקופה קודמת</span>
                     </div>
                   </div>
                   <div
-                    className={`w-11 h-11 rounded-2xl flex items-center justify-center ${card.color}`}
+                    className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${card.color}`}
                   >
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4" />
                   </div>
                 </div>
               </CardContent>
@@ -762,6 +834,103 @@ export default function PageAnalyticsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Conversion Funnel + Scroll Depth ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Conversion Funnel */}
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-bold text-[#2a2628] flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-[#9A969A]" />
+              משפך המרה
+            </CardTitle>
+            <CardDescription className="text-xs">צפיות → לחיצות → הגשות</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 pt-0">
+            {[
+              { label: "צפיות בדף", count: data.current.pageViews, color: "#3B82F6", icon: <Eye className="w-3.5 h-3.5" /> },
+              { label: "לחיצות CTA", count: data.current.ctaClicks, color: "#F59E0B", icon: <MousePointerClick className="w-3.5 h-3.5" /> },
+              { label: "הגשות טופס", count: data.current.formSubmissions, color: "#B8D900", icon: <Send className="w-3.5 h-3.5" /> },
+            ].map((step, i, arr) => {
+              const funnelMax = Math.max(data.current.pageViews, 1);
+              const width = Math.round((step.count / funnelMax) * 100);
+              const prevCount = i > 0 ? arr[i - 1].count : null;
+              const dropPct = prevCount && prevCount > 0 ? 100 - Math.round((step.count / prevCount) * 100) : null;
+              return (
+                <div key={step.label} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5 text-[#716C70]">
+                      <span style={{ color: step.color }}>{step.icon}</span>
+                      {step.label}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {dropPct !== null && dropPct > 0 && (
+                        <span className="text-red-400 text-[10px]">▼ {dropPct}% נטשו</span>
+                      )}
+                      <span className="font-bold text-[#2a2628]">{step.count.toLocaleString("he-IL")}</span>
+                    </div>
+                  </div>
+                  <div className="h-7 bg-gray-50 rounded-xl overflow-hidden relative">
+                    <div
+                      className="h-full rounded-xl transition-all duration-700 flex items-center justify-end pr-2"
+                      style={{
+                        width: mounted ? `${Math.max(width, 2)}%` : "0%",
+                        backgroundColor: step.color + "33",
+                        borderRight: `3px solid ${step.color}`,
+                      }}
+                    >
+                      <span className="text-[10px] font-bold" style={{ color: step.color }}>{width}%</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        {/* Scroll Depth */}
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-bold text-[#2a2628] flex items-center gap-2">
+              <Activity className="w-4 h-4 text-[#9A969A]" />
+              עומק גלילה
+            </CardTitle>
+            <CardDescription className="text-xs">% מבקרים שהגיעו לכל נקודת גלילה</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {data.scrollDepthBands.every(b => b.visitors === 0) ? (
+              <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+                <Activity className="w-8 h-8 text-[#E5E5E5]" />
+                <p className="text-xs text-[#9A969A]">נתוני גלילה יופיעו לאחר שמבקרים יגלשו בדף</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {data.scrollDepthBands.map((band, i) => (
+                  <div key={band.depth} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#716C70]">גלילה עד {band.label}</span>
+                      <span className="font-bold text-[#2a2628]">{band.pct}%
+                        <span className="font-normal text-[#9A969A] mr-1">({band.visitors} מבקרים)</span>
+                      </span>
+                    </div>
+                    <div className="h-4 bg-gray-50 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: mounted ? `${Math.max(band.pct, 1)}%` : "0%",
+                          background: `linear-gradient(to left, #B8D900, #3B82F6)`,
+                          opacity: 0.4 + (i / data.scrollDepthBands.length) * 0.4,
+                          transitionDelay: `${i * 100}ms`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* ── UTM Breakdown Section ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1048,6 +1217,63 @@ export default function PageAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Recent Activity Feed ── */}
+      <Card className="border-0 shadow-sm rounded-2xl">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-bold text-[#2a2628] flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            פעילות אחרונה
+            <span className="text-xs font-normal text-[#9A969A] mr-auto">
+              {data.recentEvents.length} אירועים אחרונים
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {data.recentEvents.length === 0 ? (
+            <p className="text-center text-[#9A969A] py-6 text-sm">אין פעילות בתקופה זו</p>
+          ) : (
+            <div className="space-y-1">
+              {data.recentEvents.map((e, i) => {
+                const EVENT_META: Record<string, { label: string; cls: string }> = {
+                  page_view: { label: "צפייה", cls: "bg-blue-50 text-blue-700" },
+                  cta_click: { label: "לחיצת CTA", cls: "bg-amber-50 text-amber-700" },
+                  form_submit: { label: "הגשת טופס", cls: "bg-green-50 text-green-700" },
+                  popup_view: { label: "פופאפ", cls: "bg-purple-50 text-purple-700" },
+                  popup_dismiss: { label: "סגר פופאפ", cls: "bg-gray-50 text-gray-500" },
+                  scroll_depth: { label: "גלילה", cls: "bg-teal-50 text-teal-700" },
+                };
+                const meta = EVENT_META[e.event_type] || { label: e.event_type, cls: "bg-gray-50 text-gray-600" };
+                const time = new Date(e.created_at).toLocaleString("he-IL", {
+                  day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
+                });
+                return (
+                  <div key={i} className="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
+                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium ${meta.cls}`}>
+                      {meta.label}
+                    </span>
+                    {e.event_type === "scroll_depth" && e.scroll_depth !== null && (
+                      <span className="text-xs text-[#9A969A]">גלל עד {e.scroll_depth}%</span>
+                    )}
+                    {e.device_type && (
+                      <span className="text-[10px] text-[#C0BBC0]">
+                        {e.device_type === "mobile" ? "📱" : e.device_type === "tablet" ? "🖥" : "💻"}
+                      </span>
+                    )}
+                    {e.utm_source && (
+                      <span className="text-[10px] text-[#9A969A] truncate">{e.utm_source}</span>
+                    )}
+                    {e.time_on_page && e.time_on_page > 0 && (
+                      <span className="text-[10px] text-[#C0BBC0]">⏱ {e.time_on_page}ש׳</span>
+                    )}
+                    <span className="text-[10px] text-[#C0BBC0] mr-auto shrink-0">{time}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

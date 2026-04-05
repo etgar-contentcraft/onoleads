@@ -335,6 +335,7 @@ function AnalyticsDashboardPage() {
   /* ─── State ─── */
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   /* Filters */
@@ -378,54 +379,66 @@ function AnalyticsDashboardPage() {
   /* ─── Fetch analytics data ─── */
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
-    const range = getDateRange(period, dateFrom, dateTo);
+    setFetchError(null);
+    try {
+      const range = getDateRange(period, dateFrom, dateTo);
 
-    /* Build query — filter by selected pages if any */
-    let currentQuery = supabase
-      .from("analytics_events")
-      .select("id, event_type, page_id, cookie_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer_domain, device_type, webhook_status, created_at")
-      .gte("created_at", range.startISO)
-      .lte("created_at", range.endISO)
-      .limit(MAX_ROWS);
+      /* Build query — filter by selected pages if any */
+      let currentQuery = supabase
+        .from("analytics_events")
+        .select("id, event_type, page_id, cookie_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer_domain, device_type, webhook_status, created_at")
+        .gte("created_at", range.startISO)
+        .lte("created_at", range.endISO)
+        .limit(MAX_ROWS);
 
-    let prevQuery = supabase
-      .from("analytics_events")
-      .select("id, event_type, page_id, cookie_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer_domain, device_type, webhook_status, created_at")
-      .gte("created_at", range.prevStartISO)
-      .lte("created_at", range.prevEndISO)
-      .limit(MAX_ROWS);
+      let prevQuery = supabase
+        .from("analytics_events")
+        .select("id, event_type, page_id, cookie_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer_domain, device_type, webhook_status, created_at")
+        .gte("created_at", range.prevStartISO)
+        .lte("created_at", range.prevEndISO)
+        .limit(MAX_ROWS);
 
-    if (selectedPageIds.length > 0) {
-      currentQuery = currentQuery.in("page_id", selectedPageIds);
-      prevQuery = prevQuery.in("page_id", selectedPageIds);
-    }
+      if (selectedPageIds.length > 0) {
+        currentQuery = currentQuery.in("page_id", selectedPageIds);
+        prevQuery = prevQuery.in("page_id", selectedPageIds);
+      }
 
-    const [currentRes, prevRes] = await Promise.all([currentQuery, prevQuery]);
-    const currentEvents = (currentRes.data ?? []) as AnalyticsEvent[];
-    const prevEvents = (prevRes.data ?? []) as AnalyticsEvent[];
+      const [currentRes, prevRes] = await Promise.all([currentQuery, prevQuery]);
 
-    /* Build page info map */
-    const pageIds = new Set<string>();
-    for (const e of [...currentEvents, ...prevEvents]) {
-      if (e.page_id) pageIds.add(e.page_id);
-    }
-    let pageInfoMap = new Map<string, PageInfo>();
-    if (pageIds.size > 0) {
-      const { data: pagesData } = await supabase
-        .from("pages")
-        .select("id, title_he, slug")
-        .in("id", Array.from(pageIds));
-      if (pagesData) {
-        for (const p of pagesData) {
-          pageInfoMap.set(p.id, { id: p.id, title: p.title_he || p.slug, slug: p.slug });
+      /* Log errors but don't crash — treat missing table/columns as empty data */
+      if (currentRes.error) console.warn("[analytics] current query error:", currentRes.error.message);
+      if (prevRes.error) console.warn("[analytics] prev query error:", prevRes.error.message);
+
+      const currentEvents = (currentRes.data ?? []) as AnalyticsEvent[];
+      const prevEvents = (prevRes.data ?? []) as AnalyticsEvent[];
+
+      /* Build page info map */
+      const pageIds = new Set<string>();
+      for (const e of [...currentEvents, ...prevEvents]) {
+        if (e.page_id) pageIds.add(e.page_id);
+      }
+      const pageInfoMap = new Map<string, PageInfo>();
+      if (pageIds.size > 0) {
+        const { data: pagesData } = await supabase
+          .from("pages")
+          .select("id, title_he, slug")
+          .in("id", Array.from(pageIds));
+        if (pagesData) {
+          for (const p of pagesData) {
+            pageInfoMap.set(p.id, { id: p.id, title: p.title_he || p.slug, slug: p.slug });
+          }
         }
       }
-    }
 
-    /* Compute all analytics */
-    const analytics = computeAllAnalytics(currentEvents, prevEvents, pageInfoMap, attributionModel);
-    setData(analytics);
-    setLoading(false);
+      /* Compute all analytics */
+      const analytics = computeAllAnalytics(currentEvents, prevEvents, pageInfoMap, attributionModel);
+      setData(analytics);
+    } catch (err) {
+      console.error("[analytics] fetchAnalytics error:", err);
+      setFetchError("שגיאה בטעינת נתוני האנליטיקס. נסו לרענן את הדף.");
+    } finally {
+      setLoading(false);
+    }
   }, [period, dateFrom, dateTo, selectedPageIds, attributionModel]);
 
   /* Fetch on mount and when filters change */
@@ -446,6 +459,30 @@ function AnalyticsDashboardPage() {
 
     return () => { supabase.removeChannel(channel); };
   }, [fetchAnalytics]);
+
+  /* ─── Error state ─── */
+  if (fetchError) {
+    return (
+      <div className="space-y-6" dir="rtl">
+        <div>
+          <h1 className="text-xl font-bold text-[#2a2628]">אנליטיקס</h1>
+          <p className="text-sm text-[#9A969A] mt-0.5">ניתוח אירועים וביצועים</p>
+        </div>
+        <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center">
+            <AlertTriangle className="w-7 h-7 text-red-500" />
+          </div>
+          <p className="text-sm text-[#716C70]">{fetchError}</p>
+          <button
+            onClick={() => fetchAnalytics()}
+            className="px-4 py-2 rounded-lg bg-[#B8D900] text-white text-sm font-medium hover:bg-[#a8c400] transition-colors"
+          >
+            נסה שוב
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   /* ─── Loading state ─── */
   if (loading || !data) {

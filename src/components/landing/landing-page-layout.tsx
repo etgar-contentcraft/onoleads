@@ -8,7 +8,8 @@ import { replaceDynamicContent } from "@/lib/dynamic-text";
 import { CtaModalProvider, CtaModal, FloatingCtaButton, useCtaModal } from "./cta-modal";
 import { CookieConsent } from "../compliance/cookie-consent";
 import { AccessibilityWidget } from "../compliance/accessibility-widget";
-import { usePageTracking } from "@/hooks/use-page-tracking";
+import { usePageTracking, getOrCreateCookieId } from "@/hooks/use-page-tracking";
+import { ScrollTracker } from "./scroll-tracker";
 
 // Above-fold sections — loaded eagerly for fast first paint
 import { HeroSection } from "./sections/hero-section";
@@ -550,6 +551,14 @@ function InnerLayout({
       {/* Compliance widgets */}
       <CookieConsent />
       <AccessibilityWidget />
+
+      {/* Scroll depth + time-on-page tracking (invisible, renders nothing) */}
+      {pageId && (
+        <ScrollTracker
+          pageId={pageId}
+          cookieId={getOrCreateCookieId()}
+        />
+      )}
     </div>
   );
 }
