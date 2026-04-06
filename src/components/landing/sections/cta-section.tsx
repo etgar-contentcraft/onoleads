@@ -130,7 +130,7 @@ export function CtaSection({ content, language }: CtaSectionProps) {
           {ctaEnabled && buttonText && (
             <button
               onClick={() => open("section_cta")}
-              className="group inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#2a2628] text-white font-heading font-bold text-lg transition-all duration-300 hover:bg-[#3a3638] hover:shadow-[0_8px_40px_rgba(0,0,0,0.25)] hover:scale-[1.03] active:scale-[0.98]"
+              className="group inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#2a2628] text-[#B8D900] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#1a1618] hover:shadow-[0_8px_40px_rgba(0,0,0,0.35)] hover:scale-[1.03] active:scale-[0.98]"
             >
               {buttonText}
               <svg className={`w-5 h-5 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

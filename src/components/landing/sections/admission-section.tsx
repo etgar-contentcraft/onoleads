@@ -281,7 +281,7 @@ export function AdmissionSection({ content, language }: AdmissionSectionProps) {
           >
             <button
               onClick={() => open("section_admission")}
-              className="group inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-[#2a2628] text-white font-heading font-bold text-lg transition-all duration-300 hover:bg-[#B8D900] hover:text-[#2a2628] hover:shadow-[0_0_40px_rgba(184,217,0,0.35)] hover:scale-[1.02] active:scale-[0.98]"
+              className="group inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_40px_rgba(184,217,0,0.40)] hover:scale-[1.02] active:scale-[0.98]"
             >
               {ctaText}
               <svg
