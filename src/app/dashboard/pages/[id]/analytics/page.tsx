@@ -23,7 +23,10 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -53,13 +56,21 @@ import { ClickHeatmap } from "@/components/admin/click-heatmap";
 
 /* ─── Constants ─── */
 
-/** Time period options for the date range picker */
+/** Time period options for the date range picker (Facebook Ads-style) */
 const TIME_PERIODS = [
-  { value: "7d", label: "7 ימים אחרונים", days: 7 },
-  { value: "30d", label: "30 ימים אחרונים", days: 30 },
-  { value: "90d", label: "90 ימים אחרונים", days: 90 },
-  { value: "custom", label: "תאריכים מותאמים", days: 0 },
-];
+  { value: "today",      label: "היום",              group: "quick" },
+  { value: "yesterday",  label: "אתמול",             group: "quick" },
+  { value: "7d",         label: "7 ימים אחרונים",    group: "days"  },
+  { value: "14d",        label: "14 ימים אחרונים",   group: "days"  },
+  { value: "28d",        label: "28 ימים אחרונים",   group: "days"  },
+  { value: "30d",        label: "30 ימים אחרונים",   group: "days"  },
+  { value: "this_week",  label: "השבוע",             group: "cal"   },
+  { value: "last_week",  label: "שבוע שעבר",         group: "cal"   },
+  { value: "this_month", label: "החודש",             group: "cal"   },
+  { value: "last_month", label: "חודש שעבר",         group: "cal"   },
+  { value: "90d",        label: "90 ימים אחרונים",   group: "days"  },
+  { value: "custom",     label: "טווח מותאם אישית",  group: "custom" },
+] as const;
 
 /** Device type labels in Hebrew */
 const DEVICE_LABELS: Record<string, string> = {
@@ -300,6 +311,7 @@ export default function PageAnalyticsPage() {
 
   /**
    * Returns the number of days in the selected period.
+   * Calendar-aware periods (this_week, last_week, etc.) compute dynamically.
    * For custom ranges, computes the difference between dateFrom and dateTo.
    */
   const periodDays = useMemo((): number => {
@@ -310,24 +322,96 @@ export default function PageAnalyticsPage() {
       const diff = Math.ceil((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
       return Math.max(diff, 1);
     }
-    const found = TIME_PERIODS.find((tp) => tp.value === period);
-    return found?.days || 30;
+
+    const now = new Date();
+
+    /* Simple numeric periods — extract the number of days from the value */
+    const numMatch = period.match(/^(\d+)d$/);
+    if (numMatch) return parseInt(numMatch[1], 10);
+
+    switch (period) {
+      case "today":      return 1;
+      case "yesterday":  return 1;
+      case "this_week": {
+        /* Days since Sunday (Hebrew week starts Sunday) */
+        const day = now.getDay(); // 0=Sun
+        return day + 1; // Sun=1, Mon=2, ...
+      }
+      case "last_week":  return 7;
+      case "this_month": return now.getDate(); // 1st through today
+      case "last_month": {
+        const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const daysInPrev = new Date(prev.getFullYear(), prev.getMonth() + 1, 0).getDate();
+        return daysInPrev;
+      }
+      default:           return 30;
+    }
   }, [period, dateFrom, dateTo]);
 
   /**
    * Computes start/end ISO strings for the current and previous periods.
-   * Previous period has the same length and ends where current period begins.
+   * Calendar-aware periods use exact boundaries (start of week/month).
+   * Previous period mirrors the same calendar window (e.g., last month vs month before).
    */
   const getPeriodBounds = useCallback(() => {
     let currentStart: string;
     let currentEnd: string;
 
+    const now = new Date();
+    /** Helper: start of day as ISO string */
+    const startOfDay = (d: Date) => {
+      const c = new Date(d);
+      c.setHours(0, 0, 0, 0);
+      return c.toISOString();
+    };
+    /** Helper: end of day as ISO string */
+    const endOfDay = (d: Date) => {
+      const c = new Date(d);
+      c.setHours(23, 59, 59, 999);
+      return c.toISOString();
+    };
+
     if (period === "custom" && dateFrom) {
       currentStart = new Date(dateFrom).toISOString();
-      currentEnd = dateTo ? new Date(dateTo + "T23:59:59").toISOString() : new Date().toISOString();
+      currentEnd = dateTo ? new Date(dateTo + "T23:59:59").toISOString() : now.toISOString();
+    } else if (period === "today") {
+      currentStart = startOfDay(now);
+      currentEnd = endOfDay(now);
+    } else if (period === "yesterday") {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      currentStart = startOfDay(y);
+      currentEnd = endOfDay(y);
+    } else if (period === "this_week") {
+      /* Hebrew week starts Sunday */
+      const dayOfWeek = now.getDay(); // 0=Sun
+      const weekStart = new Date(now);
+      weekStart.setDate(weekStart.getDate() - dayOfWeek);
+      currentStart = startOfDay(weekStart);
+      currentEnd = endOfDay(now);
+    } else if (period === "last_week") {
+      const dayOfWeek = now.getDay();
+      const thisWeekStart = new Date(now);
+      thisWeekStart.setDate(thisWeekStart.getDate() - dayOfWeek);
+      const lastWeekEnd = new Date(thisWeekStart);
+      lastWeekEnd.setDate(lastWeekEnd.getDate() - 1);
+      const lastWeekStart = new Date(lastWeekEnd);
+      lastWeekStart.setDate(lastWeekStart.getDate() - 6);
+      currentStart = startOfDay(lastWeekStart);
+      currentEnd = endOfDay(lastWeekEnd);
+    } else if (period === "this_month") {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      currentStart = startOfDay(monthStart);
+      currentEnd = endOfDay(now);
+    } else if (period === "last_month") {
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+      currentStart = startOfDay(lastMonthStart);
+      currentEnd = endOfDay(lastMonthEnd);
     } else {
+      /* Numeric periods: "7d", "14d", "28d", "30d", "90d" */
       currentStart = daysAgoISO(periodDays);
-      currentEnd = new Date().toISOString();
+      currentEnd = now.toISOString();
     }
 
     /* Previous period: same length, immediately before current */
@@ -744,15 +828,39 @@ export default function PageAnalyticsPage() {
               if (val) setPeriod(val);
             }}
           >
-            <SelectTrigger className="h-9 w-[160px]">
+            <SelectTrigger className="h-9 w-[180px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {TIME_PERIODS.map((tp) => (
-                <SelectItem key={tp.value} value={tp.value}>
-                  {tp.label}
-                </SelectItem>
-              ))}
+              {/* Quick picks */}
+              <SelectGroup>
+                {TIME_PERIODS.filter((tp) => tp.group === "quick").map((tp) => (
+                  <SelectItem key={tp.value} value={tp.value}>{tp.label}</SelectItem>
+                ))}
+              </SelectGroup>
+              <SelectSeparator />
+              {/* Day-based ranges */}
+              <SelectGroup>
+                <SelectLabel className="text-xs text-[#9A969A] px-2">ימים אחרונים</SelectLabel>
+                {TIME_PERIODS.filter((tp) => tp.group === "days").map((tp) => (
+                  <SelectItem key={tp.value} value={tp.value}>{tp.label}</SelectItem>
+                ))}
+              </SelectGroup>
+              <SelectSeparator />
+              {/* Calendar ranges */}
+              <SelectGroup>
+                <SelectLabel className="text-xs text-[#9A969A] px-2">לוח שנה</SelectLabel>
+                {TIME_PERIODS.filter((tp) => tp.group === "cal").map((tp) => (
+                  <SelectItem key={tp.value} value={tp.value}>{tp.label}</SelectItem>
+                ))}
+              </SelectGroup>
+              <SelectSeparator />
+              {/* Custom range */}
+              <SelectGroup>
+                {TIME_PERIODS.filter((tp) => tp.group === "custom").map((tp) => (
+                  <SelectItem key={tp.value} value={tp.value}>{tp.label}</SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
           {period === "custom" && (

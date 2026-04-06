@@ -11,6 +11,7 @@ import { AccessibilityWidget } from "../compliance/accessibility-widget";
 import { usePageTracking, getOrCreateCookieId } from "@/hooks/use-page-tracking";
 import { ScrollTracker } from "./scroll-tracker";
 import { ClickTracker } from "./click-tracker";
+import { ViewportTracker } from "./viewport-tracker";
 
 // Above-fold sections — loaded eagerly for fast first paint
 import { HeroSection } from "./sections/hero-section";
@@ -736,6 +737,10 @@ function InnerLayout({
             cookieId={getOrCreateCookieId()}
           />
           <ClickTracker
+            pageId={pageId}
+            cookieId={getOrCreateCookieId()}
+          />
+          <ViewportTracker
             pageId={pageId}
             cookieId={getOrCreateCookieId()}
           />
