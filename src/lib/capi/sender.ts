@@ -197,9 +197,17 @@ export async function sendGoogleCAPI(payload: CAPILeadPayload, configs: PixelCon
   if (!conversionLabel) return;
 
   // Google Ads conversion time format: "YYYY-MM-DD HH:MM:SS+HH:MM"
+  // Must use actual Israel local time, not UTC with offset appended
   const now = new Date();
-  const offset = "+03:00"; // Israel Time (IST)
-  const conversionTime = now.toISOString().replace("T", " ").replace("Z", "") + offset;
+  const israelFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jerusalem",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  });
+  const parts = israelFormatter.formatToParts(now);
+  const p = (type: string) => parts.find((x) => x.type === type)?.value || "00";
+  const conversionTime = `${p("year")}-${p("month")}-${p("day")} ${p("hour")}:${p("minute")}:${p("second")}+03:00`;
 
   const customerId = config.pixel_id.replace(/^AW-/, "");
 
@@ -470,7 +478,7 @@ export async function sendTaboolaCAPI(payload: CAPILeadPayload, configs: PixelCo
 
   const body: Record<string, unknown> = {
     "pixel-id": config.pixel_id,
-    "event-name": "lead",
+    "event-name": "complete_registration",
     "revenue": 0,
     "currency": "ILS",
     "order-id": payload.eventId,
