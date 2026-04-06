@@ -7,6 +7,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { captureClickIdsFromUrl } from "@/lib/analytics/click-ids";
 
 // ============================================================================
 // Constants
@@ -192,6 +193,9 @@ export function usePageTracking(pageId: string | null): void {
     const deviceType = detectDeviceType();
     const utmParams = extractUtmParams();
     const referrerDomain = getReferrerDomain();
+
+    // Capture and store any click IDs (gclid, fbclid, ttclid, etc.) from the URL
+    captureClickIdsFromUrl();
 
     sendAnalyticsEvent({
       event_type: "page_view",

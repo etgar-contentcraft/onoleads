@@ -36,6 +36,8 @@ const FormSection = dynamic(() => import("./sections/form-section").then(mod => 
 import { SocialProofToast } from "./social-proof-toast";
 import { PopupManager } from "./popup-manager";
 import type { PopupCampaign } from "@/lib/types/popup-campaigns";
+import { PixelTracker } from "./pixel-tracker";
+import type { PixelConfig } from "@/lib/analytics/pixel-manager";
 
 // ============================================================================
 // Constants
@@ -66,6 +68,18 @@ export interface PageSettings {
   brand_color_primary?: string;
   brand_color_dark?: string;
   brand_color_gray?: string;
+  /** Body font key — one of: rubik | heebo | assistant | noto-sans-hebrew | frank-ruhl */
+  font_body?: string;
+  /** Pixel IDs for client-side tracking (loaded from pixel_configurations table) */
+  ga4_id?: string;
+  meta_pixel_id?: string;
+  google_ads_id?: string;
+  google_ads_conversion_label?: string;
+  tiktok_pixel_id?: string;
+  linkedin_partner_id?: string;
+  outbrain_account_id?: string;
+  taboola_account_id?: string;
+  twitter_pixel_id?: string;
 }
 
 /** Minimal interest area shape needed on the client */
@@ -381,6 +395,19 @@ function InnerLayout({
   const brandGray = settings?.brand_color_gray || "#716C70";
   const hasCustomColors = brandPrimary !== "#B8D900" || brandDark !== "#2a2628" || brandGray !== "#716C70";
 
+  /* Font override — maps setting key to the CSS custom property holding that font */
+  const FONT_CSS_VAR: Record<string, string> = {
+    rubik: "--font-heading",
+    heebo: "--font-heebo",
+    assistant: "--font-assistant",
+    "noto-sans-hebrew": "--font-noto-sans-hebrew",
+    "frank-ruhl": "--font-frank-ruhl",
+  };
+  const fontKey = settings?.font_body || "rubik";
+  const fontCssVar = FONT_CSS_VAR[fontKey] || "--font-heading";
+  /* Only inject override style when font differs from system default (Rubik/--font-heading) */
+  const hasFontOverride = fontKey !== "rubik" && !!FONT_CSS_VAR[fontKey];
+
   /* Sanitize: only allow valid hex colors to prevent CSS injection */
   const safeHex = (v: string) => /^#[0-9A-Fa-f]{3,8}$/.test(v) ? v : "#B8D900";
   const p = safeHex(brandPrimary);
@@ -406,6 +433,12 @@ function InnerLayout({
           #lp-root .to-\\[\\#1a1618\\] { --tw-gradient-to: color-mix(in srgb, ${d} 75%, #000) !important; }
           #lp-root .hover\\:bg-\\[\\#c8e920\\]:hover { background-color: color-mix(in srgb, ${p} 85%, #fff) !important; }
           #lp-root .hover\\:bg-\\[\\#3a3638\\]:hover { background-color: color-mix(in srgb, ${d} 85%, #fff) !important; }
+        ` }} />
+      )}
+      {/* Font override — remaps --font-heebo and --font-heading to the selected body font */}
+      {hasFontOverride && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          #lp-root { --font-heebo: var(${fontCssVar}); --font-heading: var(${fontCssVar}); }
         ` }} />
       )}
       {/* Sticky Header */}
@@ -549,6 +582,21 @@ function InnerLayout({
           language={language as "he" | "en" | "ar"}
         />
       )}
+
+      {/* Client-side pixel tracking — Consent Mode v2 + engagement events */}
+      <PixelTracker config={{
+        ga4Id: settings?.ga4_id,
+        metaPixelId: settings?.meta_pixel_id,
+        googleAdsId: settings?.google_ads_id,
+        googleAdsConversionLabel: settings?.google_ads_conversion_label,
+        tikTokPixelId: settings?.tiktok_pixel_id,
+        linkedInPartnerId: settings?.linkedin_partner_id,
+        outbrainAccountId: settings?.outbrain_account_id,
+        taboolaAccountId: settings?.taboola_account_id,
+        twitterPixelId: settings?.twitter_pixel_id,
+        pageId: pageId,
+        pageSlug: pageSlug,
+      } satisfies PixelConfig} />
 
       {/* Compliance widgets */}
       <CookieConsent />

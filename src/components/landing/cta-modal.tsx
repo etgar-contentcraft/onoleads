@@ -6,6 +6,10 @@
 
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
+import { getLeadClickIds } from "@/lib/analytics/click-ids";
+import { fireLeadPixelEvent } from "./pixel-tracker";
+import { isMarketingConsentGranted } from "@/lib/analytics/pixel-manager";
+import { generateRandomEventId } from "@/lib/analytics/event-id";
 
 // ============================================================================
 // CTA Modal Context - allows any component to open/close the form modal
@@ -399,6 +403,12 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
       const utmContent = utmFromUrl.utm_content || storedUtm.utm_content || null;
       const utmTerm = utmFromUrl.utm_term || storedUtm.utm_term || null;
 
+      /* Click IDs from localStorage — captured at page load, sent with every lead */
+      const clickIds = getLeadClickIds();
+      /* Deduplicate browser pixel + CAPI using a shared event ID */
+      const eventId = generateRandomEventId();
+      const marketingConsent = isMarketingConsentGranted();
+
       const payload = {
         full_name: formData.full_name.trim(),
         phone: formData.phone.trim() || null,
@@ -427,6 +437,11 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
         /* Bot protection signals — validated server-side */
         form_token: formToken,
         behavior_score: computeBehaviorScore(),
+        /* CAPI + pixel deduplication */
+        event_id: eventId,
+        marketing_consent: marketingConsent,
+        /* Click IDs for conversion attribution */
+        ...clickIds,
       };
 
       const res = await fetch("/api/leads", {
@@ -436,6 +451,15 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
       });
 
       if (res.ok) {
+        /* Fire browser-side pixel Lead event (deduped with CAPI via eventId) */
+        if (marketingConsent) {
+          fireLeadPixelEvent(
+            eventId,
+            formData.email.trim() || null,
+            formData.phone.trim() || null
+          );
+        }
+
         // Store first name in sessionStorage — never in the URL (PII)
         const firstName = formData.full_name.trim().split(" ")[0] || "";
         if (firstName) sessionStorage.setItem("ty_name", firstName);
