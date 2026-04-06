@@ -25,6 +25,7 @@ const translations = {
     nav_audit: "יומן ביקורת",
     nav_help: "מרכז עזרה",
     nav_users: "משתמשים",
+    nav_pixels: "פיקסלים",
 
     // Header
     search_placeholder: "חיפוש מהיר...",
@@ -75,6 +76,7 @@ const translations = {
     nav_audit: "Audit Log",
     nav_help: "Help Center",
     nav_users: "Users",
+    nav_pixels: "Pixels",
 
     // Header
     search_placeholder: "Quick search...",
@@ -125,6 +127,7 @@ const translations = {
     nav_audit: "سجل المراجعة",
     nav_help: "مركز المساعدة",
     nav_users: "المستخدمون",
+    nav_pixels: "بيكسلات",
 
     // Header
     search_placeholder: "بحث سريع...",

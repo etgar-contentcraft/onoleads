@@ -61,9 +61,10 @@ const getPageData = cache(async function getPageData(slug: string) {
   // Landing pages are public, so we must use the admin client to read settings.
   const adminClient = getAdminClient();
 
-  const [pageRes, globalSettingsRes] = await Promise.all([
+  const [pageRes, globalSettingsRes, pixelConfigRes] = await Promise.all([
     supabase.from("pages").select("*").eq("slug", slug).eq("status", "published").single(),
     adminClient.from("settings").select("key, value"),
+    adminClient.from("pixel_configurations").select("platform, is_enabled, pixel_id, additional_config"),
   ]);
 
   if (!pageRes.data) return null;
@@ -98,6 +99,14 @@ const getPageData = cache(async function getPageData(slug: string) {
     if (row.value) globalMap[row.key] = row.value;
   }
 
+  // Build pixel config map from pixel_configurations rows (only enabled platforms)
+  const pixelMap: Record<string, { pixel_id: string | null; additional_config: Record<string, string | null> }> = {};
+  for (const row of pixelConfigRes.data || []) {
+    if (row.is_enabled && row.pixel_id) {
+      pixelMap[row.platform] = { pixel_id: row.pixel_id, additional_config: (row.additional_config as Record<string, string | null>) || {} };
+    }
+  }
+
   // Extract page-specific overrides from custom_styles.page_settings
   const customStyles = (page.custom_styles || {}) as Record<string, unknown>;
   const pageOverrides = (customStyles.page_settings || {}) as Record<string, string>;
@@ -119,6 +128,19 @@ const getPageData = cache(async function getPageData(slug: string) {
     brand_color_primary: pageOverrides.brand_color_primary || globalMap.brand_color_primary,
     brand_color_dark: pageOverrides.brand_color_dark || globalMap.brand_color_dark,
     brand_color_gray: pageOverrides.brand_color_gray || globalMap.brand_color_gray,
+    /* Font: page-level override wins, then global, then default (rubik) */
+    font_body: pageOverrides.font_body || globalMap.font_body || "rubik",
+    /* Pixel IDs — from pixel_configurations table (enabled platforms only).
+     * Fallback to legacy settings table fields for backwards compatibility. */
+    ga4_id: pixelMap["ga4"]?.pixel_id || pageOverrides.google_analytics_id || globalMap.google_analytics_id || undefined,
+    meta_pixel_id: pixelMap["meta"]?.pixel_id || pageOverrides.facebook_pixel_id || globalMap.facebook_pixel_id || undefined,
+    google_ads_id: pixelMap["google"]?.pixel_id || undefined,
+    google_ads_conversion_label: pixelMap["google"]?.additional_config?.conversion_label || undefined,
+    tiktok_pixel_id: pixelMap["tiktok"]?.pixel_id || undefined,
+    linkedin_partner_id: pixelMap["linkedin"]?.pixel_id || undefined,
+    outbrain_account_id: pixelMap["outbrain"]?.pixel_id || undefined,
+    taboola_account_id: pixelMap["taboola"]?.pixel_id || undefined,
+    twitter_pixel_id: pixelMap["twitter"]?.pixel_id || undefined,
   };
 
   // For global sections: use shared content when shared_section_id is set

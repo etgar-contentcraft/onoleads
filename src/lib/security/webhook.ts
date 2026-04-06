@@ -68,7 +68,9 @@ export async function verifyWebhookSignature(
 export async function sendWebhookWithRetry(
   url: string,
   payload: Record<string, unknown>,
-  webhookSecret?: string | null
+  webhookSecret?: string | null,
+  /** Extra headers to include (e.g. Authorization for CAPI calls) */
+  extraHeaders?: Record<string, string>
 ): Promise<{ success: boolean; statusCode: number; attempts: number }> {
   const body = JSON.stringify(payload);
   let lastStatus = 0;
@@ -78,6 +80,7 @@ export async function sendWebhookWithRetry(
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         "X-Webhook-Timestamp": Date.now().toString(),
+        ...extraHeaders,
       };
 
       /* Sign payload if a webhook secret is configured */

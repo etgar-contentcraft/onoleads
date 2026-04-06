@@ -11,6 +11,8 @@ import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
 import { validateCsrfToken } from "@/lib/security/csrf";
 import { writeAuditLog } from "@/lib/security/audit-log";
 import { sendWebhookWithRetry } from "@/lib/security/webhook";
+import { fireAllCAPI, type CAPILeadPayload } from "@/lib/capi/sender";
+import { generateEventId } from "@/lib/analytics/event-id";
 
 /** Maximum lead submissions per IP per minute */
 const MAX_SUBMISSIONS_PER_MINUTE = 5;
@@ -112,6 +114,16 @@ const leadSchema = z.object({
   /* Bot protection signals */
   form_token: z.string().optional().nullable(),
   behavior_score: z.number().min(0).max(100).optional().nullable(),
+  /* Click IDs for multi-platform attribution (stored in client localStorage) */
+  gclid: z.string().max(200).optional().nullable(),
+  fbclid: z.string().max(200).optional().nullable(),
+  fbc: z.string().max(200).optional().nullable(),        // fb.1.{ts}.{fbclid}
+  ttclid: z.string().max(200).optional().nullable(),
+  li_fat_id: z.string().max(200).optional().nullable(),
+  /* Client-generated dedup event ID — shared with browser pixel to prevent double-counting */
+  event_id: z.string().max(64).optional().nullable(),
+  /* Consent state — gate CAPI calls on this */
+  marketing_consent: z.boolean().optional().nullable(),
 });
 
 /**
@@ -302,8 +314,12 @@ export async function POST(request: NextRequest) {
     const utmContent = data.utm_content ? sanitizeGeneral(data.utm_content) : null;
     const utmTerm = data.utm_term ? sanitizeGeneral(data.utm_term) : null;
 
+    /* --- Dedup event ID — shared with browser pixel for CAPI deduplication --- */
+    const eventId = data.event_id || generateEventId("lead_submit", pageId || "unknown", cookieId);
+
     /* --- Build Make.com-friendly webhook payload ---
      * All UTM fields always included (empty string if no value).
+     * Click IDs included for attribution in CRM/Make.com flows.
      * referrer_domain = "direct" when visitor arrived directly. */
     const webhookPayload: Record<string, string> = {
       full_name: nameResult.value,
@@ -322,6 +338,13 @@ export async function POST(request: NextRequest) {
       utm_content: utmContent || "",
       utm_term: utmTerm || "",
       created_at: new Date().toISOString(),
+      /* Click IDs for multi-platform attribution */
+      event_id: eventId,
+      gclid: data.gclid ? sanitizeGeneral(data.gclid) : "",
+      fbclid: data.fbclid ? sanitizeGeneral(data.fbclid) : "",
+      fbc: data.fbc ? sanitizeGeneral(data.fbc) : "",
+      ttclid: data.ttclid ? sanitizeGeneral(data.ttclid) : "",
+      li_fat_id: data.li_fat_id ? sanitizeGeneral(data.li_fat_id) : "",
     };
 
     let webhookStatus = "sent";
@@ -354,6 +377,30 @@ export async function POST(request: NextRequest) {
       console.error("Analytics event insert error:", insertError);
     }
 
+    /* --- Fire CAPI (non-blocking — runs after response is returned) ---
+     * Only fires when user has consented to marketing tracking.
+     * Errors from CAPI never affect the lead submission response. */
+    if (data.marketing_consent) {
+      const capiPayload: CAPILeadPayload = {
+        eventId,
+        email: sanitizedEmail,
+        phone: sanitizedPhone,
+        sourceUrl: `${process.env.NEXT_PUBLIC_BASE_URL || "https://onoleads.vercel.app"}/lp/${data.page_slug || ""}`,
+        clientIp,
+        userAgent: request.headers.get("user-agent") || "",
+        gclid: data.gclid || null,
+        fbclid: data.fbclid || null,
+        fbc: data.fbc || null,
+        ttclid: data.ttclid || null,
+        pageId,
+        cookieId,
+      };
+      // Fire-and-forget: don't await — CAPI runs in background after response
+      fireAllCAPI(capiPayload, true).catch((err) => {
+        console.error("[capi] fireAllCAPI error:", err?.message);
+      });
+    }
+
     /* --- Audit log (no PII — only page_id and status) --- */
     writeAuditLog({
       action: "lead_submitted",
@@ -361,6 +408,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         page_id: pageId,
         webhook_status: webhookStatus,
+        capi_fired: !!data.marketing_consent,
       },
     }).catch(() => {});
 

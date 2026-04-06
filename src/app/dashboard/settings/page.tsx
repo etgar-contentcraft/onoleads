@@ -28,6 +28,7 @@ interface AppSettings {
   default_cta_text: string;
   google_analytics_id: string;
   facebook_pixel_id: string;
+  font_body: string;
 }
 
 /** Default settings values */
@@ -42,7 +43,47 @@ const DEFAULT_SETTINGS: AppSettings = {
   default_cta_text: "השאירו פרטים ונחזור אליכם",
   google_analytics_id: "",
   facebook_pixel_id: "",
+  font_body: "rubik",
 };
+
+/** Available font options for the picker */
+const FONT_OPTIONS = [
+  {
+    key: "rubik",
+    name: "Rubik",
+    nameHe: "רוביק",
+    cssVar: "var(--font-heading)",
+    desc: "מודרני, עגלגל, עברית / ערבית / לטינית",
+  },
+  {
+    key: "heebo",
+    name: "Heebo",
+    nameHe: "היבו",
+    cssVar: "var(--font-heebo)",
+    desc: "נקי ומאוזן, נפוץ בעברית",
+  },
+  {
+    key: "assistant",
+    name: "Assistant",
+    nameHe: "אסיסטנט",
+    cssVar: "var(--font-assistant)",
+    desc: "עגול ונעים, מצוין לגוף טקסט",
+  },
+  {
+    key: "noto-sans-hebrew",
+    name: "Noto Sans Hebrew",
+    nameHe: "נוטו",
+    cssVar: "var(--font-noto-sans-hebrew)",
+    desc: "כיסוי Unicode מלא, ניטרלי",
+  },
+  {
+    key: "frank-ruhl",
+    name: "Frank Ruhl Libre",
+    nameHe: "פרנק רול",
+    cssVar: "var(--font-frank-ruhl)",
+    desc: "סריף קלאסי, מראה אקדמי",
+  },
+] as const;
 
 /** Toast notification state */
 interface Toast {
@@ -90,6 +131,7 @@ export default function SettingsPage() {
         default_cta_text: settingsMap.default_cta_text || DEFAULT_SETTINGS.default_cta_text,
         google_analytics_id: settingsMap.google_analytics_id || DEFAULT_SETTINGS.google_analytics_id,
         facebook_pixel_id: settingsMap.facebook_pixel_id || DEFAULT_SETTINGS.facebook_pixel_id,
+        font_body: settingsMap.font_body || DEFAULT_SETTINGS.font_body,
       });
 
       // Parse thank you page settings from JSON key
@@ -363,6 +405,59 @@ export default function SettingsPage() {
             </div>
 
             <p className="text-[11px] text-[#9A969A]">עמוד התודה המלא מוגדר בסעיף "עמוד תודה" למטה</p>
+          </CardContent>
+        </Card>
+
+        {/* Fonts */}
+        <Card className="border-0 shadow-sm lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base text-[#2a2628] flex items-center gap-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="4 7 4 4 20 4 20 7" />
+                <line x1="9" y1="20" x2="15" y2="20" />
+                <line x1="12" y1="4" x2="12" y2="20" />
+              </svg>
+              פונטים
+            </CardTitle>
+            <CardDescription>
+              בחר פונט ברירת מחדל לכל דפי הנחיתה. ניתן לדרוס פר-עמוד דרך הגדרות עמוד.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {FONT_OPTIONS.map((font) => {
+                const selected = settings.font_body === font.key;
+                return (
+                  <button
+                    key={font.key}
+                    type="button"
+                    onClick={() => updateSetting("font_body", font.key)}
+                    className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-center transition-all ${
+                      selected
+                        ? "border-[#B8D900] bg-[#f7fce0] shadow-md"
+                        : "border-[#e5e7eb] bg-white hover:border-[#c8e920] hover:bg-[#fafff0]"
+                    }`}
+                    style={{ fontFamily: font.cssVar }}
+                  >
+                    {selected && (
+                      <span className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full bg-[#B8D900] flex items-center justify-center">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </span>
+                    )}
+                    <span className="text-xl font-bold text-[#2a2628] leading-tight" dir="rtl">
+                      שלום עולם
+                    </span>
+                    <span className="text-sm text-[#716C70] leading-tight">Hello World</span>
+                    <div className="mt-1">
+                      <span className="text-[11px] font-semibold text-[#2a2628] block">{font.nameHe}</span>
+                      <span className="text-[10px] text-[#9A969A]">{font.desc}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
 

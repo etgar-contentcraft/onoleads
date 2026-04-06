@@ -14,6 +14,9 @@
 @theme inline {
   --font-heading: var(--font-heading);
   --font-heebo: var(--font-heebo);
+  --font-assistant: var(--font-assistant);
+  --font-noto-sans-hebrew: var(--font-noto-sans-hebrew);
+  --font-frank-ruhl: var(--font-frank-ruhl);
   --font-sans: var(--font-heebo);
   --color-background: var(--background);
   --color-foreground: var(--foreground);

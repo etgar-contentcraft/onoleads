@@ -53,7 +53,18 @@ interface PageOverrides {
   interest_unknown_text?: string;
   /** The real interest area name_he that maps to when unknown is selected */
   interest_unknown_maps_to_name?: string;
+  /** Per-page font override — overrides global font_body setting */
+  font_body?: string;
 }
+
+/** Available font options for the picker */
+const FONT_OPTIONS = [
+  { key: "rubik", nameHe: "רוביק", desc: "מודרני, עגלגל", cssVar: "var(--font-heading)" },
+  { key: "heebo", nameHe: "היבו", desc: "נקי ומאוזן", cssVar: "var(--font-heebo)" },
+  { key: "assistant", nameHe: "אסיסטנט", desc: "עגול ונעים", cssVar: "var(--font-assistant)" },
+  { key: "noto-sans-hebrew", nameHe: "נוטו", desc: "ניטרלי, Unicode מלא", cssVar: "var(--font-noto-sans-hebrew)" },
+  { key: "frank-ruhl", nameHe: "פרנק רול", desc: "סריף קלאסי", cssVar: "var(--font-frank-ruhl)" },
+] as const;
 
 const EMPTY_GLOBAL: GlobalSettings = {
   webhook_url: "", whatsapp_number: "", phone_number: "*2899",
@@ -774,6 +785,64 @@ export default function PageSettingsPage() {
                 <span className="text-xs text-[#9A969A]">תצוגה מקדימה</span>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Fonts — per-page override */}
+        <Card className="border-0 shadow-sm lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base text-[#2a2628] flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="4 7 4 4 20 4 20 7" />
+                <line x1="9" y1="20" x2="15" y2="20" />
+                <line x1="12" y1="4" x2="12" y2="20" />
+              </svg>
+              פונט עמוד
+            </CardTitle>
+            <CardDescription>
+              בחר פונט לעמוד זה — דורס את ברירת המחדל הגלובלית.{" "}
+              {!overrides.font_body && <span className="text-[#9A969A]">כרגע: גלובלי (רוביק)</span>}
+              {overrides.font_body && (
+                <span className="text-[#5a7000] font-medium">
+                  נקבע ידנית ·{" "}
+                  <button type="button" onClick={() => set("font_body", "")} className="underline text-red-400 hover:text-red-600">נקה</button>
+                </span>
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {FONT_OPTIONS.map((font) => {
+                const selected = (overrides.font_body || "rubik") === font.key;
+                return (
+                  <button
+                    key={font.key}
+                    type="button"
+                    onClick={() => set("font_body", font.key)}
+                    className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-center transition-all ${
+                      selected
+                        ? "border-[#B8D900] bg-[#f7fce0] shadow-md"
+                        : "border-[#e5e7eb] bg-white hover:border-[#c8e920] hover:bg-[#fafff0]"
+                    }`}
+                    style={{ fontFamily: font.cssVar }}
+                  >
+                    {selected && overrides.font_body && (
+                      <span className="absolute top-1.5 left-1.5 w-4 h-4 rounded-full bg-[#B8D900] flex items-center justify-center">
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </span>
+                    )}
+                    <span className="text-xl font-bold text-[#2a2628] leading-tight" dir="rtl">שלום עולם</span>
+                    <span className="text-sm text-[#716C70] leading-tight">Hello World</span>
+                    <div className="mt-1">
+                      <span className="text-[11px] font-semibold text-[#2a2628] block">{font.nameHe}</span>
+                      <span className="text-[10px] text-[#9A969A]">{font.desc}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
 
