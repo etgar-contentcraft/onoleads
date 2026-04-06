@@ -1,7 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+/**
+ * FormSection — inline lead capture form on landing pages.
+ * Includes full bot-protection suite (CSRF, form token, behavior score, honeypot)
+ * and multi-platform click-ID attribution, matching the CTA modal's payload.
+ */
+
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { Language } from "@/lib/types/database";
+import { getLeadClickIds } from "@/lib/analytics/click-ids";
+import { generateEventId } from "@/lib/analytics/event-id";
 
 interface FormField {
   name: string;
@@ -37,17 +45,59 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState(false);
+  const [apiErrorMsg, setApiErrorMsg] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [inView, setInView] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
-  // Cookie setup
+  /** Bot-protection state */
+  const [csrfToken, setCsrfToken] = useState("");
+  const [formToken, setFormToken] = useState("");
+  const [honeypot, setHoneypot] = useState("");
+  const formMountTimeRef = useRef<number>(Date.now());
+  const hasKeystrokeRef = useRef(false);
+  const hasInteractionRef = useRef(false);
+
+  /** Computes a 0–100 behavioral score from dwell time, keystrokes, and interaction */
+  const computeBehaviorScore = useCallback((): number => {
+    const dwell = Date.now() - formMountTimeRef.current;
+    const dwellScore = dwell < 2000 ? 0 : dwell < 5000 ? 40 : 60;
+    const keystrokeScore = hasKeystrokeRef.current ? 30 : 0;
+    const interactionScore = hasInteractionRef.current ? 10 : 0;
+    return Math.min(dwellScore + keystrokeScore + interactionScore, 100);
+  }, []);
+
+  // Cookie setup + CSRF + form token + behavioral tracking
   useEffect(() => {
     if (!document.cookie.includes("onoleads_id=")) {
       const cookieId = crypto.randomUUID();
       document.cookie = `onoleads_id=${cookieId}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
     }
+
+    // Read CSRF token from cookie (set by middleware)
+    const csrf = document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("csrf_token="))
+      ?.split("=")[1] || "";
+    setCsrfToken(csrf);
+
+    // Generate time-based form token
+    const token = { t: Date.now(), n: crypto.randomUUID() };
+    setFormToken(btoa(JSON.stringify(token)));
+
+    // Record mount time for dwell-time scoring
+    formMountTimeRef.current = Date.now();
+
+    // Track mouse/touch interaction (bots have none)
+    const handleInteraction = () => { hasInteractionRef.current = true; };
+    window.addEventListener("mousemove", handleInteraction, { once: true });
+    window.addEventListener("touchstart", handleInteraction, { once: true });
+
+    return () => {
+      window.removeEventListener("mousemove", handleInteraction);
+      window.removeEventListener("touchstart", handleInteraction);
+    };
   }, []);
 
   // Scroll reveal
@@ -66,13 +116,14 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
     return (field[`label_${language}` as keyof FormField] as string) || field.label_he || field.name;
   };
 
-  /** Updates a field value and clears its validation error */
+  /** Updates a field value, clears its validation error, and tracks keystrokes */
   const handleChange = (fieldName: string, value: string) => {
+    hasKeystrokeRef.current = true;
     setFormData({ ...formData, [fieldName]: value });
     if (errors[fieldName]) {
       setErrors((prev) => { const next = { ...prev }; delete next[fieldName]; return next; });
     }
-    if (apiError) setApiError(false);
+    if (apiError) { setApiError(false); setApiErrorMsg(null); }
   };
 
   const validate = (): boolean => {
@@ -103,6 +154,8 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
     if (!validate()) return;
 
     setSubmitting(true);
+    setApiError(false);
+    setApiErrorMsg(null);
 
     try {
       const cookieId = document.cookie
@@ -112,22 +165,64 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
 
       const urlParams = new URLSearchParams(window.location.search);
 
+      /* UTM cookie persistence — store on first visit, reuse on subsequent */
+      const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
+      const utmFromUrl: Record<string, string> = {};
+      for (const k of UTM_KEYS) {
+        const v = urlParams.get(k);
+        if (v) utmFromUrl[k] = v;
+      }
+      const hasUrlUtm = Object.keys(utmFromUrl).length > 0;
+
+      let storedUtm: Record<string, string> = {};
+      const storedUtmCookie = document.cookie.split("; ").find((c) => c.startsWith("ono_utm="))?.split("=").slice(1).join("=") || "";
+      if (storedUtmCookie) {
+        try { storedUtm = JSON.parse(decodeURIComponent(storedUtmCookie)); } catch { /* ignore */ }
+      }
+      if (hasUrlUtm) {
+        const utmJson = encodeURIComponent(JSON.stringify(utmFromUrl));
+        document.cookie = `ono_utm=${utmJson}; path=/; max-age=${90 * 24 * 60 * 60}; SameSite=Lax`;
+        storedUtm = utmFromUrl;
+      }
+
+      /* Click IDs + dedup event ID */
+      const clickIds = getLeadClickIds();
+      const eventId = generateEventId("lead_submit", pageId || "unknown", cookieId);
+
       const payload = {
-        full_name: formData.full_name || "",
-        phone: formData.phone || null,
-        email: formData.email || null,
+        full_name: (formData.full_name || "").trim(),
+        phone: (formData.phone || "").trim() || null,
+        email: (formData.email || "").trim() || null,
         page_id: pageId || null,
         page_slug: pageSlug || null,
         program_id: programId || null,
         program_interest: formData.program_interest || null,
-        utm_source: urlParams.get("utm_source"),
-        utm_medium: urlParams.get("utm_medium"),
-        utm_campaign: urlParams.get("utm_campaign"),
-        utm_content: urlParams.get("utm_content"),
-        utm_term: urlParams.get("utm_term"),
+        utm_source: utmFromUrl.utm_source || storedUtm.utm_source || null,
+        utm_medium: utmFromUrl.utm_medium || storedUtm.utm_medium || null,
+        utm_campaign: utmFromUrl.utm_campaign || storedUtm.utm_campaign || null,
+        utm_content: utmFromUrl.utm_content || storedUtm.utm_content || null,
+        utm_term: utmFromUrl.utm_term || storedUtm.utm_term || null,
         referrer: document.referrer || null,
         cookie_id: cookieId,
         device_type: window.innerWidth < 768 ? "mobile" : window.innerWidth < 1024 ? "tablet" : "desktop",
+        /* Security fields — required by /api/leads */
+        csrf_token: csrfToken,
+        form_token: formToken,
+        behavior_score: computeBehaviorScore(),
+        website: honeypot,
+        /* Attribution */
+        lead_source: "form_section",
+        event_id: eventId,
+        marketing_consent: true,
+        ...clickIds,
+        fbp: (() => {
+          const fbpCookie = document.cookie.split("; ").find(c => c.startsWith("_fbp="));
+          return fbpCookie ? fbpCookie.split("=").slice(1).join("=") : null;
+        })(),
+        ga_client_id: (() => {
+          const gaCookie = document.cookie.split("; ").find(c => c.startsWith("_ga="));
+          return gaCookie ? gaCookie.split("=").slice(1).join("=") : null;
+        })(),
       };
 
       const res = await fetch("/api/leads", {
@@ -137,8 +232,14 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
       });
 
       if (res.ok) {
+        /* Store event_id for TY page pixel deduplication */
+        sessionStorage.setItem("ty_event_id", eventId);
+        const firstName = (formData.full_name || "").trim().split(" ")[0] || "";
+        if (firstName) sessionStorage.setItem("ty_name", firstName);
         setSubmitted(true);
       } else {
+        const errorData = await res.json().catch(() => null);
+        setApiErrorMsg(errorData?.error || null);
         setApiError(true);
       }
     } catch (err) {
@@ -267,13 +368,25 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
               ))}
             </div>
 
+            {/* Honeypot field — hidden from humans, bots will auto-fill */}
+            <div className="absolute opacity-0 -z-10" aria-hidden="true" tabIndex={-1}>
+              <input
+                type="text"
+                name="website"
+                autoComplete="off"
+                tabIndex={-1}
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+              />
+            </div>
+
             {/* API error feedback */}
             {apiError && (
               <div className="mt-5 p-4 rounded-xl bg-red-500/10 border border-red-400/30 text-red-300 text-sm flex items-center gap-2">
                 <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {isRtl ? "שגיאה בשליחת הטופס. אנא נסו שוב." : "Error submitting form. Please try again."}
+                {apiErrorMsg || (isRtl ? "שגיאה בשליחת הטופס. אנא נסו שוב." : "Error submitting form. Please try again.")}
               </div>
             )}
 
