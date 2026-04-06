@@ -9,36 +9,49 @@
  * - The stored format is "iv_b64:authTag_b64:ciphertext_b64" (colon-delimited).
  */
 
-import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
 
 const ALGORITHM = "aes-256-gcm";
 const IV_BYTES = 12;   // 96-bit IV required for GCM
 const KEY_BYTES = 32;  // 256-bit key
 
+/** Domain-separation prefix for deriving the CAPI key from the service role key */
+const KEY_DERIVATION_CONTEXT = "onoleads:capi-token-master-key:v1";
+
 /**
- * Derives the 32-byte AES key from the CAPI_TOKEN_MASTER_KEY env var.
- * Accepts both standard base64 (44 chars, with padding) and
- * base64url (43 chars, no padding, uses - and _ instead of + and /).
- * Throws if the env var is missing or decodes to fewer than 32 bytes.
+ * Derives the 32-byte AES key for CAPI token encryption.
+ *
+ * Strategy (in priority order):
+ * 1. CAPI_TOKEN_MASTER_KEY env var — explicit standalone key (base64 / base64url)
+ * 2. SUPABASE_SERVICE_ROLE_KEY — derive a deterministic 32-byte key via SHA-256
+ *    with domain separation. This fallback exists because Vercel CLI deployments
+ *    sometimes fail to inject newly-created env vars into serverless functions.
+ *
+ * The derived key is stable: same service-role-key → same AES key, so previously
+ * encrypted tokens remain decryptable as long as the service-role-key is unchanged.
  */
 function getMasterKey(): Buffer {
+  // Strategy 1: explicit master key
   const master = process.env.CAPI_TOKEN_MASTER_KEY;
-  if (!master || master.trim().length < 10) {
-    throw new Error(
-      "CAPI_TOKEN_MASTER_KEY env var missing or too short. " +
-      "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64url'))\""
-    );
+  if (master && master.trim().length >= 10) {
+    const normalized = master.trim().replace(/-/g, "+").replace(/_/g, "/");
+    const key = Buffer.from(normalized, "base64");
+    if (key.length >= KEY_BYTES) {
+      return key.subarray(0, KEY_BYTES);
+    }
   }
-  // Normalize base64url → standard base64 so Buffer.from handles both formats
-  const normalized = master.trim().replace(/-/g, "+").replace(/_/g, "/");
-  const key = Buffer.from(normalized, "base64");
-  if (key.length < KEY_BYTES) {
-    throw new Error(
-      `CAPI_TOKEN_MASTER_KEY decoded to only ${key.length} bytes — need ${KEY_BYTES}. ` +
-      "Re-generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64url'))\""
-    );
+
+  // Strategy 2: derive from Supabase service role key
+  const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (serviceRole && serviceRole.trim().length >= 20) {
+    return createHash("sha256")
+      .update(KEY_DERIVATION_CONTEXT + ":" + serviceRole.trim())
+      .digest();
   }
-  return key.subarray(0, KEY_BYTES);
+
+  throw new Error(
+    "No encryption key available. Set CAPI_TOKEN_MASTER_KEY or SUPABASE_SERVICE_ROLE_KEY."
+  );
 }
 
 /**
