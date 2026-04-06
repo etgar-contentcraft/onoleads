@@ -563,10 +563,8 @@ export default function PagesManagementPage() {
                     </p>
                   </div>
                   <DropdownMenu>
-                    <DropdownMenuTrigger>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
+                    <DropdownMenuTrigger className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#E5E5E5] bg-white text-[#716C70] hover:border-[#B8D900] hover:bg-[#F7FBDA] hover:text-[#4A4648] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#B8D900]">
+                      <MoreVertical className="w-4 h-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => router.push(`/dashboard/pages/${page.id}/builder`)} className="gap-2">
@@ -676,10 +674,8 @@ export default function PagesManagementPage() {
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
-                          <DropdownMenuTrigger>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
+                          <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#E5E5E5] bg-white text-[#716C70] hover:border-[#B8D900] hover:bg-[#F7FBDA] hover:text-[#4A4648] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#B8D900]">
+                            <MoreVertical className="w-4 h-4" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => router.push(`/dashboard/pages/${page.id}/builder`)} className="gap-2">

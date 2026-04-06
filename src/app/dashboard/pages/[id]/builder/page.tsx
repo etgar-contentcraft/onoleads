@@ -562,6 +562,18 @@ function SortableSectionRow({
 
       {/* Action buttons */}
       <div className="flex items-center gap-0.5 shrink-0">
+        {/* Edit — prominent primary action, always visible */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onEdit}
+          className="h-8 px-2.5 gap-1.5 text-xs font-semibold text-white bg-[#B8D900] hover:bg-[#9AB800] rounded-lg transition-colors"
+          title="ערוך תוכן"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">ערוך</span>
+        </Button>
+
         {/* Move up */}
         <Button
           variant="ghost"
@@ -599,17 +611,6 @@ function SortableSectionRow({
           title={section.is_visible ? "הסתר" : "הצג"}
         >
           {section.is_visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-        </Button>
-
-        {/* Edit */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onEdit}
-          className="h-8 w-8 p-0 text-[#9A969A] hover:text-[#4A4648] md:opacity-0 md:group-hover:opacity-100 transition-all"
-          title="ערוך תוכן"
-        >
-          <Pencil className="w-3.5 h-3.5" />
         </Button>
 
         {/* Save as Global */}
@@ -1411,6 +1412,94 @@ interface ObjectListFieldProps {
 }
 
 /** Manages a list of objects, each with the given fields schema */
+/** Single draggable item inside an ObjectListField */
+function SortableObjectItem({
+  id,
+  index,
+  item,
+  fields,
+  onUpdate,
+  onRemove,
+}: {
+  id: string;
+  index: number;
+  item: Record<string, string>;
+  fields: { key: string; label: string; type?: string }[];
+  onUpdate: (k: string, v: string) => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.45 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="border border-[#E5E5E5] rounded-xl p-3 space-y-2 bg-[#FAFAFA]"
+    >
+      <div className="flex items-center justify-between mb-1">
+        {/* Drag handle + item label */}
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing text-[#C8C4C8] hover:text-[#716C70] transition-colors"
+            title="גרור לשינוי סדר"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-xs font-semibold text-[#9A969A]">פריט {index + 1}</span>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onRemove}
+          className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
+        >
+          <X className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+      {fields.map((f) =>
+        f.type === "textarea" ? (
+          <div key={f.key} className="space-y-1">
+            <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
+            <Textarea
+              value={item[f.key] || ""}
+              onChange={(e) => onUpdate(f.key, e.target.value)}
+              rows={2}
+              dir="rtl"
+              className="text-sm resize-none"
+            />
+          </div>
+        ) : f.type === "image" ? (
+          <ObjectImageField
+            key={f.key}
+            label={f.label}
+            value={item[f.key] || ""}
+            onChange={(v) => onUpdate(f.key, v)}
+          />
+        ) : (
+          <div key={f.key} className="space-y-1">
+            <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
+            <Input
+              value={item[f.key] || ""}
+              onChange={(e) => onUpdate(f.key, e.target.value)}
+              dir="rtl"
+              className="h-8 text-sm"
+            />
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
 function ObjectListField({ label, fieldKey, fields, draft, set }: ObjectListFieldProps) {
   const list = (draft[fieldKey] as Record<string, string>[]) || [];
   const emptyItem = Object.fromEntries(fields.map((f) => [f.key, ""]));
@@ -1421,6 +1510,21 @@ function ObjectListField({ label, fieldKey, fields, draft, set }: ObjectListFiel
     set(fieldKey, copy);
   };
   const removeItem = (i: number) => set(fieldKey, list.filter((_, idx) => idx !== i));
+
+  // Stable IDs for dnd-kit — use index-based since items have no unique key
+  const itemIds = list.map((_, i) => `ol-${fieldKey}-${i}`);
+
+  const sensors = useSensors(useSensor(PointerSensor));
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = itemIds.indexOf(active.id as string);
+    const newIndex = itemIds.indexOf(over.id as string);
+    if (oldIndex !== -1 && newIndex !== -1) {
+      set(fieldKey, arrayMove(list, oldIndex, newIndex));
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -1436,58 +1540,23 @@ function ObjectListField({ label, fieldKey, fields, draft, set }: ObjectListFiel
           <Plus className="w-3 h-3" /> הוסף
         </Button>
       </div>
-      <div className="space-y-3">
-        {list.map((item, i) => (
-          <div
-            key={i}
-            className="border border-[#E5E5E5] rounded-xl p-3 space-y-2 bg-[#FAFAFA]"
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold text-[#9A969A]">פריט {i + 1}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => removeItem(i)}
-                className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
-              >
-                <X className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-            {fields.map((f) =>
-              f.type === "textarea" ? (
-                <div key={f.key} className="space-y-1">
-                  <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
-                  <Textarea
-                    value={item[f.key] || ""}
-                    onChange={(e) => updateField(i, f.key, e.target.value)}
-                    rows={2}
-                    dir="rtl"
-                    className="text-sm resize-none"
-                  />
-                </div>
-              ) : f.type === "image" ? (
-                <ObjectImageField
-                  key={f.key}
-                  label={f.label}
-                  value={item[f.key] || ""}
-                  onChange={(v) => updateField(i, f.key, v)}
-                />
-              ) : (
-                <div key={f.key} className="space-y-1">
-                  <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
-                  <Input
-                    value={item[f.key] || ""}
-                    onChange={(e) => updateField(i, f.key, e.target.value)}
-                    dir="rtl"
-                    className="h-8 text-sm"
-                  />
-                </div>
-              )
-            )}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+          <div className="space-y-3">
+            {list.map((item, i) => (
+              <SortableObjectItem
+                key={itemIds[i]}
+                id={itemIds[i]}
+                index={i}
+                item={item}
+                fields={fields}
+                onUpdate={(k, v) => updateField(i, k, v)}
+                onRemove={() => removeItem(i)}
+              />
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
