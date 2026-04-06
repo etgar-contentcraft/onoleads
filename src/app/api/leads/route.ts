@@ -127,7 +127,8 @@ const leadSchema = z.object({
   event_id: z.string().max(64).optional().nullable(),
   /* Consent state — gate CAPI calls on this */
   marketing_consent: z.boolean().optional().nullable(),
-  fbp: z.string().max(200).optional().nullable(),     // Meta _fbp cookie from browser
+  fbp: z.string().max(200).optional().nullable(),        // Meta _fbp cookie from browser
+  ga_client_id: z.string().max(100).optional().nullable(), // GA4 _ga cookie → Measurement Protocol client_id
 });
 
 /**
@@ -405,6 +406,7 @@ export async function POST(request: NextRequest) {
         cookieId,
         fullName: nameResult.value || null,
         fbp: data.fbp || null,
+        gaClientId: data.ga_client_id || null,
       };
       // Fire-and-forget: don't await — CAPI runs in background after response
       fireAllCAPI(capiPayload, true).catch((err) => {

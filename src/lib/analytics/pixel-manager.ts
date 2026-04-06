@@ -309,16 +309,20 @@ function fireLeadSubmit(
   params: Record<string, unknown>,
   config: PixelConfig
 ): void {
-  // GA4 lead conversion
+  // GA4: fire an engagement event, NOT generate_lead.
+  // generate_lead is fired server-side via Measurement Protocol (sendGA4CAPI).
+  // Firing it here too would create duplicate conversions since GA4 has no
+  // event-level deduplication for custom events (unlike Meta's eventID dedup).
+  // We fire "lead_form_submit" as a non-conversion engagement signal instead.
   if (config.ga4Id && window.gtag) {
-    window.gtag("event", "generate_lead", {
+    window.gtag("event", "lead_form_submit", {
       transaction_id: eventId,
       value: 1,
       currency: "ILS",
-      // Enhanced Conversions — gtag auto-hashes these
+      // Enhanced Conversions — gtag auto-hashes these for Google Ads
       user_data: params.user_data,
     });
-    // Google Ads conversion (if configured)
+    // Google Ads conversion (if configured) — only browser-side, no server dedup needed
     if (config.googleAdsId && config.googleAdsConversionLabel) {
       window.gtag("event", "conversion", {
         send_to: `${config.googleAdsId}/${config.googleAdsConversionLabel}`,

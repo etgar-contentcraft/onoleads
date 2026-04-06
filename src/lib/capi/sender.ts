@@ -49,6 +49,9 @@ export interface CAPILeadPayload {
   fullName?: string | null;
   /** _fbp cookie value set by Meta Pixel in browser */
   fbp?: string | null;
+  /** GA4 _ga cookie value (format: GA1.1.XXXXXXX.XXXXXXX) — used as GA4 client_id
+   * for associating server events with the same user session as browser events */
+  gaClientId?: string | null;
 }
 
 interface PixelRow {
@@ -84,20 +87,29 @@ function safeDecryptToken(enc: string | null): string | null {
 }
 
 // ============================================================================
-// Fetch pixel configs from DB
+// Fetch pixel configs from DB — single batch query for all platforms
 // ============================================================================
 
-async function loadPixelConfig(platform: string): Promise<PixelRow | null> {
+type PixelConfigMap = Record<string, PixelRow>;
+
+/**
+ * Loads all pixel configurations in a single DB query.
+ * Returns a map keyed by platform name so each sender can look up its config O(1).
+ */
+async function loadAllPixelConfigs(): Promise<PixelConfigMap> {
   try {
     const supabase = createAdminClient();
     const { data } = await supabase
       .from("pixel_configurations")
-      .select("platform, is_enabled, pixel_id, access_token_enc, test_event_code, additional_config")
-      .eq("platform", platform)
-      .single();
-    return data as PixelRow | null;
+      .select("platform, is_enabled, pixel_id, access_token_enc, test_event_code, additional_config");
+    if (!data) return {};
+    const map: PixelConfigMap = {};
+    for (const row of data) {
+      map[row.platform] = row as PixelRow;
+    }
+    return map;
   } catch {
-    return null;
+    return {};
   }
 }
 
@@ -109,9 +121,10 @@ async function loadPixelConfig(platform: string): Promise<PixelRow | null> {
  * Sends a Lead event to Meta Conversions API (CAPI).
  * Fires only when Meta pixel is configured + enabled, and marketing consent given.
  * @param payload - Lead event data with PII (hashed in-flight)
+ * @param configs - Pre-loaded pixel config map (avoids per-call DB query)
  */
-export async function sendMetaCAPI(payload: CAPILeadPayload): Promise<void> {
-  const config = await loadPixelConfig("meta");
+export async function sendMetaCAPI(payload: CAPILeadPayload, configs: PixelConfigMap): Promise<void> {
+  const config = configs["meta"];
   if (!config?.is_enabled || !config.pixel_id) return;
 
   const accessToken = safeDecryptToken(config.access_token_enc);
@@ -169,11 +182,12 @@ export async function sendMetaCAPI(payload: CAPILeadPayload): Promise<void> {
  * Sends a conversion to Google Ads via the Offline Conversions API.
  * Only fires when gclid is present and not expired.
  * @param payload - Lead event data
+ * @param configs - Pre-loaded pixel config map
  */
-export async function sendGoogleCAPI(payload: CAPILeadPayload): Promise<void> {
+export async function sendGoogleCAPI(payload: CAPILeadPayload, configs: PixelConfigMap): Promise<void> {
   if (!payload.gclid) return; // Google CAPI requires a click ID
 
-  const config = await loadPixelConfig("google");
+  const config = configs["google"];
   if (!config?.is_enabled || !config.pixel_id) return;
 
   const accessToken = safeDecryptToken(config.access_token_enc);
@@ -234,9 +248,10 @@ export async function sendGoogleCAPI(payload: CAPILeadPayload): Promise<void> {
 /**
  * Sends a SubmitForm event to TikTok Events API.
  * @param payload - Lead event data
+ * @param configs - Pre-loaded pixel config map
  */
-export async function sendTikTokCAPI(payload: CAPILeadPayload): Promise<void> {
-  const config = await loadPixelConfig("tiktok");
+export async function sendTikTokCAPI(payload: CAPILeadPayload, configs: PixelConfigMap): Promise<void> {
+  const config = configs["tiktok"];
   if (!config?.is_enabled || !config.pixel_id) return;
 
   const accessToken = safeDecryptToken(config.access_token_enc);
@@ -297,31 +312,44 @@ export async function sendTikTokCAPI(payload: CAPILeadPayload): Promise<void> {
 /**
  * Sends a generate_lead event to GA4 via the Measurement Protocol.
  * Requires GA4 measurement_id (pixel_id) and api_secret (access_token_enc).
+ *
+ * Deduplication note: GA4 Measurement Protocol has no built-in dedup for custom
+ * events. To avoid double-counting (browser gtag + server MP both firing generate_lead),
+ * the browser pixel fires "lead_form_submit" (non-conversion engagement event) while
+ * only this server-side call fires the authoritative "generate_lead" conversion.
+ *
  * @param payload - Lead event data
+ * @param configs - Pre-loaded pixel config map
  */
-export async function sendGA4CAPI(payload: CAPILeadPayload): Promise<void> {
-  const config = await loadPixelConfig("ga4");
+export async function sendGA4CAPI(payload: CAPILeadPayload, configs: PixelConfigMap): Promise<void> {
+  const config = configs["ga4"];
   if (!config?.is_enabled || !config.pixel_id) return;
 
   const apiSecret = safeDecryptToken(config.access_token_enc);
   if (!apiSecret) return;
 
-  const { first: ga4First, last: ga4Last } = splitName(payload.fullName);
-  const userProps: Record<string, { value: string }> = {};
-  if (payload.email) userProps.email = { value: payload.email };
-  if (payload.phone) userProps.phone_number = { value: payload.phone };
-  if (ga4First) userProps.first_name = { value: ga4First };
-  if (ga4Last) userProps.last_name = { value: ga4Last };
+  // GA4 client_id: use _ga cookie value if passed (format: GA1.1.XXXXXX.XXXXXX → XXXXXX.XXXXXX)
+  // Falls back to cookieId (random UUID). Note: without the _ga value the server event
+  // will appear as a different "session" in GA4 reports than the browser events.
+  const rawGa = payload.gaClientId;
+  let ga4ClientId = payload.cookieId || "server";
+  if (rawGa) {
+    // _ga cookie format: GA1.{depth}.{random}.{timestamp} — client_id is last two parts
+    const parts = rawGa.split(".");
+    if (parts.length >= 4) ga4ClientId = parts.slice(2).join(".");
+    else ga4ClientId = rawGa; // already stripped by client
+  }
 
   const body = {
-    client_id: payload.cookieId || "server",
-    ...(Object.keys(userProps).length > 0 ? { user_properties: userProps } : {}),
+    client_id: ga4ClientId,
     events: [{
       name: "generate_lead",
       params: {
-        event_id: payload.eventId,
+        // engagement_time_msec required for events to appear in Explorations
+        engagement_time_msec: 1,
         page_location: payload.sourceUrl,
-        send_to: config.pixel_id,
+        // transaction_id used for dedup in some GA4 contexts
+        transaction_id: payload.eventId,
       },
     }],
   };
@@ -340,10 +368,17 @@ export async function sendGA4CAPI(payload: CAPILeadPayload): Promise<void> {
 /**
  * Sends a Lead conversion to LinkedIn Conversions API.
  * Requires access token (access_token_enc) and conversion_id in additional_config.
+ *
+ * LinkedIn CAPI supports ONLY these idType values (as of 2024):
+ *   - SHA256_EMAIL
+ *   - LINKEDIN_FIRST_PARTY_ADS_TRACKING_UUID
+ * Phone/name/country idTypes are NOT supported and cause 422 errors.
+ *
  * @param payload - Lead event data
+ * @param configs - Pre-loaded pixel config map
  */
-export async function sendLinkedInCAPI(payload: CAPILeadPayload): Promise<void> {
-  const config = await loadPixelConfig("linkedin");
+export async function sendLinkedInCAPI(payload: CAPILeadPayload, configs: PixelConfigMap): Promise<void> {
+  const config = configs["linkedin"];
   if (!config?.is_enabled || !config.pixel_id) return;
 
   const accessToken = safeDecryptToken(config.access_token_enc);
@@ -354,16 +389,9 @@ export async function sendLinkedInCAPI(payload: CAPILeadPayload): Promise<void> 
 
   const userIds: Array<Record<string, string>> = [];
   const emailHash = payload.email ? hashPii(payload.email) : null;
-  const phoneHash = payload.phone ? hashPhone(payload.phone) : null;
-  const { first, last } = splitName(payload.fullName);
-  const fnHash = hashPii(first);
-  const lnHash = hashPii(last);
-  const countryHash = hashPii("il");
+
+  // Only include idTypes that LinkedIn's API actually supports
   if (emailHash) userIds.push({ idType: "SHA256_EMAIL", idValue: emailHash });
-  if (phoneHash) userIds.push({ idType: "SHA256_PHONE", idValue: phoneHash });
-  if (fnHash) userIds.push({ idType: "SHA256_FIRST_NAME", idValue: fnHash });
-  if (lnHash) userIds.push({ idType: "SHA256_LAST_NAME", idValue: lnHash });
-  if (countryHash) userIds.push({ idType: "SHA256_COUNTRY", idValue: countryHash });
   if (payload.li_fat_id) {
     userIds.push({ idType: "LINKEDIN_FIRST_PARTY_ADS_TRACKING_UUID", idValue: payload.li_fat_id });
   }
@@ -395,11 +423,12 @@ export async function sendLinkedInCAPI(payload: CAPILeadPayload): Promise<void> 
  * Sends a Lead conversion to Outbrain via server-to-server pixel endpoint.
  * Requires ob_click_id from client — if missing, call is skipped (click ID required for attribution).
  * @param payload - Lead event data
+ * @param configs - Pre-loaded pixel config map
  */
-export async function sendOutbrainCAPI(payload: CAPILeadPayload): Promise<void> {
+export async function sendOutbrainCAPI(payload: CAPILeadPayload, configs: PixelConfigMap): Promise<void> {
   if (!payload.obclid) return; // Outbrain S2S requires click ID
 
-  const config = await loadPixelConfig("outbrain");
+  const config = configs["outbrain"];
   if (!config?.is_enabled || !config.pixel_id) return;
 
   // Outbrain S2S: GET request with click ID and conversion data
@@ -431,9 +460,10 @@ export async function sendOutbrainCAPI(payload: CAPILeadPayload): Promise<void> 
  * Sends a Lead event to Taboola via server-to-server events API.
  * Requires tblclid (Taboola click ID) for attribution.
  * @param payload - Lead event data
+ * @param configs - Pre-loaded pixel config map
  */
-export async function sendTaboolaCAPI(payload: CAPILeadPayload): Promise<void> {
-  const config = await loadPixelConfig("taboola");
+export async function sendTaboolaCAPI(payload: CAPILeadPayload, configs: PixelConfigMap): Promise<void> {
+  const config = configs["taboola"];
   if (!config?.is_enabled || !config.pixel_id) return;
 
   const body: Record<string, unknown> = {
@@ -466,12 +496,15 @@ export async function sendTaboolaCAPI(payload: CAPILeadPayload): Promise<void> {
 // ============================================================================
 
 /**
- * Sends a SIGN_UP conversion to Twitter/X via Conversions API.
+ * Sends a Lead conversion to Twitter/X via Conversions API.
  * Requires access token (access_token_enc).
+ * Event type defaults to "LEAD" (more accurate than SIGN_UP for a lead form).
+ * Override by setting additional_config.conversion_type in the pixel dashboard.
  * @param payload - Lead event data
+ * @param configs - Pre-loaded pixel config map
  */
-export async function sendTwitterCAPI(payload: CAPILeadPayload): Promise<void> {
-  const config = await loadPixelConfig("twitter");
+export async function sendTwitterCAPI(payload: CAPILeadPayload, configs: PixelConfigMap): Promise<void> {
+  const config = configs["twitter"];
   if (!config?.is_enabled || !config.pixel_id) return;
 
   const accessToken = safeDecryptToken(config.access_token_enc);
@@ -489,11 +522,14 @@ export async function sendTwitterCAPI(payload: CAPILeadPayload): Promise<void> {
   if (twLastHash) identifiers.push({ hashed_last_name: twLastHash });
   if (identifiers.length === 0) return;
 
+  // Use configurable conversion_type, defaulting to "LEAD" (more accurate for forms)
+  const conversionType = config.additional_config?.conversion_type || "LEAD";
+
   const body = {
     conversions: [{
       conversion_time: new Date().toISOString(),
       event_id: payload.eventId,
-      conversion_type: "SIGN_UP",
+      conversion_type: conversionType,
       identifiers,
       ...(payload.twclid ? { click_id: payload.twclid } : {}),
     }],
@@ -514,7 +550,8 @@ export async function sendTwitterCAPI(payload: CAPILeadPayload): Promise<void> {
 
 /**
  * Fires all enabled CAPI platforms simultaneously.
- * Non-blocking: errors from one platform don't affect others.
+ * Loads all pixel configs in a single DB query, then fires each platform in parallel.
+ * Non-blocking: errors from one platform never affect others.
  * Gated on marketing_consent — never fires without explicit user consent.
  *
  * @param payload - Lead event data (PII will be hashed in-flight, never logged)
@@ -526,29 +563,32 @@ export async function fireAllCAPI(
 ): Promise<void> {
   if (!marketingConsent) return;
 
+  // Single DB round-trip for all 8 platforms (was 8 separate queries)
+  const configs = await loadAllPixelConfigs();
+
   await Promise.allSettled([
-    sendMetaCAPI(payload).catch((err: Error) => {
+    sendMetaCAPI(payload, configs).catch((err: Error) => {
       console.error("[capi:meta]", { error: err.message, page: payload.pageId });
     }),
-    sendGoogleCAPI(payload).catch((err: Error) => {
+    sendGoogleCAPI(payload, configs).catch((err: Error) => {
       console.error("[capi:google]", { error: err.message, page: payload.pageId });
     }),
-    sendTikTokCAPI(payload).catch((err: Error) => {
+    sendTikTokCAPI(payload, configs).catch((err: Error) => {
       console.error("[capi:tiktok]", { error: err.message, page: payload.pageId });
     }),
-    sendGA4CAPI(payload).catch((err: Error) => {
+    sendGA4CAPI(payload, configs).catch((err: Error) => {
       console.error("[capi:ga4]", { error: err.message, page: payload.pageId });
     }),
-    sendLinkedInCAPI(payload).catch((err: Error) => {
+    sendLinkedInCAPI(payload, configs).catch((err: Error) => {
       console.error("[capi:linkedin]", { error: err.message, page: payload.pageId });
     }),
-    sendOutbrainCAPI(payload).catch((err: Error) => {
+    sendOutbrainCAPI(payload, configs).catch((err: Error) => {
       console.error("[capi:outbrain]", { error: err.message, page: payload.pageId });
     }),
-    sendTaboolaCAPI(payload).catch((err: Error) => {
+    sendTaboolaCAPI(payload, configs).catch((err: Error) => {
       console.error("[capi:taboola]", { error: err.message, page: payload.pageId });
     }),
-    sendTwitterCAPI(payload).catch((err: Error) => {
+    sendTwitterCAPI(payload, configs).catch((err: Error) => {
       console.error("[capi:twitter]", { error: err.message, page: payload.pageId });
     }),
   ]);

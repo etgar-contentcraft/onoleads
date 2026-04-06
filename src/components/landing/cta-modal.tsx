@@ -448,6 +448,12 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
           const fbpCookie = document.cookie.split("; ").find(c => c.startsWith("_fbp="));
           return fbpCookie ? fbpCookie.split("=").slice(1).join("=") : null;
         })(),
+        // GA4 _ga cookie — passed to server so Measurement Protocol events use the
+        // same client_id as browser events, linking server conversions to the right user
+        ga_client_id: (() => {
+          const gaCookie = document.cookie.split("; ").find(c => c.startsWith("_ga="));
+          return gaCookie ? gaCookie.split("=").slice(1).join("=") : null;
+        })(),
       };
 
       const res = await fetch("/api/leads", {
