@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
 
   try {
     /* --- Rate limiting --- */
-    const rateResult = checkRateLimit(clientIp, MAX_SUBMISSIONS_PER_MINUTE);
+    const rateResult = checkRateLimit(clientIp, MAX_SUBMISSIONS_PER_MINUTE, 60_000, "leads");
     if (!rateResult.allowed) {
       writeAuditLog({
         action: "rate_limit_exceeded",

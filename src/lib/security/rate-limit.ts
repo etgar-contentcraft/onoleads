@@ -51,17 +51,19 @@ export interface RateLimitResult {
  * @param ip - Client IP address
  * @param maxRequests - Maximum requests per window (default: 5)
  * @param windowMs - Window duration in milliseconds (default: 60000)
+ * @param routeKey - Optional route identifier to scope limits per-endpoint
  * @returns RateLimitResult indicating if the request is allowed
  */
 export function checkRateLimit(
   ip: string,
   maxRequests: number = MAX_REQUESTS_PER_WINDOW,
-  windowMs: number = WINDOW_SIZE_MS
+  windowMs: number = WINDOW_SIZE_MS,
+  routeKey: string = "default"
 ): RateLimitResult {
   cleanupExpiredEntries();
 
   const now = Date.now();
-  const key = `rl:${ip}`;
+  const key = `rl:${routeKey}:${ip}`;
   const entry = rateLimitStore.get(key);
 
   /* No existing entry or window expired: create fresh entry */

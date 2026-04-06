@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   try {
     /* --- Rate limiting --- */
     const clientIp = getClientIp(request.headers);
-    const rateLimitResult = checkRateLimit(clientIp, MAX_EVENTS_PER_MINUTE);
+    const rateLimitResult = checkRateLimit(clientIp, MAX_EVENTS_PER_MINUTE, 60_000, "popup");
 
     if (!rateLimitResult.allowed) {
       return NextResponse.json(

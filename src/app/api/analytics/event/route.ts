@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
   const clientIp = getClientIp(request.headers);
 
   /* --- Rate limiting --- */
-  const rateResult = checkRateLimit(clientIp, MAX_EVENTS_PER_MINUTE);
+  const rateResult = checkRateLimit(clientIp, MAX_EVENTS_PER_MINUTE, 60_000, "analytics");
   if (!rateResult.allowed) {
     return NextResponse.json(
       { error: "rate_limit" },
