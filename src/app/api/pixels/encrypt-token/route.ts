@@ -37,7 +37,11 @@ export async function POST(req: NextRequest) {
     const encrypted = encryptToken(token.trim());
     return NextResponse.json({ encrypted });
   } catch (err) {
-    console.error("[encrypt-token] Error:", err);
-    return NextResponse.json({ error: "Encryption failed" }, { status: 500 });
+    // Log full error details for debugging (no PII in this route)
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const hasKey = !!process.env.CAPI_TOKEN_MASTER_KEY;
+    const keyLen = process.env.CAPI_TOKEN_MASTER_KEY?.length ?? 0;
+    console.error("[encrypt-token] Error:", errMsg, { hasKey, keyLen });
+    return NextResponse.json({ error: errMsg }, { status: 500 });
   }
 }
