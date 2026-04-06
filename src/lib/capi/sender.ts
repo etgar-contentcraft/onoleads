@@ -365,9 +365,13 @@ export async function sendOutbrainCAPI(payload: CAPILeadPayload): Promise<void> 
   const url = `${CAPI_ENDPOINTS.outbrain}?${params.toString()}`;
 
   const start = Date.now();
-  // Outbrain S2S is a GET — send an empty body with GET method via webhook
-  const result = await sendWebhookWithRetry(url, {} as Record<string, unknown>, null);
-  logCapiResult("outbrain", payload.eventId, payload.pageId, result.success, result.statusCode, Date.now() - start);
+  // Outbrain S2S uses GET — sendWebhookWithRetry only does POST so fetch directly
+  try {
+    const res = await fetch(url, { method: "GET" });
+    logCapiResult("outbrain", payload.eventId, payload.pageId, res.ok, res.status, Date.now() - start);
+  } catch {
+    logCapiResult("outbrain", payload.eventId, payload.pageId, false, 0, Date.now() - start);
+  }
 }
 
 // ============================================================================

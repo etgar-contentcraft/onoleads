@@ -439,7 +439,10 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
         behavior_score: computeBehaviorScore(),
         /* CAPI + pixel deduplication */
         event_id: eventId,
-        marketing_consent: marketingConsent,
+        /* Form submission = explicit marketing consent.
+         * The form disclaimer ("מילוי הפרטים...") constitutes opt-in regardless
+         * of whether the user accepted the cookie banner for passive tracking. */
+        marketing_consent: true,
         /* Click IDs for conversion attribution */
         ...clickIds,
       };

@@ -18,6 +18,7 @@ import {
   initializePixels,
   isMarketingConsentGranted,
   firePixelEvent,
+  updateConsentGranted,
   CONSENT_MODE_INIT_SCRIPT,
   type PixelConfig,
 } from "@/lib/analytics/pixel-manager";
@@ -45,6 +46,14 @@ export function fireLeadPixelEvent(
 
   setTimeout(() => {
     if (thisCount !== _leadFireCount) return; // superseded by newer submission
+
+    /* Form submission = explicit marketing consent (form has its own disclaimer).
+     * Force-initialize pixels even if cookie consent banner was never accepted.
+     * This also flushes any queued engagement events (scroll, time-on-page) that
+     * were waiting for consent. initializePixels() is idempotent — no-op if already called. */
+    updateConsentGranted();
+    if (_pixelConfig) initializePixels(_pixelConfig);
+
     firePixelEvent(
       "lead_submit",
       {
