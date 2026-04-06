@@ -464,6 +464,52 @@ function InnerLayout({
   /* Track anonymous page view (skip in heatmap mode) */
   usePageTracking(isHeatmapPreview ? null : (pageId || null));
 
+  /**
+   * Heatmap mode: rewrite all vh-based heights to fixed pixel values.
+   * Inside the 8000px-tall iframe, 100vh = 8000px, making hero sections
+   * enormous. We scan for any element whose computed min-height or height
+   * equals a vh-derived value (proportional to window.innerHeight) and
+   * replace it with the same proportion of a simulated 800px viewport.
+   */
+  useEffect(() => {
+    if (!isHeatmapPreview) return;
+
+    const SIMULATED_VH = 800;
+    const iframeVh = window.innerHeight; // This is the iframe's 100vh (= 8000px)
+
+    /* Only run this fix if we're inside a tall iframe (normal pages skip it) */
+    if (iframeVh < 2000) return;
+
+    function fixVhElements() {
+      const els = Array.from(document.querySelectorAll<HTMLElement>("section, [class*='min-h'], [class*='h-screen'], #lp-root"));
+      for (const el of els) {
+        const cs = getComputedStyle(el);
+
+        /* Fix min-height if it looks like N * vh */
+        const mh = parseFloat(cs.minHeight);
+        if (mh > 500) {
+          const vhFraction = mh / iframeVh; // e.g. 8000/8000 = 1.0 for 100vh, 6400/8000 = 0.8 for 80vh
+          if (vhFraction > 0.1 && vhFraction <= 1.5) {
+            el.style.minHeight = `${Math.round(vhFraction * SIMULATED_VH)}px`;
+          }
+        }
+
+        /* Fix height if it looks like N * vh */
+        const h = parseFloat(cs.height);
+        if (h > 500) {
+          const vhFraction = h / iframeVh;
+          if (Math.abs(vhFraction - Math.round(vhFraction * 10) / 10) < 0.05 && vhFraction > 0.5) {
+            el.style.height = `${Math.round(vhFraction * SIMULATED_VH)}px`;
+          }
+        }
+      }
+    }
+
+    /* Run multiple times to catch dynamically loaded sections */
+    const timers = [50, 200, 600, 1500, 3000].map((d) => setTimeout(fixVhElements, d));
+    return () => timers.forEach(clearTimeout);
+  }, [isHeatmapPreview]);
+
   /* Only pass CTA text override when it matches the page language.
      Global settings may store Hebrew text — don't show it on English pages. */
   const rawCtaText = settings?.default_cta_text;
@@ -528,6 +574,19 @@ function InnerLayout({
 
   return (
     <div id="lp-root" dir={isRtl ? "rtl" : "ltr"} className="min-h-screen bg-white font-heebo overflow-x-hidden">
+      {/* Heatmap mode: the iframe is 8000px tall so the full page renders,
+          but 100vh = 8000px inside the iframe which makes vh-based sections
+          (like hero min-h-screen / min-h-[80vh]) stretch enormously.
+          Fix: use a <script> to physically rewrite inline styles, since
+          Tailwind classes compile to `min-height: 100vh` at build time
+          and CSS-only overrides can't target computed vh values reliably.
+          Also disable animations for a clean static snapshot. */}
+      {isHeatmapPreview && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          * { animation-duration: 0s !important; animation-delay: 0s !important;
+              transition-duration: 0s !important; }
+        `}} />
+      )}
       {/* Scoped color overrides — applied only when brand colors differ from ONO defaults */}
       {hasCustomColors && (
         <style dangerouslySetInnerHTML={{ __html: `
