@@ -2,6 +2,7 @@
 
 /**
  * Career Section - Visual career outcomes with icon cards on a dark background.
+ * Each card gets a distinct accent palette for visual variety even without a background image.
  * Supports both structured CareerItem[] and plain string[] from scraped data.
  */
 
@@ -21,6 +22,62 @@ interface CareerSectionProps {
   content: Record<string, unknown>;
   language: Language;
 }
+
+/**
+ * Per-card accent palettes — ensures each card is visually distinct
+ * even without a background image. Uses inline styles to bypass the
+ * brand color override system (which only patches named Tailwind classes).
+ */
+const CARD_PALETTES = [
+  {
+    accent: "#B8D900",
+    bgFrom: "rgba(184,217,0,0.14)",
+    bgTo: "rgba(184,217,0,0.04)",
+    border: "rgba(184,217,0,0.28)",
+    shadow: "rgba(184,217,0,0.10)",
+    badge: "rgba(184,217,0,0.20)",
+  },
+  {
+    accent: "#60C6F5",
+    bgFrom: "rgba(96,198,245,0.14)",
+    bgTo: "rgba(96,198,245,0.04)",
+    border: "rgba(96,198,245,0.28)",
+    shadow: "rgba(96,198,245,0.10)",
+    badge: "rgba(96,198,245,0.20)",
+  },
+  {
+    accent: "#FF8C69",
+    bgFrom: "rgba(255,140,105,0.14)",
+    bgTo: "rgba(255,140,105,0.04)",
+    border: "rgba(255,140,105,0.28)",
+    shadow: "rgba(255,140,105,0.10)",
+    badge: "rgba(255,140,105,0.20)",
+  },
+  {
+    accent: "#A78BFA",
+    bgFrom: "rgba(167,139,250,0.14)",
+    bgTo: "rgba(167,139,250,0.04)",
+    border: "rgba(167,139,250,0.28)",
+    shadow: "rgba(167,139,250,0.10)",
+    badge: "rgba(167,139,250,0.20)",
+  },
+  {
+    accent: "#34D399",
+    bgFrom: "rgba(52,211,153,0.14)",
+    bgTo: "rgba(52,211,153,0.04)",
+    border: "rgba(52,211,153,0.28)",
+    shadow: "rgba(52,211,153,0.10)",
+    badge: "rgba(52,211,153,0.20)",
+  },
+  {
+    accent: "#FB923C",
+    bgFrom: "rgba(251,146,60,0.14)",
+    bgTo: "rgba(251,146,60,0.04)",
+    border: "rgba(251,146,60,0.28)",
+    shadow: "rgba(251,146,60,0.10)",
+    badge: "rgba(251,146,60,0.20)",
+  },
+];
 
 /** Rotating career-related icons for visual variety */
 const CAREER_ICONS = [
@@ -77,6 +134,7 @@ export function CareerSection({ content, language }: CareerSectionProps) {
   const items = normalizeItems(content.items);
 
   const [inView, setInView] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -118,7 +176,7 @@ export function CareerSection({ content, language }: CareerSectionProps) {
             />
           </div>
         )}
-        {/* Background image (also serves as poster for video) */}
+        {/* Background image */}
         {bgImage && (
           <Image src={bgImage} alt="" fill className={`object-cover ${youtubeId ? "-z-10" : ""}`} sizes="100vw" quality={80} />
         )}
@@ -127,6 +185,8 @@ export function CareerSection({ content, language }: CareerSectionProps) {
           <div className="absolute inset-0" style={{ backgroundColor: `rgba(42,38,40,${overlayOpacity})` }} />
         )}
       </div>
+
+      {/* Subtle dot grid texture */}
       <div className="absolute inset-0 opacity-[0.04]">
         <div
           style={{
@@ -139,6 +199,7 @@ export function CareerSection({ content, language }: CareerSectionProps) {
       </div>
       {/* Decorative gradient orb */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-[#B8D900]/5 blur-[150px]" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full opacity-[0.04] blur-[120px]" style={{ background: "#60C6F5" }} />
 
       <div className="relative z-10 max-w-6xl mx-auto px-5">
         {/* Header */}
@@ -172,18 +233,57 @@ export function CareerSection({ content, language }: CareerSectionProps) {
         {/* Career cards grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-5 mb-12">
           {items.map((item, index) => {
+            const palette = CARD_PALETTES[index % CARD_PALETTES.length];
             const title = (item[`title_${language}` as keyof CareerItem] as string) || item.title_he;
+            const isHovered = hoveredIndex === index;
+
             return (
               <div
                 key={index}
-                className="group bg-white/[0.06] backdrop-blur-sm rounded-2xl border border-white/[0.08] p-5 md:p-6 text-center hover:bg-white/[0.12] hover:border-[#B8D900]/30 hover:-translate-y-1 transition-all duration-300 opacity-0"
-                style={{ animation: inView ? `fade-in-up 0.5s ease-out ${0.2 + index * 0.07}s forwards` : "none" }}
+                className="group relative rounded-2xl p-5 md:p-6 text-center cursor-default overflow-hidden transition-all duration-300 opacity-0"
+                style={{
+                  background: `linear-gradient(135deg, ${palette.bgFrom}, ${palette.bgTo})`,
+                  border: `1px solid ${isHovered ? palette.border : "rgba(255,255,255,0.07)"}`,
+                  boxShadow: isHovered ? `0 8px 32px ${palette.shadow}` : "none",
+                  transform: isHovered ? "translateY(-4px)" : "translateY(0)",
+                  animation: inView ? `fade-in-up 0.5s ease-out ${0.2 + index * 0.07}s forwards` : "none",
+                }}
+                onMouseEnter={() => setHoveredIndex(index)}
+                onMouseLeave={() => setHoveredIndex(null)}
               >
+                {/* Index number badge — top corner */}
+                <div
+                  className="absolute top-3 font-heebo text-xs font-bold opacity-50"
+                  style={{
+                    [isRtl ? "left" : "right"]: "12px",
+                    color: palette.accent,
+                  }}
+                >
+                  {String(index + 1).padStart(2, "0")}
+                </div>
+
                 {/* Icon circle */}
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-[#B8D900]/10 flex items-center justify-center text-[#B8D900] mb-4 group-hover:bg-[#B8D900] group-hover:text-[#2a2628] transition-all duration-300">
+                <div
+                  className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-4 transition-all duration-300"
+                  style={{
+                    background: isHovered ? palette.accent : palette.badge,
+                    color: isHovered ? "#2a2628" : palette.accent,
+                  }}
+                >
                   {CAREER_ICONS[index % CAREER_ICONS.length]}
                 </div>
+
+                {/* Title */}
                 <h3 className="font-heading font-bold text-white text-sm md:text-base leading-snug">{title}</h3>
+
+                {/* Bottom accent line */}
+                <div
+                  className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-2xl transition-all duration-300"
+                  style={{
+                    background: palette.accent,
+                    opacity: isHovered ? 1 : 0.4,
+                  }}
+                />
               </div>
             );
           })}

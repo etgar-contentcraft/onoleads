@@ -67,7 +67,7 @@ function AnimatedStat({ item, language, inView, index }: { item: StatItem; langu
 
   return (
     <div
-      className="relative flex flex-col items-center text-center p-6 md:p-8 rounded-2xl bg-white/[0.04] border border-white/[0.06] backdrop-blur-sm opacity-0 hover:bg-white/[0.08] transition-all duration-300"
+      className="relative flex flex-col items-center text-center p-6 md:p-8 rounded-2xl bg-white/[0.08] border border-white/[0.12] backdrop-blur-sm opacity-0 hover:bg-white/[0.13] transition-all duration-300"
       style={{
         animation: inView ? `scale-in 0.5s ease-out ${index * 0.12}s forwards` : "none",
       }}
