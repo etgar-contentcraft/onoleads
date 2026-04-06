@@ -127,6 +127,7 @@ const leadSchema = z.object({
   event_id: z.string().max(64).optional().nullable(),
   /* Consent state — gate CAPI calls on this */
   marketing_consent: z.boolean().optional().nullable(),
+  fbp: z.string().max(200).optional().nullable(),     // Meta _fbp cookie from browser
 });
 
 /**
@@ -402,6 +403,8 @@ export async function POST(request: NextRequest) {
         twclid: data.twclid || null,
         pageId,
         cookieId,
+        fullName: nameResult.value || null,
+        fbp: data.fbp || null,
       };
       // Fire-and-forget: don't await — CAPI runs in background after response
       fireAllCAPI(capiPayload, true).catch((err) => {

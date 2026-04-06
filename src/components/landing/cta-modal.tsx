@@ -445,6 +445,11 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
         marketing_consent: true,
         /* Click IDs for conversion attribution */
         ...clickIds,
+        fbp: (() => {
+          // Read Meta's _fbp cookie set by browser-side pixel
+          const fbpCookie = document.cookie.split("; ").find(c => c.startsWith("_fbp="));
+          return fbpCookie ? fbpCookie.split("=").slice(1).join("=") : null;
+        })(),
       };
 
       const res = await fetch("/api/leads", {

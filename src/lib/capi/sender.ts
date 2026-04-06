@@ -45,6 +45,10 @@ export interface CAPILeadPayload {
   pageId: string | null;
   /** anonymous cookie ID */
   cookieId: string;
+  /** Full name from form (used to derive fn/ln hashes — never log) */
+  fullName?: string | null;
+  /** _fbp cookie value set by Meta Pixel in browser */
+  fbp?: string | null;
 }
 
 interface PixelRow {
@@ -54,6 +58,14 @@ interface PixelRow {
   access_token_enc: string | null;
   test_event_code: string | null;
   additional_config: Record<string, string | null>;
+}
+
+/** Splits a full name string into first/last components */
+function splitName(fullName: string | null | undefined): { first: string | null; last: string | null } {
+  if (!fullName?.trim()) return { first: null, last: null };
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 1) return { first: parts[0], last: null };
+  return { first: parts[0], last: parts.slice(1).join(" ") };
 }
 
 // ============================================================================
@@ -108,21 +120,25 @@ export async function sendMetaCAPI(payload: CAPILeadPayload): Promise<void> {
   const eventTime = Math.floor(Date.now() / 1000);
 
   // Hash PII — never log these values
-  const userData = buildMetaUserData(payload.email, payload.phone, null);
+  const { first, last } = splitName(payload.fullName);
+  const userData = buildMetaUserData(payload.email, payload.phone, first, last);
+
+  // Israel country hash — all leads are Israeli (hash of lowercase "il" per Meta spec)
+  const countryHash = hashPii("il");
 
   // Add non-hashed signals
   const fullUserData: Record<string, unknown> = {
     ...userData,
+    ...(countryHash ? { country: countryHash } : {}),
     client_ip_address: payload.clientIp,
     client_user_agent: payload.userAgent,
     external_id: hashPii(payload.cookieId),
   };
+  // fbc from explicit click ID parameter
   if (payload.fbc) fullUserData.fbc = payload.fbc;
-  // _fbp cookie is set by the Meta Pixel — pass it if stored
-  if (payload.fbclid && !payload.fbc) {
-    // Construct fbc if not already done client-side
-    fullUserData.fbc = `fb.1.${Date.now()}.${payload.fbclid}`;
-  }
+  else if (payload.fbclid) fullUserData.fbc = `fb.1.${Date.now()}.${payload.fbclid}`;
+  // fbp from browser-side _fbp cookie (set by Meta Pixel)
+  if (payload.fbp) fullUserData.fbp = payload.fbp;
 
   const body = {
     data: [{
@@ -181,12 +197,19 @@ export async function sendGoogleCAPI(payload: CAPILeadPayload): Promise<void> {
       conversion_value: 1.0,
       currency_code: "ILS",
       order_id: payload.eventId,
-      user_identifiers: [
-        {
-          hashed_email: hashPii(payload.email),
-          hashed_phone_number: hashPhone(payload.phone),
-        },
-      ],
+      user_identifiers: (() => {
+        const { first, last } = splitName(payload.fullName);
+        const ids: Record<string, string | undefined> = {};
+        const em = hashPii(payload.email);
+        const ph = hashPhone(payload.phone);
+        const fn = hashPii(first);
+        const ln = hashPii(last);
+        if (em) ids.hashed_email = em;
+        if (ph) ids.hashed_phone_number = ph;
+        if (fn) ids.hashed_first_name = fn;
+        if (ln) ids.hashed_last_name = ln;
+        return [ids];
+      })(),
     }],
     partial_failure: true,
   };
@@ -229,13 +252,22 @@ export async function sendTikTokCAPI(payload: CAPILeadPayload): Promise<void> {
       event: "SubmitForm",
       event_id: payload.eventId,
       event_time: Math.floor(Date.now() / 1000),
-      user: {
-        ...contactInfo,
-        ...(payload.ttclid ? { ttclid: payload.ttclid } : {}),
-        external_id: hashPii(payload.cookieId),
-        ip: payload.clientIp,
-        user_agent: payload.userAgent,
-      },
+      user: (() => {
+        const { first, last } = splitName(payload.fullName);
+        const fn = hashPii(first);
+        const ln = hashPii(last);
+        const country = hashPii("il");
+        return {
+          ...contactInfo,
+          ...(fn ? { hashed_first_name: fn } : {}),
+          ...(ln ? { hashed_last_name: ln } : {}),
+          ...(country ? { hashed_country: country } : {}),
+          ...(payload.ttclid ? { ttclid: payload.ttclid } : {}),
+          external_id: hashPii(payload.cookieId),
+          ip: payload.clientIp,
+          user_agent: payload.userAgent,
+        };
+      })(),
       properties: {
         url: payload.sourceUrl,
       },
@@ -274,8 +306,16 @@ export async function sendGA4CAPI(payload: CAPILeadPayload): Promise<void> {
   const apiSecret = safeDecryptToken(config.access_token_enc);
   if (!apiSecret) return;
 
+  const { first: ga4First, last: ga4Last } = splitName(payload.fullName);
+  const userProps: Record<string, { value: string }> = {};
+  if (payload.email) userProps.email = { value: payload.email };
+  if (payload.phone) userProps.phone_number = { value: payload.phone };
+  if (ga4First) userProps.first_name = { value: ga4First };
+  if (ga4Last) userProps.last_name = { value: ga4Last };
+
   const body = {
     client_id: payload.cookieId || "server",
+    ...(Object.keys(userProps).length > 0 ? { user_properties: userProps } : {}),
     events: [{
       name: "generate_lead",
       params: {
@@ -314,7 +354,16 @@ export async function sendLinkedInCAPI(payload: CAPILeadPayload): Promise<void> 
 
   const userIds: Array<Record<string, string>> = [];
   const emailHash = payload.email ? hashPii(payload.email) : null;
+  const phoneHash = payload.phone ? hashPhone(payload.phone) : null;
+  const { first, last } = splitName(payload.fullName);
+  const fnHash = hashPii(first);
+  const lnHash = hashPii(last);
+  const countryHash = hashPii("il");
   if (emailHash) userIds.push({ idType: "SHA256_EMAIL", idValue: emailHash });
+  if (phoneHash) userIds.push({ idType: "SHA256_PHONE", idValue: phoneHash });
+  if (fnHash) userIds.push({ idType: "SHA256_FIRST_NAME", idValue: fnHash });
+  if (lnHash) userIds.push({ idType: "SHA256_LAST_NAME", idValue: lnHash });
+  if (countryHash) userIds.push({ idType: "SHA256_COUNTRY", idValue: countryHash });
   if (payload.li_fat_id) {
     userIds.push({ idType: "LINKEDIN_FIRST_PARTY_ADS_TRACKING_UUID", idValue: payload.li_fat_id });
   }
@@ -428,11 +477,16 @@ export async function sendTwitterCAPI(payload: CAPILeadPayload): Promise<void> {
   const accessToken = safeDecryptToken(config.access_token_enc);
   if (!accessToken) return;
 
-  const identifiers: Array<Record<string, string>> = [];
   const twitterEmailHash = payload.email ? hashPii(payload.email) : null;
   const twitterPhoneHash = payload.phone ? hashPhone(payload.phone) : null;
+  const { first: twFirst, last: twLast } = splitName(payload.fullName);
+  const twFirstHash = hashPii(twFirst);
+  const twLastHash = hashPii(twLast);
+  const identifiers: Array<Record<string, string>> = [];
   if (twitterEmailHash) identifiers.push({ hashed_email: twitterEmailHash });
   if (twitterPhoneHash) identifiers.push({ hashed_phone_number: twitterPhoneHash });
+  if (twFirstHash) identifiers.push({ hashed_first_name: twFirstHash });
+  if (twLastHash) identifiers.push({ hashed_last_name: twLastHash });
   if (identifiers.length === 0) return;
 
   const body = {

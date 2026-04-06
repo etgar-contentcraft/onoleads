@@ -17,17 +17,28 @@ const KEY_BYTES = 32;  // 256-bit key
 
 /**
  * Derives the 32-byte AES key from the CAPI_TOKEN_MASTER_KEY env var.
- * Throws if the env var is missing or too short.
+ * Accepts both standard base64 (44 chars, with padding) and
+ * base64url (43 chars, no padding, uses - and _ instead of + and /).
+ * Throws if the env var is missing or decodes to fewer than 32 bytes.
  */
 function getMasterKey(): Buffer {
   const master = process.env.CAPI_TOKEN_MASTER_KEY;
-  if (!master || master.length < 44) {
+  if (!master || master.trim().length < 10) {
     throw new Error(
-      "CAPI_TOKEN_MASTER_KEY env var missing or too short — must be base64(32 bytes). " +
-      "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\""
+      "CAPI_TOKEN_MASTER_KEY env var missing or too short. " +
+      "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64url'))\""
     );
   }
-  return Buffer.from(master, "base64").subarray(0, KEY_BYTES);
+  // Normalize base64url → standard base64 so Buffer.from handles both formats
+  const normalized = master.trim().replace(/-/g, "+").replace(/_/g, "/");
+  const key = Buffer.from(normalized, "base64");
+  if (key.length < KEY_BYTES) {
+    throw new Error(
+      `CAPI_TOKEN_MASTER_KEY decoded to only ${key.length} bytes — need ${KEY_BYTES}. ` +
+      "Re-generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64url'))\""
+    );
+  }
+  return key.subarray(0, KEY_BYTES);
 }
 
 /**
