@@ -1,13 +1,13 @@
 /**
- * Click Heatmap — renders a scrollable preview of the landing page with
- * a canvas overlay showing click density as a coloured gradient.
+ * Click Heatmap — scrollable landing page preview with click density overlay.
  *
- * Key design decisions:
- *   1. Iframe always renders at IFRAME_RENDER_HEIGHT to avoid circular shrinking.
- *   2. Desktop/Mobile toggle renders the iframe at the correct viewport width
- *      so heatmap dots align with the layout the visitor actually saw.
- *   3. detectedHeight only grows (never shrinks) to prevent layout jitter.
- *   4. postMessage height reporter injected for reliable async updates.
+ * Rendering strategy (avoids the vh circular dependency):
+ *   1. iframe loads at INITIAL_VIEWPORT (800px) — same as a real browser
+ *   2. Page renders normally: 100vh = 800px, hero is normal size
+ *   3. After load, inject CSS into iframe to FREEZE vh-based classes at 800px values
+ *   4. Read scrollHeight (the full page height with correct proportions)
+ *   5. Expand iframe to scrollHeight — vh classes stay frozen so layout doesn't change
+ *   6. Overlay canvas at the correct height — dots align perfectly
  */
 "use client";
 
@@ -50,31 +50,39 @@ interface ClickHeatmapProps {
 
 /* ─── Constants ──────────────────────────────── */
 
-/** Radius of each heat dot in CSS pixels */
 const DOT_RADIUS = 22;
-
-/** Max click events to fetch */
 const MAX_CLICK_EVENTS = 5000;
+const SCROLL_VIEWPORT = 650;
+const MOBILE_WIDTH = 390;
 
-/** Scroll viewport height */
-const VIEWPORT_HEIGHT = 650;
+/**
+ * Initial iframe viewport height — simulates a real browser window.
+ * 100vh inside the iframe = this value, so hero sections render correctly.
+ */
+const INITIAL_VIEWPORT = 800;
 
-/** Iframe is always this tall so the full page renders regardless of detection */
-const IFRAME_RENDER_HEIGHT = 8000;
-
-/** Mobile viewport width — matches common phones (iPhone 14/15 logical width) */
-const MOBILE_VIEWPORT_WIDTH = 390;
-
-/** Height poll delays after iframe load */
-const HEIGHT_POLL_DELAYS = [300, 800, 1500, 3000, 5000, 8000];
+/**
+ * CSS injected into the iframe BEFORE expanding it to full page height.
+ * Freezes all Tailwind vh-based utility classes at their 800px-equivalent values
+ * so they don't re-compute when the iframe grows to scrollHeight.
+ */
+const VH_FREEZE_CSS = `
+  .min-h-screen, .md\\:min-h-screen, .lg\\:min-h-screen { min-height: ${INITIAL_VIEWPORT}px !important; }
+  .min-h-\\[80vh\\], .md\\:min-h-\\[80vh\\] { min-height: ${Math.round(INITIAL_VIEWPORT * 0.8)}px !important; }
+  .min-h-\\[90vh\\], .md\\:min-h-\\[90vh\\] { min-height: ${Math.round(INITIAL_VIEWPORT * 0.9)}px !important; }
+  .min-h-\\[70vh\\], .md\\:min-h-\\[70vh\\] { min-height: ${Math.round(INITIAL_VIEWPORT * 0.7)}px !important; }
+  .h-screen, .md\\:h-screen { height: ${INITIAL_VIEWPORT}px !important; }
+  .h-\\[100vh\\] { height: ${INITIAL_VIEWPORT}px !important; }
+  .h-\\[80vh\\] { height: ${Math.round(INITIAL_VIEWPORT * 0.8)}px !important; }
+  .h-\\[90vh\\] { height: ${Math.round(INITIAL_VIEWPORT * 0.9)}px !important; }
+  .max-h-screen { max-height: ${INITIAL_VIEWPORT}px !important; }
+  html, body { overflow: visible !important; height: auto !important; }
+  * { animation-duration: 0s !important; transition-duration: 0s !important; }
+  [style*="position: fixed"] { position: absolute !important; }
+`;
 
 /* ─── Heatmap drawing ────────────────────────── */
 
-/**
- * Draws a heatmap overlay on a canvas.
- * Builds an intensity map from semi-transparent circles, then colorizes
- * into a blue → cyan → green → yellow → red gradient.
- */
 function drawHeatmap(
   canvas: HTMLCanvasElement,
   points: { x: number; y: number }[],
@@ -131,17 +139,15 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
   const [clicks, setClicks] = useState<ClickPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
-  const [iframeReady, setIframeReady] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showStats, setShowStats] = useState(false);
   const [scrollPct, setScrollPct] = useState(0);
 
-  /**
-   * Separate detected heights for desktop & mobile.
-   * Only grow, never shrink, per viewport mode.
-   */
-  const [desktopHeight, setDesktopHeight] = useState(0);
-  const [mobileHeight, setMobileHeight] = useState(0);
+  /** Phase: "loading-page" → "measuring" → "ready" */
+  const [phase, setPhase] = useState<"loading-page" | "measuring" | "ready">("loading-page");
+
+  /** Full page height after measuring — iframe will expand to this */
+  const [pageHeight, setPageHeight] = useState(INITIAL_VIEWPORT);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -149,18 +155,7 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const supabase = createClient();
-
-  /** Whether we're in mobile preview mode */
   const isMobile = viewMode === "mobile";
-
-  /** Current detected height for active mode */
-  const detectedHeight = isMobile ? mobileHeight : desktopHeight;
-  const setDetectedHeight = isMobile
-    ? (h: number) => setMobileHeight((p) => Math.max(p, h))
-    : (h: number) => setDesktopHeight((p) => Math.max(p, h));
-
-  /** Effective container height — detected or fallback */
-  const effectiveHeight = detectedHeight > 500 ? detectedHeight : IFRAME_RENDER_HEIGHT;
 
   /* ── Data fetching ── */
 
@@ -206,7 +201,7 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
 
   useEffect(() => { fetchClicks(); }, [fetchClicks]);
 
-  /* ── Click filtering by device ── */
+  /* ── Click filtering ── */
 
   const filteredClicks = clicks.filter((c) => {
     if (isMobile) return c.device_type === "mobile";
@@ -216,76 +211,83 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
   const desktopCount = clicks.filter((c) => c.device_type === "desktop" || c.device_type === "tablet").length;
   const mobileCount = clicks.filter((c) => c.device_type === "mobile").length;
 
-  /* ── Height detection ── */
+  /* ── Iframe lifecycle ── */
 
-  const readIframeHeight = useCallback(() => {
-    try {
-      const doc = iframeRef.current?.contentDocument
-        ?? iframeRef.current?.contentWindow?.document;
-      if (!doc) return;
-      const h = Math.max(doc.documentElement?.scrollHeight ?? 0, doc.body?.scrollHeight ?? 0);
-      if (h > 500) setDetectedHeight(h);
-    } catch { /* blocked */ }
-  }, [isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /** Inject postMessage reporter */
-  const injectHeightReporter = useCallback(() => {
-    try {
-      const doc = iframeRef.current?.contentDocument ?? iframeRef.current?.contentWindow?.document;
-      if (!doc?.body) return;
-      const script = doc.createElement("script");
-      script.textContent = `(function(){
-        function r(){var h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight);
-        parent.postMessage({type:'__ono_h',h:h},'*');}
-        r();if(typeof ResizeObserver!=='undefined')new ResizeObserver(r).observe(document.body);
-        addEventListener('load',function(){setTimeout(r,300);setTimeout(r,1000);setTimeout(r,3000);});
-      })();`;
-      doc.body.appendChild(script);
-    } catch { /* blocked */ }
-  }, []);
-
-  /** Listen for postMessage height */
+  /** Reset when switching device modes */
   useEffect(() => {
-    function onMsg(e: MessageEvent) {
-      if (e.data?.type === "__ono_h" && typeof e.data.h === "number" && e.data.h > 500) {
-        setDetectedHeight(e.data.h);
-      }
-    }
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, [isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /** Reset iframe state when switching modes */
-  useEffect(() => {
-    setIframeReady(false);
+    setPhase("loading-page");
+    setPageHeight(INITIAL_VIEWPORT);
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [viewMode]);
 
-  /** On iframe load */
+  /**
+   * After iframe loads at INITIAL_VIEWPORT height:
+   * 1. Wait for dynamic content (lazy sections, images)
+   * 2. Inject CSS to freeze vh-based classes
+   * 3. Read scrollHeight
+   * 4. Expand iframe to full page height
+   */
   const handleIframeLoad = useCallback(() => {
-    setIframeReady(true);
-    readIframeHeight();
-    injectHeightReporter();
-    const timers = HEIGHT_POLL_DELAYS.map((d) => setTimeout(() => readIframeHeight(), d));
+    setPhase("measuring");
+
+    /* Give the page time to load dynamic sections, images, fonts */
+    const measureAndExpand = (attempt: number) => {
+      try {
+        const doc = iframeRef.current?.contentDocument
+          ?? iframeRef.current?.contentWindow?.document;
+        if (!doc?.body) return;
+
+        /* Step 1: Inject vh-freeze CSS (only once) */
+        if (!doc.getElementById("__heatmap_vh_freeze")) {
+          const style = doc.createElement("style");
+          style.id = "__heatmap_vh_freeze";
+          style.textContent = VH_FREEZE_CSS;
+          doc.head.appendChild(style);
+        }
+
+        /* Step 2: Read the full scroll height */
+        const h = Math.max(
+          doc.documentElement?.scrollHeight ?? 0,
+          doc.body?.scrollHeight ?? 0
+        );
+
+        if (h > 500) {
+          setPageHeight((prev) => Math.max(prev, h));
+        }
+
+        /* After the last attempt, mark as ready */
+        if (attempt >= 4) {
+          setPhase("ready");
+        }
+      } catch {
+        /* Cross-origin — can't inject, use fallback */
+        setPageHeight(5000);
+        setPhase("ready");
+      }
+    };
+
+    /* Multiple attempts to catch lazy-loaded content */
+    const delays = [100, 500, 1500, 3000, 5000];
+    const timers = delays.map((d, i) => setTimeout(() => measureAndExpand(i), d));
+
     return () => timers.forEach(clearTimeout);
-  }, [readIframeHeight, injectHeightReporter]);
+  }, []);
 
   /* ── Canvas rendering ── */
 
   useEffect(() => {
-    if (!canvasRef.current || !containerRef.current || !iframeReady || !showHeatmap) return;
+    if (!canvasRef.current || !containerRef.current || phase !== "ready" || !showHeatmap) return;
 
-    /** Width of the actual iframe viewport (what the visitor saw at that device) */
-    const canvasWidth = containerRef.current.offsetWidth;
-    const canvasHeight = effectiveHeight;
+    const width = containerRef.current.offsetWidth;
+    const height = pageHeight;
 
     const points = filteredClicks.map((c) => ({
-      x: (c.x_pct / 100) * canvasWidth,
-      y: (c.y_pct / 100) * canvasHeight,
+      x: (c.x_pct / 100) * width,
+      y: (c.y_pct / 100) * height,
     }));
 
-    drawHeatmap(canvasRef.current, points, canvasWidth, canvasHeight);
-  }, [filteredClicks, iframeReady, showHeatmap, effectiveHeight, viewMode]);
+    drawHeatmap(canvasRef.current, points, width, height);
+  }, [filteredClicks, phase, showHeatmap, pageHeight, viewMode]);
 
   /* ── Scroll indicator ── */
 
@@ -298,7 +300,7 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
-  }, [iframeReady, effectiveHeight]);
+  }, [phase, pageHeight]);
 
   /* ── Stats ── */
 
@@ -323,6 +325,9 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
     });
   };
 
+  /** The iframe height: starts at INITIAL_VIEWPORT, expands to pageHeight after measuring */
+  const iframeHeight = phase === "loading-page" ? INITIAL_VIEWPORT : pageHeight;
+
   /* ── Render ── */
 
   return (
@@ -335,21 +340,18 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
               מפת חום — לחיצות
             </CardTitle>
             <CardDescription className="text-xs">
-              {loading ? "טוען..." : `${filteredClicks.length.toLocaleString("he-IL")} לחיצות (${viewMode === "desktop" ? "מחשב" : "נייד"})`}
+              {loading ? "טוען..." : `${filteredClicks.length.toLocaleString("he-IL")} לחיצות (${isMobile ? "נייד" : "מחשב"})`}
               {!loading && clicks.length === 0 && " — אין נתונים עדיין"}
             </CardDescription>
           </div>
 
-          {/* Toolbar */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            {/* Device toggle — pill buttons */}
+            {/* Device toggle */}
             <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode("desktop")}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                  viewMode === "desktop"
-                    ? "bg-white text-[#2a2628] shadow-sm"
-                    : "text-[#9A969A] hover:text-[#716C70]"
+                  !isMobile ? "bg-white text-[#2a2628] shadow-sm" : "text-[#9A969A] hover:text-[#716C70]"
                 }`}
               >
                 <Monitor className="w-3.5 h-3.5" />
@@ -359,9 +361,7 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
               <button
                 onClick={() => setViewMode("mobile")}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                  viewMode === "mobile"
-                    ? "bg-white text-[#2a2628] shadow-sm"
-                    : "text-[#9A969A] hover:text-[#716C70]"
+                  isMobile ? "bg-white text-[#2a2628] shadow-sm" : "text-[#9A969A] hover:text-[#716C70]"
                 }`}
               >
                 <Smartphone className="w-3.5 h-3.5" />
@@ -400,68 +400,72 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
           </div>
         ) : (
           <>
-            {/* ── Heatmap viewer ── */}
             <div className="relative">
+              {/* Phase indicator */}
+              {phase !== "ready" && (
+                <div className="absolute top-3 right-3 z-20 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-sm border border-gray-200 flex items-center gap-2">
+                  <svg className="animate-spin h-3.5 w-3.5 text-[#B8D900]" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span className="text-xs text-[#716C70]">
+                    {phase === "loading-page" ? "טוען עמוד..." : "מודד גובה..."}
+                  </span>
+                </div>
+              )}
+
+              {/* Scrollable viewport */}
               <div
                 ref={scrollRef}
                 className="rounded-xl border border-gray-200 bg-gray-100"
-                style={{
-                  height: `${VIEWPORT_HEIGHT}px`,
-                  overflowY: "scroll",
-                  overflowX: "hidden",
-                }}
+                style={{ height: `${SCROLL_VIEWPORT}px`, overflowY: "scroll", overflowX: "hidden" }}
               >
-                {/*
-                  Mobile mode: center a narrow iframe (390px) with a phone-like frame.
-                  Desktop mode: full-width iframe.
-                */}
                 <div
                   className={`relative ${isMobile ? "mx-auto" : "w-full"}`}
-                  style={isMobile ? { width: `${MOBILE_VIEWPORT_WIDTH}px` } : undefined}
+                  style={isMobile ? { width: `${MOBILE_WIDTH}px` } : undefined}
                 >
-                  {/* Mobile device frame chrome */}
+                  {/* Mobile phone frame */}
                   {isMobile && (
                     <div className="sticky top-0 z-10 bg-[#1a1a1a] rounded-t-2xl px-4 py-1.5 flex items-center justify-between">
                       <span className="text-[10px] text-gray-400">9:41</span>
                       <div className="w-20 h-4 bg-[#333] rounded-full" />
-                      <div className="flex items-center gap-1">
-                        <div className="w-3 h-2 border border-gray-500 rounded-sm"><div className="w-1.5 h-full bg-gray-400 rounded-sm" /></div>
-                      </div>
+                      <div className="w-4 h-2.5 border border-gray-500 rounded-sm" />
                     </div>
                   )}
 
-                  {/* Inner container — full content height */}
+                  {/* Page container — clips to pageHeight */}
                   <div
                     ref={containerRef}
                     className={`relative ${isMobile ? "bg-white" : ""}`}
                     style={{
-                      width: isMobile ? `${MOBILE_VIEWPORT_WIDTH}px` : "100%",
-                      height: `${effectiveHeight}px`,
+                      width: isMobile ? `${MOBILE_WIDTH}px` : "100%",
+                      height: `${pageHeight}px`,
                       overflow: "hidden",
                     }}
                   >
+                    {/* Iframe: starts at INITIAL_VIEWPORT, expands after measuring */}
                     <iframe
                       ref={iframeRef}
-                      key={viewMode} /* Force remount when switching modes */
+                      key={viewMode}
                       src={iframeUrl}
                       title="מפת חום"
                       className="border-0 block"
                       style={{
-                        width: isMobile ? `${MOBILE_VIEWPORT_WIDTH}px` : "100%",
-                        height: `${IFRAME_RENDER_HEIGHT}px`,
+                        width: isMobile ? `${MOBILE_WIDTH}px` : "100%",
+                        height: `${iframeHeight}px`,
                         pointerEvents: "none",
                       }}
                       onLoad={handleIframeLoad}
                     />
 
-                    {/* Canvas overlay */}
-                    {showHeatmap && (
+                    {/* Canvas overlay — only shown when ready */}
+                    {showHeatmap && phase === "ready" && (
                       <canvas
                         ref={canvasRef}
                         className="absolute top-0 left-0 pointer-events-none"
                         style={{
-                          width: isMobile ? `${MOBILE_VIEWPORT_WIDTH}px` : "100%",
-                          height: `${effectiveHeight}px`,
+                          width: isMobile ? `${MOBILE_WIDTH}px` : "100%",
+                          height: `${pageHeight}px`,
                           mixBlendMode: "multiply",
                           opacity: 0.85,
                         }}
@@ -469,7 +473,7 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
                     )}
 
                     {/* Empty state */}
-                    {filteredClicks.length === 0 && (
+                    {filteredClicks.length === 0 && phase === "ready" && (
                       <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm">
                         <div className="text-center space-y-2">
                           <MousePointerClick className="w-10 h-10 mx-auto text-[#E5E5E5]" />
@@ -477,12 +481,10 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
                             אין לחיצות {isMobile ? "מנייד" : "ממחשב"} לתקופה זו
                           </p>
                           <p className="text-xs text-[#CBCBCB]">
-                            {isMobile
-                              ? desktopCount > 0
-                                ? `יש ${desktopCount} לחיצות ממחשב — נסה לעבור לתצוגת מחשב`
-                                : "נתונים יופיעו לאחר שמבקרים ילחצו בדף"
-                              : mobileCount > 0
-                                ? `יש ${mobileCount} לחיצות מנייד — נסה לעבור לתצוגת נייד`
+                            {isMobile && desktopCount > 0
+                              ? `יש ${desktopCount} לחיצות ממחשב — נסה לעבור`
+                              : !isMobile && mobileCount > 0
+                                ? `יש ${mobileCount} לחיצות מנייד — נסה לעבור`
                                 : "נתונים יופיעו לאחר שמבקרים ילחצו בדף"
                             }
                           </p>
@@ -493,41 +495,39 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
                 </div>
               </div>
 
-              {/* Scroll position indicator */}
-              <div className="absolute left-1.5 top-2 bottom-2 w-1.5 rounded-full bg-black/5 pointer-events-none">
-                <div
-                  className="w-full rounded-full bg-[#B8D900] transition-all duration-150"
-                  style={{
-                    height: `${Math.max(10, (VIEWPORT_HEIGHT / effectiveHeight) * 100)}%`,
-                    marginTop: `${(scrollPct / 100) * (100 - Math.max(10, (VIEWPORT_HEIGHT / effectiveHeight) * 100))}%`,
-                  }}
-                />
-              </div>
+              {/* Scroll indicator */}
+              {pageHeight > SCROLL_VIEWPORT && (
+                <div className="absolute left-1.5 top-2 bottom-2 w-1.5 rounded-full bg-black/5 pointer-events-none">
+                  <div
+                    className="w-full rounded-full bg-[#B8D900] transition-all duration-150"
+                    style={{
+                      height: `${Math.max(10, (SCROLL_VIEWPORT / pageHeight) * 100)}%`,
+                      marginTop: `${(scrollPct / 100) * (100 - Math.max(10, (SCROLL_VIEWPORT / pageHeight) * 100))}%`,
+                    }}
+                  />
+                </div>
+              )}
 
-              {/* Quick scroll buttons */}
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 flex flex-col gap-1">
-                <button
-                  onClick={() => scrollTo("top")}
-                  className="w-7 h-7 rounded-full bg-white/90 border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors"
-                  title="לראש העמוד"
-                >
-                  <ChevronUp className="w-3.5 h-3.5 text-[#716C70]" />
-                </button>
-                <button
-                  onClick={() => scrollTo("bottom")}
-                  className="w-7 h-7 rounded-full bg-white/90 border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors"
-                  title="לתחתית העמוד"
-                >
-                  <ChevronDown className="w-3.5 h-3.5 text-[#716C70]" />
-                </button>
-              </div>
+              {/* Scroll buttons */}
+              {pageHeight > SCROLL_VIEWPORT && (
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex flex-col gap-1">
+                  <button onClick={() => scrollTo("top")} className="w-7 h-7 rounded-full bg-white/90 border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50" title="לראש העמוד">
+                    <ChevronUp className="w-3.5 h-3.5 text-[#716C70]" />
+                  </button>
+                  <button onClick={() => scrollTo("bottom")} className="w-7 h-7 rounded-full bg-white/90 border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50" title="לתחתית העמוד">
+                    <ChevronDown className="w-3.5 h-3.5 text-[#716C70]" />
+                  </button>
+                </div>
+              )}
             </div>
 
-            <p className="text-[10px] text-[#CBCBCB] text-center -mt-1">
-              ↕ גלול בתוך המפה כדי לראות את כל העמוד
-            </p>
+            {pageHeight > SCROLL_VIEWPORT && (
+              <p className="text-[10px] text-[#CBCBCB] text-center -mt-1">
+                ↕ גלול בתוך המפה כדי לראות את כל העמוד
+              </p>
+            )}
 
-            {/* ── Expandable stats ── */}
+            {/* Expandable stats */}
             {topElements.length > 0 && (
               <div className="border-t border-gray-100 pt-2">
                 <button
@@ -537,7 +537,6 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
                   {showStats ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                   אלמנטים פופולריים ({topElements.length})
                 </button>
-
                 {showStats && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
                     {topElements.map((item, i) => {
@@ -545,12 +544,8 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
                       return (
                         <div key={i} className="bg-gray-50 rounded-lg p-2.5 space-y-1.5">
                           <div className="flex items-center justify-between gap-1">
-                            <span className="text-[11px] text-[#716C70] truncate" title={item.element}>
-                              {item.element}
-                            </span>
-                            <span className="text-[11px] font-bold text-[#2a2628] tabular-nums shrink-0">
-                              {item.count}
-                            </span>
+                            <span className="text-[11px] text-[#716C70] truncate" title={item.element}>{item.element}</span>
+                            <span className="text-[11px] font-bold text-[#2a2628] tabular-nums shrink-0">{item.count}</span>
                           </div>
                           <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
                             <div className="h-full rounded-full bg-[#B8D900] transition-all duration-500" style={{ width: `${pct}%` }} />
