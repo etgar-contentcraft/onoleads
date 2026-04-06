@@ -13,14 +13,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Script from "next/script";
 import {
   initializePixels,
   initializeGA4Early,
   isMarketingConsentGranted,
   firePixelEvent,
   updateConsentGranted,
-  CONSENT_MODE_INIT_SCRIPT,
   type PixelConfig,
 } from "@/lib/analytics/pixel-manager";
 
@@ -146,14 +144,7 @@ export function PixelTracker({ config }: PixelTrackerProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <>
-      {/* Consent Mode v2 — must fire before any gtag/GA4 script */}
-      <Script
-        id="consent-mode-v2"
-        strategy="beforeInteractive"
-        dangerouslySetInnerHTML={{ __html: CONSENT_MODE_INIT_SCRIPT }}
-      />
-    </>
-  );
+  // Consent Mode v2 script is injected in src/app/lp/layout.tsx (server component)
+  // to ensure it runs before any gtag/GA4 scripts load.
+  return null;
 }

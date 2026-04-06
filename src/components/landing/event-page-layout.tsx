@@ -915,8 +915,8 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
         </div>
       </footer>
 
-      <CookieConsent />
-      <AccessibilityWidget />
+      <CookieConsent language="he" />
+      <AccessibilityWidget language="he" />
     </div>
   );
 }
@@ -1327,8 +1327,8 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
         </div>
       </footer>
 
-      <CookieConsent />
-      <AccessibilityWidget />
+      <CookieConsent language="he" />
+      <AccessibilityWidget language="he" />
     </div>
   );
 }

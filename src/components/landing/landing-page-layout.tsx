@@ -31,6 +31,7 @@ const AdmissionSection = dynamic(() => import("./sections/admission-section").th
 const GallerySection = dynamic(() => import("./sections/gallery-section").then(mod => ({ default: mod.GallerySection })));
 const MapSection = dynamic(() => import("./sections/map-section").then(mod => ({ default: mod.MapSection })));
 const CountdownSection = dynamic(() => import("./sections/countdown-section").then(mod => ({ default: mod.CountdownSection })));
+const EventSection = dynamic(() => import("./sections/event-section"));
 const FormSection = dynamic(() => import("./sections/form-section").then(mod => ({ default: mod.FormSection })));
 
 import { SocialProofToast } from "./social-proof-toast";
@@ -234,6 +235,8 @@ function renderSection(
       return <MapSection content={content} language={language} />;
     case "countdown":
       return <CountdownSection content={content} language={language} />;
+    case "event":
+      return <EventSection content={content} language={language} />;
     case "form":
       return <FormSection content={content} language={language} pageId={pageId} programId={programId} pageSlug={pageSlug} />;
     default:
@@ -599,8 +602,8 @@ function InnerLayout({
       } satisfies PixelConfig} />
 
       {/* Compliance widgets */}
-      <CookieConsent />
-      <AccessibilityWidget />
+      <CookieConsent language={language} />
+      <AccessibilityWidget language={language} />
 
       {/* Scroll depth + time-on-page tracking (invisible, renders nothing) */}
       {pageId && (

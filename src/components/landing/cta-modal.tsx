@@ -112,6 +112,16 @@ const FORM_STRINGS: Record<Lang, {
   privacyGuaranteed: string;
   floatingCta: string;
   honeypotLabel: string;
+  required: string;
+  invalidPhone: string;
+  invalidEmail: string;
+  selectInterest: string;
+  submitError: string;
+  connectionError: string;
+  cooldownWait: string;
+  close: string;
+  formAriaLabel: string;
+  interestAreaLabel: string;
 }> = {
   he: {
     title: "קבלו מידע מלא",
@@ -129,6 +139,16 @@ const FORM_STRINGS: Record<Lang, {
     privacyGuaranteed: "פרטיותכם מובטחת",
     floatingCta: "השאירו פרטים",
     honeypotLabel: "אל תמלאו שדה זה",
+    required: "שדה חובה",
+    invalidPhone: "טלפון לא תקין",
+    invalidEmail: "אימייל לא תקין",
+    selectInterest: "יש לבחור תחום עניין",
+    submitError: "אירעה שגיאה. אנא נסו שוב.",
+    connectionError: "אירעה שגיאה בחיבור. אנא נסו שוב.",
+    cooldownWait: "אנא המתינו {s} שניות לפני שליחה נוספת",
+    close: "סגור",
+    formAriaLabel: "טופס השארת פרטים",
+    interestAreaLabel: "תחום עניין",
   },
   en: {
     title: "Get Full Info",
@@ -146,6 +166,16 @@ const FORM_STRINGS: Record<Lang, {
     privacyGuaranteed: "Your privacy is protected",
     floatingCta: "Get Info",
     honeypotLabel: "Do not fill this field",
+    required: "Required",
+    invalidPhone: "Invalid phone number",
+    invalidEmail: "Invalid email",
+    selectInterest: "Please select an area of interest",
+    submitError: "An error occurred. Please try again.",
+    connectionError: "Connection error. Please try again.",
+    cooldownWait: "Please wait {s} seconds before resubmitting",
+    close: "Close",
+    formAriaLabel: "Contact form",
+    interestAreaLabel: "Area of interest",
   },
   ar: {
     title: "احصل على معلومات كاملة",
@@ -163,6 +193,16 @@ const FORM_STRINGS: Record<Lang, {
     privacyGuaranteed: "خصوصيتك محمية",
     floatingCta: "اترك تفاصيل",
     honeypotLabel: "Do not fill this field",
+    required: "حقل مطلوب",
+    invalidPhone: "رقم هاتف غير صالح",
+    invalidEmail: "بريد إلكتروني غير صالح",
+    selectInterest: "يرجى اختيار مجال الاهتمام",
+    submitError: "حدث خطأ. يرجى المحاولة مرة أخرى.",
+    connectionError: "خطأ في الاتصال. يرجى المحاولة مرة أخرى.",
+    cooldownWait: "يرجى الانتظار {s} ثوانٍ قبل الإرسال مرة أخرى",
+    close: "إغلاق",
+    formAriaLabel: "نموذج الاتصال",
+    interestAreaLabel: "مجال الاهتمام",
   },
 };
 
@@ -327,18 +367,18 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.full_name.trim() || formData.full_name.trim().length < 2) {
-      newErrors.full_name = "שדה חובה";
+      newErrors.full_name = t.required;
     }
     if (!formData.phone.trim()) {
-      newErrors.phone = "שדה חובה";
+      newErrors.phone = t.required;
     } else if (!/^[\d\-+() ]{7,15}$/.test(formData.phone.trim())) {
-      newErrors.phone = "טלפון לא תקין";
+      newErrors.phone = t.invalidPhone;
     }
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "אימייל לא תקין";
+      newErrors.email = t.invalidEmail;
     }
     if (hasMultipleAreas && !selectedInterestArea) {
-      newErrors.interest_area = "יש לבחור תחום עניין";
+      newErrors.interest_area = t.selectInterest;
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -353,7 +393,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
 
     /* Session cooldown: block re-submission within 15 seconds */
     if (cooldownRemaining > 0) {
-      setSubmitError(`אנא המתינו ${cooldownRemaining} שניות לפני שליחה נוספת`);
+      setSubmitError(t.cooldownWait.replace("{s}", String(cooldownRemaining)));
       return;
     }
 
@@ -482,12 +522,12 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
       } else {
         const errorData = await res.json().catch(() => null);
         setSubmitError(
-          errorData?.error || "אירעה שגיאה. אנא נסו שוב."
+          errorData?.error || t.submitError
         );
       }
     } catch (err) {
       console.error("Form submission failed:", err);
-      setSubmitError("אירעה שגיאה בחיבור. אנא נסו שוב.");
+      setSubmitError(t.connectionError);
     } finally {
       setSubmitting(false);
     }
@@ -514,7 +554,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
       className="fixed inset-0 z-[100] flex items-end md:items-center justify-center"
       role="dialog"
       aria-modal="true"
-      aria-label="טופס השארת פרטים"
+      aria-label={t.formAriaLabel}
     >
       {/* Backdrop */}
       <div
@@ -530,7 +570,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
           <button
             onClick={handleClose}
             className="absolute top-4 left-4 z-20 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-            aria-label="סגור"
+            aria-label={t.close}
           >
             <svg className="w-5 h-5 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -644,7 +684,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                   {/* Interest Area dropdown — shown only when page has multiple areas */}
                   {hasMultipleAreas && (
                     <div>
-                      <label htmlFor="interest_area" className="sr-only">תחום עניין</label>
+                      <label htmlFor="interest_area" className="sr-only">{t.interestAreaLabel}</label>
                       <select
                         id="interest_area"
                         value={selectedInterestArea}
@@ -654,7 +694,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                         aria-required="true"
                         aria-invalid={!!errors.interest_area}
                       >
-                        <option value="" className="bg-[#2a2628]">{isRtl ? "בחרו תחום עניין *" : "Select area of interest *"}</option>
+                        <option value="" className="bg-[#2a2628]">{t.selectInterest} *</option>
                         {/* "I don't know" option — always first when enabled */}
                         {unknownOption && (
                           <option value="__unknown__" className="bg-[#2a2628]">

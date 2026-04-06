@@ -8,6 +8,92 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+/** Supported language codes */
+type Lang = "he" | "en" | "ar";
+
+/** Localized strings for the accessibility widget */
+const A11Y_LABELS: Record<Lang, {
+  buttonAriaLabel: string;
+  buttonTitle: string;
+  panelAriaLabel: string;
+  heading: string;
+  closeAriaLabel: string;
+  fontSize: string;
+  decreaseFont: string;
+  increaseFont: string;
+  highContrast: string;
+  highContrastDesc: string;
+  grayscale: string;
+  grayscaleDesc: string;
+  highlightLinks: string;
+  highlightLinksDesc: string;
+  readableFont: string;
+  readableFontDesc: string;
+  reset: string;
+  compliance: string;
+}> = {
+  he: {
+    buttonAriaLabel: "הגדרות נגישות",
+    buttonTitle: "נגישות",
+    panelAriaLabel: "תפריט נגישות",
+    heading: "הגדרות נגישות",
+    closeAriaLabel: "סגור תפריט נגישות",
+    fontSize: "גודל טקסט",
+    decreaseFont: "הקטן טקסט",
+    increaseFont: "הגדל טקסט",
+    highContrast: "ניגודיות גבוהה",
+    highContrastDesc: "הגברת ניגודיות הצבעים",
+    grayscale: "גווני אפור",
+    grayscaleDesc: "הצגת האתר בשחור-לבן",
+    highlightLinks: "הדגשת קישורים",
+    highlightLinksDesc: "סימון כל הקישורים באתר",
+    readableFont: "גופן קריא",
+    readableFontDesc: "החלפה לגופן Arial קריא",
+    reset: "איפוס הגדרות",
+    compliance: "בהתאם לתקן ישראלי 5568 ו-WCAG 2.1 AA",
+  },
+  en: {
+    buttonAriaLabel: "Accessibility settings",
+    buttonTitle: "Accessibility",
+    panelAriaLabel: "Accessibility menu",
+    heading: "Accessibility Settings",
+    closeAriaLabel: "Close accessibility menu",
+    fontSize: "Font size",
+    decreaseFont: "Decrease font size",
+    increaseFont: "Increase font size",
+    highContrast: "High contrast",
+    highContrastDesc: "Increase color contrast",
+    grayscale: "Grayscale",
+    grayscaleDesc: "Display site in black and white",
+    highlightLinks: "Highlight links",
+    highlightLinksDesc: "Highlight all links on the page",
+    readableFont: "Readable font",
+    readableFontDesc: "Switch to readable Arial font",
+    reset: "Reset settings",
+    compliance: "Compliant with WCAG 2.1 AA",
+  },
+  ar: {
+    buttonAriaLabel: "إعدادات إمكانية الوصول",
+    buttonTitle: "إمكانية الوصول",
+    panelAriaLabel: "قائمة إمكانية الوصول",
+    heading: "إعدادات إمكانية الوصول",
+    closeAriaLabel: "إغلاق قائمة إمكانية الوصول",
+    fontSize: "حجم الخط",
+    decreaseFont: "تصغير الخط",
+    increaseFont: "تكبير الخط",
+    highContrast: "تباين عالي",
+    highContrastDesc: "زيادة تباين الألوان",
+    grayscale: "تدرج الرمادي",
+    grayscaleDesc: "عرض الموقع بالأبيض والأسود",
+    highlightLinks: "تمييز الروابط",
+    highlightLinksDesc: "تمييز جميع الروابط في الموقع",
+    readableFont: "خط مقروء",
+    readableFontDesc: "التبديل إلى خط Arial المقروء",
+    reset: "إعادة تعيين الإعدادات",
+    compliance: "متوافق مع WCAG 2.1 AA",
+  },
+};
+
 /** localStorage key prefix for accessibility preferences */
 const A11Y_PREFIX = "ono_a11y_";
 
@@ -103,7 +189,7 @@ function applyPreferences(prefs: A11yPreferences): void {
  * Floating accessibility button and settings panel.
  * Renders a fixed button (wheelchair icon) that opens an accessibility panel.
  */
-export function AccessibilityWidget() {
+export function AccessibilityWidget({ language = "he" }: { language?: Lang }) {
   const [isOpen, setIsOpen] = useState(false);
   const [prefs, setPrefs] = useState<A11yPreferences>(DEFAULT_PREFS);
 
@@ -138,16 +224,19 @@ export function AccessibilityWidget() {
     applyPreferences(DEFAULT_PREFS);
   }, []);
 
+  const l = A11Y_LABELS[language] || A11Y_LABELS.he;
+  const isRtl = language === "he" || language === "ar";
+
   return (
     <>
       {/* Floating accessibility button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-6 left-6 z-[80] w-12 h-12 rounded-full bg-[#2a2628] text-white shadow-lg hover:bg-[#3a3638] transition-all duration-300 flex items-center justify-center group"
-        aria-label="הגדרות נגישות"
+        aria-label={l.buttonAriaLabel}
         aria-expanded={isOpen}
         aria-controls="accessibility-panel"
-        title="נגישות"
+        title={l.buttonTitle}
       >
         <svg
           className="w-6 h-6 group-hover:scale-110 transition-transform"
@@ -177,10 +266,10 @@ export function AccessibilityWidget() {
           <div
             id="accessibility-panel"
             role="dialog"
-            aria-label="תפריט נגישות"
+            aria-label={l.panelAriaLabel}
             className="fixed bottom-20 left-6 z-[82] max-h-[80vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-200 animate-fade-in-up"
             style={{ fontSize: "16px", width: "min(320px, calc(100vw - 3rem))" }}
-            dir="rtl"
+            dir={isRtl ? "rtl" : "ltr"}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-100">
@@ -191,12 +280,12 @@ export function AccessibilityWidget() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0l-4 6m4-6l4 6M8 12h8" />
                   </svg>
                 </div>
-                <h2 className="font-bold text-[#2a2628] text-base">הגדרות נגישות</h2>
+                <h2 className="font-bold text-[#2a2628] text-base">{l.heading}</h2>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
                 className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-                aria-label="סגור תפריט נגישות"
+                aria-label={l.closeAriaLabel}
               >
                 <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -209,7 +298,7 @@ export function AccessibilityWidget() {
               {/* Font size control */}
               <div>
                 <label className="block text-sm font-medium text-[#2a2628] mb-2">
-                  גודל טקסט ({prefs.fontSize}%)
+                  {l.fontSize} ({prefs.fontSize}%)
                 </label>
                 <div className="flex items-center gap-2">
                   <button
@@ -220,10 +309,10 @@ export function AccessibilityWidget() {
                       )
                     }
                     className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-lg font-bold hover:bg-gray-50 transition-colors"
-                    aria-label="הקטן טקסט"
+                    aria-label={l.decreaseFont}
                     disabled={prefs.fontSize <= MIN_FONT_SIZE}
                   >
-                    א-
+                    {isRtl ? "א-" : "A-"}
                   </button>
                   <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
@@ -241,41 +330,45 @@ export function AccessibilityWidget() {
                       )
                     }
                     className="w-10 h-10 rounded-lg border border-gray-200 flex items-center justify-center text-lg font-bold hover:bg-gray-50 transition-colors"
-                    aria-label="הגדל טקסט"
+                    aria-label={l.increaseFont}
                     disabled={prefs.fontSize >= MAX_FONT_SIZE}
                   >
-                    א+
+                    {isRtl ? "א+" : "A+"}
                   </button>
                 </div>
               </div>
 
               {/* Toggle controls */}
               <ToggleControl
-                label="ניגודיות גבוהה"
-                description="הגברת ניגודיות הצבעים"
+                label={l.highContrast}
+                description={l.highContrastDesc}
                 active={prefs.highContrast}
                 onToggle={() => updatePref("highContrast", !prefs.highContrast)}
+                isRtl={isRtl}
               />
 
               <ToggleControl
-                label="גווני אפור"
-                description="הצגת האתר בשחור-לבן"
+                label={l.grayscale}
+                description={l.grayscaleDesc}
                 active={prefs.grayscale}
                 onToggle={() => updatePref("grayscale", !prefs.grayscale)}
+                isRtl={isRtl}
               />
 
               <ToggleControl
-                label="הדגשת קישורים"
-                description="סימון כל הקישורים באתר"
+                label={l.highlightLinks}
+                description={l.highlightLinksDesc}
                 active={prefs.highlightLinks}
                 onToggle={() => updatePref("highlightLinks", !prefs.highlightLinks)}
+                isRtl={isRtl}
               />
 
               <ToggleControl
-                label="גופן קריא"
-                description="החלפה לגופן Arial קריא"
+                label={l.readableFont}
+                description={l.readableFontDesc}
                 active={prefs.readableFont}
                 onToggle={() => updatePref("readableFont", !prefs.readableFont)}
+                isRtl={isRtl}
               />
 
               {/* Reset button */}
@@ -283,12 +376,12 @@ export function AccessibilityWidget() {
                 onClick={resetAll}
                 className="w-full py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium hover:bg-gray-50 transition-colors"
               >
-                איפוס הגדרות
+                {l.reset}
               </button>
 
               {/* Compliance notice */}
               <p className="text-xs text-gray-400 text-center leading-relaxed">
-                בהתאם לתקן ישראלי 5568 ו-WCAG 2.1 AA
+                {l.compliance}
               </p>
             </div>
           </div>
@@ -306,11 +399,13 @@ function ToggleControl({
   description,
   active,
   onToggle,
+  isRtl = true,
 }: {
   label: string;
   description: string;
   active: boolean;
   onToggle: () => void;
+  isRtl?: boolean;
 }) {
   return (
     <button
@@ -324,12 +419,12 @@ function ToggleControl({
       aria-checked={active}
       aria-label={label}
     >
-      <div className="text-right">
+      <div className={isRtl ? "text-right" : "text-left"}>
         <span className="block text-sm font-medium text-[#2a2628]">{label}</span>
         <span className="block text-xs text-gray-500">{description}</span>
       </div>
       <div
-        className={`w-11 h-6 rounded-full relative transition-colors duration-200 shrink-0 mr-3 ${
+        className={`w-11 h-6 rounded-full relative transition-colors duration-200 shrink-0 ${isRtl ? "mr-3" : "ml-3"} ${
           active ? "bg-[#B8D900]" : "bg-gray-200"
         }`}
       >

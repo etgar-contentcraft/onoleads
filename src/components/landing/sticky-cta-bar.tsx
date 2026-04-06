@@ -114,7 +114,7 @@ export function StickyCtaBar({
       {/* Center: countdown (desktop only) */}
       {content.countdown_end && (
         <div className="hidden md:flex items-center gap-1.5">
-          <span className="text-xs text-white/60">נותר:</span>
+          <span className="text-xs text-white/60">{isRtl ? "נותר:" : "Remaining:"}</span>
           <BarCountdown targetISO={content.countdown_end} textColor="white" />
         </div>
       )}

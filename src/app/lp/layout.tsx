@@ -5,7 +5,9 @@
  */
 
 import { Heebo, Rubik, Assistant, Noto_Sans_Hebrew, Frank_Ruhl_Libre } from "next/font/google";
+import Script from "next/script";
 import "@/app/globals.css";
+import { CONSENT_MODE_INIT_SCRIPT } from "@/lib/analytics/pixel-manager";
 
 const heebo = Heebo({
   subsets: ["hebrew", "latin"],
@@ -45,6 +47,15 @@ const frankRuhlLibre = Frank_Ruhl_Libre({
 export default function LpLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="he" dir="rtl" className={`${heebo.variable} ${rubik.variable} ${assistant.variable} ${notoSansHebrew.variable} ${frankRuhlLibre.variable}`}>
+      <head>
+        {/* Consent Mode v2 — MUST execute before any gtag/GA4 script loads.
+            Placed in server layout so beforeInteractive actually runs first. */}
+        <Script
+          id="consent-mode-v2"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: CONSENT_MODE_INIT_SCRIPT }}
+        />
+      </head>
       <body className="antialiased">
         {children}
       </body>

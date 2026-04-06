@@ -36,12 +36,14 @@ function Lightbox({
   onClose,
   onPrev,
   onNext,
+  language = "he",
 }: {
   images: GalleryImage[];
   index: number;
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
+  language?: Language;
 }) {
   const current = images[index];
   const hasPrev = index > 0;
@@ -69,13 +71,13 @@ function Lightbox({
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 animate-fade-in"
       role="dialog"
       aria-modal="true"
-      aria-label="תמונה מוגדלת"
+      aria-label={language === "he" || language === "ar" ? "תמונה מוגדלת" : "Enlarged image"}
     >
       {/* Close button */}
       <button
         onClick={onClose}
         className="absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-        aria-label="סגור"
+        aria-label={language === "he" || language === "ar" ? "סגור" : "Close"}
       >
         <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -92,7 +94,7 @@ function Lightbox({
         <button
           onClick={onPrev}
           className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all hover:scale-110"
-          aria-label="תמונה קודמת"
+          aria-label={language === "he" || language === "ar" ? "תמונה קודמת" : "Previous image"}
         >
           <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -105,7 +107,7 @@ function Lightbox({
         <button
           onClick={onNext}
           className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all hover:scale-110"
-          aria-label="תמונה הבאה"
+          aria-label={language === "he" || language === "ar" ? "תמונה הבאה" : "Next image"}
         >
           <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -326,6 +328,7 @@ export function GallerySection({ content, language }: GallerySectionProps) {
           onClose={closeLightbox}
           onPrev={goPrev}
           onNext={goNext}
+          language={language}
         />
       )}
     </section>

@@ -7,6 +7,52 @@
 
 import { useState, useEffect } from "react";
 
+/** Supported language codes */
+type Lang = "he" | "en" | "ar";
+
+/** Localized strings for the cookie consent banner */
+const CONSENT_LABELS: Record<Lang, {
+  ariaLabel: string;
+  text: string;
+  privacyLink: string;
+  suffix: string;
+  essentialOnly: string;
+  essentialAriaLabel: string;
+  acceptAll: string;
+  acceptAllAriaLabel: string;
+}> = {
+  he: {
+    ariaLabel: "הודעת עוגיות",
+    text: "אתר זה משתמש בעוגיות (Cookies) לצורך שיפור חוויית הגלישה, ניתוח תנועה ושיפור השירות. השימוש בעוגיות נעשה בהתאם ל",
+    privacyLink: "מדיניות הפרטיות",
+    suffix: "שלנו ובהתאם לחוק הגנת הפרטיות, התשמ\"א-1981.",
+    essentialOnly: "חיוניות בלבד",
+    essentialAriaLabel: "קבל עוגיות חיוניות בלבד",
+    acceptAll: "קבלת הכל",
+    acceptAllAriaLabel: "קבל את כל העוגיות",
+  },
+  en: {
+    ariaLabel: "Cookie notice",
+    text: "This site uses cookies to improve your browsing experience, analyze traffic, and enhance our services. Cookie usage complies with our",
+    privacyLink: "Privacy Policy",
+    suffix: "and applicable privacy laws.",
+    essentialOnly: "Essential only",
+    essentialAriaLabel: "Accept essential cookies only",
+    acceptAll: "Accept all",
+    acceptAllAriaLabel: "Accept all cookies",
+  },
+  ar: {
+    ariaLabel: "إشعار ملفات تعريف الارتباط",
+    text: "يستخدم هذا الموقع ملفات تعريف الارتباط (Cookies) لتحسين تجربة التصفح وتحليل حركة المرور وتحسين خدماتنا. يتم استخدام ملفات تعريف الارتباط وفقًا لـ",
+    privacyLink: "سياسة الخصوصية",
+    suffix: "الخاصة بنا ووفقًا لقوانين الخصوصية المعمول بها.",
+    essentialOnly: "الأساسية فقط",
+    essentialAriaLabel: "قبول ملفات تعريف الارتباط الأساسية فقط",
+    acceptAll: "قبول الكل",
+    acceptAllAriaLabel: "قبول جميع ملفات تعريف الارتباط",
+  },
+};
+
 /** localStorage key for storing cookie consent preference */
 const CONSENT_KEY = "ono_cookie_consent";
 
@@ -28,7 +74,7 @@ function getStoredConsent(): ConsentChoice {
  * Offers two choices: essential cookies only, or all cookies.
  * Stores the user's preference in localStorage.
  */
-export function CookieConsent() {
+export function CookieConsent({ language = "he" }: { language?: Lang }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -55,14 +101,17 @@ export function CookieConsent() {
     }
   }
 
+  const l = CONSENT_LABELS[language] || CONSENT_LABELS.he;
+  const isRtl = language === "he" || language === "ar";
+
   if (!visible) return null;
 
   return (
     <div
       className="fixed bottom-0 left-0 right-0 z-[90] animate-fade-in-up"
-      dir="rtl"
+      dir={isRtl ? "rtl" : "ltr"}
       role="dialog"
-      aria-label="הודעת עוגיות"
+      aria-label={l.ariaLabel}
       aria-describedby="cookie-consent-description"
     >
       <div className="bg-[#2a2628]/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-4px_30px_rgba(0,0,0,0.3)]">
@@ -78,17 +127,16 @@ export function CookieConsent() {
             {/* Text */}
             <div className="flex-1 min-w-0">
               <p id="cookie-consent-description" className="text-white/80 text-sm leading-relaxed">
-                אתר זה משתמש בעוגיות (Cookies) לצורך שיפור חוויית הגלישה, ניתוח תנועה ושיפור השירות.
-                השימוש בעוגיות נעשה בהתאם ל
+                {l.text}
                 <a
                   href="/privacy"
                   className="text-[#B8D900] hover:underline font-medium mx-1"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  מדיניות הפרטיות
+                  {l.privacyLink}
                 </a>
-                שלנו ובהתאם לחוק הגנת הפרטיות, התשמ&quot;א-1981.
+                {l.suffix}
               </p>
             </div>
 
@@ -97,16 +145,16 @@ export function CookieConsent() {
               <button
                 onClick={() => handleConsent("essential")}
                 className="flex-1 md:flex-none px-5 py-2.5 rounded-xl border border-white/20 text-white/70 text-sm font-medium hover:bg-white/10 hover:text-white transition-all duration-200"
-                aria-label="קבל עוגיות חיוניות בלבד"
+                aria-label={l.essentialAriaLabel}
               >
-                חיוניות בלבד
+                {l.essentialOnly}
               </button>
               <button
                 onClick={() => handleConsent("all")}
                 className="flex-1 md:flex-none px-5 py-2.5 rounded-xl bg-[#B8D900] text-[#2a2628] text-sm font-bold hover:bg-[#c8e920] transition-all duration-200"
-                aria-label="קבל את כל העוגיות"
+                aria-label={l.acceptAllAriaLabel}
               >
-                קבלת הכל
+                {l.acceptAll}
               </button>
             </div>
           </div>

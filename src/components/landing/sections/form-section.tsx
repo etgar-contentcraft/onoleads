@@ -25,7 +25,7 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
   const isRtl = language === "he" || language === "ar";
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "השאירו פרטים ונחזור אליכם" : "Leave your details");
   const subheading = (content[`subheading_${language}`] as string) || (content.subheading_he as string) || (isRtl ? "יועץ לימודים אישי יחזור אליכם תוך 24 שעות" : "");
-  const submitText = (content[`submit_text_${language}`] as string) || (content.submit_text_he as string) || "שלחו לי מידע מלא";
+  const submitText = (content[`submit_text_${language}`] as string) || (content.submit_text_he as string) || (isRtl ? "שלחו לי מידע מלא" : "Send me full info");
   const thankYouMessage = (content[`thank_you_message_${language}`] as string) || (content.thank_you_message_he as string) || "";
 
   const fields: FormField[] = Array.isArray(content.fields) ? (content.fields as FormField[]) : [
