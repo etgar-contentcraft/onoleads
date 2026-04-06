@@ -84,9 +84,10 @@ export function initConsentModeDefaults(): void {
 
   window.dataLayer = window.dataLayer || [];
   if (!window.gtag) {
-    window.gtag = function (...args: unknown[]) {
-      window.dataLayer.push(args);
-    };
+    // CRITICAL: Must push `arguments` (Arguments object), NOT rest args (Array).
+    // Google's gtag.js only processes Arguments objects from the dataLayer queue.
+    // eslint-disable-next-line prefer-rest-params
+    window.gtag = function () { window.dataLayer.push(arguments); };
   }
   window.gtag("consent", "default", {
     analytics_storage: "granted",
@@ -105,9 +106,8 @@ export function updateConsentGranted(): void {
   if (typeof window === "undefined") return;
   window.dataLayer = window.dataLayer || [];
   if (!window.gtag) {
-    window.gtag = function (...args: unknown[]) {
-      window.dataLayer.push(args);
-    };
+    // eslint-disable-next-line prefer-rest-params
+    window.gtag = function () { window.dataLayer.push(arguments); };
   }
   window.gtag("consent", "update", {
     analytics_storage: "granted",
@@ -212,9 +212,8 @@ function initGA4(measurementId: string): void {
   injectScript(`https://www.googletagmanager.com/gtag/js?id=${measurementId}`, "gtag-js");
 
   window.dataLayer = window.dataLayer || [];
-  window.gtag = window.gtag || function (...args: unknown[]) {
-    window.dataLayer.push(args);
-  };
+  // eslint-disable-next-line prefer-rest-params
+  window.gtag = window.gtag || function () { window.dataLayer.push(arguments); };
   window.gtag("js", new Date());
   window.gtag("config", measurementId, {
     send_page_view: true,

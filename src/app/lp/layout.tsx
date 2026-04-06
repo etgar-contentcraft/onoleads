@@ -5,7 +5,6 @@
  */
 
 import { Heebo, Rubik, Assistant, Noto_Sans_Hebrew, Frank_Ruhl_Libre } from "next/font/google";
-import Script from "next/script";
 import "@/app/globals.css";
 import { CONSENT_MODE_INIT_SCRIPT } from "@/lib/analytics/pixel-manager";
 
@@ -49,10 +48,10 @@ export default function LpLayout({ children }: { children: React.ReactNode }) {
     <html lang="he" dir="rtl" className={`${heebo.variable} ${rubik.variable} ${assistant.variable} ${notoSansHebrew.variable} ${frankRuhlLibre.variable}`}>
       <head>
         {/* Consent Mode v2 — MUST execute before any gtag/GA4 script loads.
-            Placed in server layout so beforeInteractive actually runs first. */}
-        <Script
+            Uses a raw <script> tag because Next.js <Script strategy="beforeInteractive">
+            does NOT render in nested layouts (App Router limitation). */}
+        <script
           id="consent-mode-v2"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: CONSENT_MODE_INIT_SCRIPT }}
         />
       </head>
