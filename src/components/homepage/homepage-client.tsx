@@ -898,7 +898,7 @@ export function HomepageClient({ programs, events }: HomepageClientProps) {
               מוכנים ל<span className="text-[#B8D900]">צעד הבא</span>?
             </h2>
             <p className="text-lg text-white/70 max-w-xl mx-auto">
-              השאירו פרטים ויועץ לימודים אישי יחזור אליכם תוך 24 שעות
+              השאירו פרטים ויועץ לימודים אישי יחזור אליכם בקרוב
             </p>
           </div>
 
@@ -1007,7 +1007,7 @@ export function HomepageClient({ programs, events }: HomepageClientProps) {
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>יועץ יחזור תוך 24 שעות</span>
+                  <span>יועץ יחזור בקרוב</span>
                 </div>
               </div>
             </form>

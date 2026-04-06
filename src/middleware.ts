@@ -33,14 +33,20 @@ const CSP_DIRECTIVES = [
 /**
  * Applies security headers to the response.
  * @param response - NextResponse to add headers to
+ * @param allowSameOriginFrame - When true (for /lp/ routes), allows same-origin iframes
+ *   so the analytics heatmap can preview landing pages in an iframe.
  * @returns The response with security headers set
  */
-function applySecurityHeaders(response: NextResponse): NextResponse {
-  /* Content Security Policy - restrict resource loading */
-  response.headers.set("Content-Security-Policy", CSP_DIRECTIVES);
+function applySecurityHeaders(response: NextResponse, allowSameOriginFrame = false): NextResponse {
+  /* Content Security Policy - restrict resource loading.
+   * Landing pages allow frame-ancestors 'self' so the dashboard heatmap can embed them. */
+  const csp = allowSameOriginFrame
+    ? CSP_DIRECTIVES.replace("frame-ancestors 'none'", "frame-ancestors 'self'")
+    : CSP_DIRECTIVES;
+  response.headers.set("Content-Security-Policy", csp);
 
-  /* Prevent clickjacking */
-  response.headers.set("X-Frame-Options", "DENY");
+  /* Prevent clickjacking — landing pages allow same-origin for heatmap preview */
+  response.headers.set("X-Frame-Options", allowSameOriginFrame ? "SAMEORIGIN" : "DENY");
 
   /* Prevent MIME type sniffing */
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -151,8 +157,9 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  /* Apply security headers to all responses */
-  return applySecurityHeaders(supabaseResponse);
+  /* Apply security headers — landing pages allow same-origin framing for heatmap preview */
+  const isLandingPage = request.nextUrl.pathname.startsWith("/lp/");
+  return applySecurityHeaders(supabaseResponse, isLandingPage);
 }
 
 export const config = {

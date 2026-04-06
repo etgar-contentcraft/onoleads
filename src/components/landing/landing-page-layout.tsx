@@ -72,6 +72,8 @@ export interface PageSettings {
   brand_color_gray?: string;
   /** Body font key — one of: rubik | heebo | assistant | noto-sans-hebrew | frank-ruhl */
   font_body?: string;
+  /** When true, shows the subtle sticky bottom CTA bar (user can dismiss per session) */
+  sticky_bar_enabled?: boolean;
   /** Pixel IDs for client-side tracking (loaded from pixel_configurations table) */
   ga4_id?: string;
   meta_pixel_id?: string;
@@ -107,6 +109,107 @@ interface LandingPageLayoutProps {
   pageInterestAreas?: PageInterestArea[];
   /** Optional "I don't know" option shown first in the interest dropdown */
   unknownOption?: { text: string; mapsToName: string };
+}
+
+// ============================================================================
+// Page-level Sticky Bottom Bar (opt-in via settings.sticky_bar_enabled)
+// ============================================================================
+
+/**
+ * Compact fixed bottom bar with phone, CTA and dismiss button.
+ * Appears after 600px scroll, dismissable per-session via sessionStorage.
+ * Enabled only when settings.sticky_bar_enabled is true.
+ */
+function PageStickyBar({
+  settings,
+  language,
+  pageId,
+}: {
+  settings: PageSettings;
+  language: Language;
+  pageId?: string;
+}) {
+  const { open } = useCtaModal();
+  const [visible, setVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const isRtl = language === "he" || language === "ar";
+  const dismissKey = `ono_sticky_${pageId || "bar"}`;
+
+  useEffect(() => {
+    /* Don't show if dismissed this session */
+    if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(dismissKey)) {
+      setDismissed(true);
+      return;
+    }
+    const handleScroll = () => setVisible(window.scrollY > 600);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [dismissKey]);
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    try { sessionStorage.setItem(dismissKey, "1"); } catch { /* ignore */ }
+  };
+
+  if (dismissed || !visible) return null;
+
+  const phone = settings.phone_number || "*2899";
+  const ctaText = settings.default_cta_text || (isRtl ? "לפרטים נוספים" : "Get Info");
+  const barText = isRtl
+    ? "יועץ לימודים ממתין לכם — השאירו פרטים עכשיו"
+    : "An academic advisor is waiting — get in touch now";
+
+  return (
+    <div
+      dir={isRtl ? "rtl" : "ltr"}
+      className="fixed bottom-0 left-0 right-0 z-[45] bg-[#2a2628]/95 backdrop-blur-sm
+        flex items-center gap-3 px-4 py-2.5 shadow-[0_-2px_16px_rgba(0,0,0,0.18)]
+        animate-slide-in-bottom"
+    >
+      {/* Promotional text — desktop only */}
+      <span className="hidden md:block text-white/65 text-xs font-medium truncate flex-1">
+        {barText}
+      </span>
+
+      <div className="flex items-center gap-2.5 ms-auto">
+        {/* Phone link */}
+        <a
+          href={`tel:${phone.replace(/[\s\-]/g, "")}`}
+          className="hidden sm:flex items-center gap-1 text-white/60 text-xs hover:text-white/90 transition-colors"
+          aria-label={phone}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24"
+            fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" clipRule="evenodd"
+              d="M1.5 4.5a3 3 0 013-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 01-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 006.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 011.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 01-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5z" />
+          </svg>
+          {phone}
+        </a>
+
+        {/* CTA button */}
+        <button
+          type="button"
+          onClick={() => open("sticky_bar")}
+          className="font-heading rounded-full px-4 py-1.5 text-xs font-bold text-[#2a2628] bg-[#B8D900] hover:bg-[#c8e920] transition-colors shadow-sm"
+        >
+          {ctaText}
+        </button>
+
+        {/* Dismiss button */}
+        <button
+          type="button"
+          onClick={handleDismiss}
+          className="text-white/30 hover:text-white/60 transition-colors p-0.5 rounded shrink-0"
+          aria-label={isRtl ? "סגור" : "Close"}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // ============================================================================
@@ -552,6 +655,11 @@ function InnerLayout({
           language={language}
         />
       )}
+      {/* Sticky bottom CTA bar — opt-in via settings.sticky_bar_enabled, user-dismissable */}
+      {settings?.sticky_bar_enabled && (
+        <PageStickyBar settings={settings} language={language} pageId={pageId} />
+      )}
+
       <FloatingCtaButton ctaText={localizedCtaText} />
       <CtaModal
         pageId={pageId}

@@ -535,7 +535,7 @@ export default function SettingsPage() {
               <Input
                 value={tySettings.subheading_he || ""}
                 onChange={(e) => setTySettings((p) => ({ ...p, subheading_he: e.target.value }))}
-                placeholder="יועץ לימודים ייצור איתך קשר תוך 24 שעות"
+                placeholder="יועץ לימודים ייצור איתך קשר בקרוב"
                 className="mt-1.5 h-9"
                 dir="rtl"
               />

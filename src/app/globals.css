@@ -379,6 +379,24 @@
   animation: check-draw 0.4s ease-out 0.2s forwards;
 }
 
+@keyframes slide-in-bottom {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.animate-slide-in-bottom {
+  animation: slide-in-bottom 0.4s ease-out forwards;
+}
+
+@keyframes slide-in-bar {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.animate-slide-in-bar {
+  animation: slide-in-bar 0.35s ease-out forwards;
+}
+
 /* Staggered animation delays */
 .stagger-1 { animation-delay: 0.1s; }
 .stagger-2 { animation-delay: 0.2s; }

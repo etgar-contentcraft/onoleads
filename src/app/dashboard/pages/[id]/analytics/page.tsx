@@ -167,6 +167,26 @@ interface WebhookStats {
   pending: number;
 }
 
+/** A single aggregated visitor session (grouped by cookie_id) */
+interface VisitorSession {
+  /** Session start time (first event) */
+  start: string;
+  /** Device type for this session */
+  device: string;
+  /** UTM source (first recorded) */
+  utmSource: string | null;
+  /** Referring domain (first recorded) */
+  referrer: string | null;
+  /** Maximum scroll depth reached (0–100) */
+  maxScroll: number;
+  /** Maximum time on page in seconds */
+  maxTimeOnPage: number;
+  /** Whether the visitor submitted the lead form in this session */
+  converted: boolean;
+  /** How many distinct event types occurred */
+  eventCount: number;
+}
+
 /** Full analytics state for the page */
 interface PageAnalytics {
   current: PeriodMetrics;
@@ -180,6 +200,7 @@ interface PageAnalytics {
   webhook: WebhookStats;
   scrollDepthBands: ScrollDepthBand[];
   recentEvents: AnalyticsEvent[];
+  recentSessions: VisitorSession[];
 }
 
 /* ─── Helpers ─── */
@@ -476,9 +497,56 @@ export default function PageAnalyticsPage() {
       };
     });
 
-    /* --- Recent events for activity feed --- */
+    /* --- Recent events (raw, kept for compatibility) --- */
     const recentEvents = [...currentEvents]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 20);
+
+    /* --- Visitor sessions (grouped by cookie_id) ---
+     * Groups all events by cookie_id to create session-level visitor intelligence.
+     * Each session shows: device, UTM source, scroll depth, time on page, conversion status. */
+    const sessionMap = new Map<string, {
+      start: string;
+      device: string;
+      utmSource: string | null;
+      referrer: string | null;
+      maxScroll: number;
+      maxTimeOnPage: number;
+      converted: boolean;
+      eventCount: number;
+    }>();
+
+    for (const e of currentEvents) {
+      const key = e.cookie_id || `anon_${e.id}`;
+      if (!sessionMap.has(key)) {
+        sessionMap.set(key, {
+          start: e.created_at,
+          device: e.device_type || "desktop",
+          utmSource: e.utm_source,
+          referrer: e.referrer_domain,
+          maxScroll: 0,
+          maxTimeOnPage: 0,
+          converted: false,
+          eventCount: 0,
+        });
+      }
+      const s = sessionMap.get(key)!;
+      s.eventCount++;
+      /* Track earliest event as session start */
+      if (e.created_at < s.start) s.start = e.created_at;
+      /* Track conversions */
+      if (e.event_type === "form_submit") s.converted = true;
+      /* Track deepest scroll */
+      if (e.scroll_depth && e.scroll_depth > s.maxScroll) s.maxScroll = e.scroll_depth;
+      /* Track longest session */
+      if (e.time_on_page && e.time_on_page > s.maxTimeOnPage) s.maxTimeOnPage = e.time_on_page;
+      /* Prefer non-null UTM source */
+      if (!s.utmSource && e.utm_source) s.utmSource = e.utm_source;
+      if (!s.referrer && e.referrer_domain) s.referrer = e.referrer_domain;
+    }
+
+    const recentSessions: VisitorSession[] = Array.from(sessionMap.values())
+      .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())
       .slice(0, 20);
 
     setData({
@@ -493,6 +561,7 @@ export default function PageAnalyticsPage() {
       webhook,
       scrollDepthBands,
       recentEvents,
+      recentSessions,
     });
     setLoading(false);
   }, [getPeriodBounds, fetchEvents, computeMetrics]);
@@ -1225,55 +1294,88 @@ export default function PageAnalyticsPage() {
         </Card>
       </div>
 
-      {/* ── Recent Activity Feed ── */}
+      {/* ── Visitor Sessions Feed ── */}
       <Card className="border-0 shadow-sm rounded-2xl">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-bold text-[#2a2628] flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            פעילות אחרונה
+            סשנים אחרונים
             <span className="text-xs font-normal text-[#9A969A] mr-auto">
-              {data.recentEvents.length} אירועים אחרונים
+              {data.recentSessions.length} מבקרים אחרונים
             </span>
           </CardTitle>
+          <p className="text-xs text-[#9A969A]">
+            כל שורה = מבקר ייחודי — מקור, מכשיר, עומק גלילה, זמן ואם הגיש טופס
+          </p>
         </CardHeader>
         <CardContent className="pt-0">
-          {data.recentEvents.length === 0 ? (
-            <p className="text-center text-[#9A969A] py-6 text-sm">אין פעילות בתקופה זו</p>
+          {data.recentSessions.length === 0 ? (
+            <p className="text-center text-[#9A969A] py-6 text-sm">אין מבקרים בתקופה זו</p>
           ) : (
-            <div className="space-y-1">
-              {data.recentEvents.map((e, i) => {
-                const EVENT_META: Record<string, { label: string; cls: string }> = {
-                  page_view: { label: "צפייה", cls: "bg-blue-50 text-blue-700" },
-                  cta_click: { label: "לחיצת CTA", cls: "bg-amber-50 text-amber-700" },
-                  form_submit: { label: "הגשת טופס", cls: "bg-green-50 text-green-700" },
-                  popup_view: { label: "פופאפ", cls: "bg-purple-50 text-purple-700" },
-                  popup_dismiss: { label: "סגר פופאפ", cls: "bg-gray-50 text-gray-500" },
-                  scroll_depth: { label: "גלילה", cls: "bg-teal-50 text-teal-700" },
-                };
-                const meta = EVENT_META[e.event_type] || { label: e.event_type, cls: "bg-gray-50 text-gray-600" };
-                const time = new Date(e.created_at).toLocaleString("he-IL", {
-                  day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
+            <div className="divide-y divide-gray-50">
+              {/* Column headers */}
+              <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-x-3 pb-1.5 text-[10px] font-semibold text-[#9A969A] uppercase tracking-wide">
+                <span>מכשיר</span>
+                <span>מקור / הפניה</span>
+                <span>גלילה</span>
+                <span>זמן</span>
+                <span>שעה</span>
+                <span>ליד?</span>
+              </div>
+              {data.recentSessions.map((s, i) => {
+                const time = new Date(s.start).toLocaleString("he-IL", {
+                  day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
                 });
+                const timeOnPage = s.maxTimeOnPage > 0
+                  ? s.maxTimeOnPage >= 60
+                    ? `${Math.floor(s.maxTimeOnPage / 60)}ד׳`
+                    : `${s.maxTimeOnPage}ש׳`
+                  : "—";
+                const source = s.utmSource || s.referrer || "ישיר";
+                const deviceIcon = s.device === "mobile" ? "📱" : s.device === "tablet" ? "📟" : "💻";
                 return (
-                  <div key={i} className="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
-                    <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-medium ${meta.cls}`}>
-                      {meta.label}
+                  <div
+                    key={i}
+                    className={`grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-x-3 items-center py-2 text-xs ${
+                      s.converted ? "bg-green-50/30" : ""
+                    }`}
+                  >
+                    {/* Device */}
+                    <span title={s.device}>{deviceIcon}</span>
+
+                    {/* Source */}
+                    <span className="text-[#716C70] truncate">{source}</span>
+
+                    {/* Scroll depth */}
+                    <span className="tabular-nums text-[#9A969A] shrink-0">
+                      {s.maxScroll > 0 ? (
+                        <span
+                          className={`font-medium ${
+                            s.maxScroll >= 75 ? "text-green-600" :
+                            s.maxScroll >= 50 ? "text-amber-600" : "text-[#9A969A]"
+                          }`}
+                        >
+                          {s.maxScroll}%
+                        </span>
+                      ) : "—"}
                     </span>
-                    {e.event_type === "scroll_depth" && e.scroll_depth !== null && (
-                      <span className="text-xs text-[#9A969A]">גלל עד {e.scroll_depth}%</span>
-                    )}
-                    {e.device_type && (
-                      <span className="text-[10px] text-[#C0BBC0]">
-                        {e.device_type === "mobile" ? "📱" : e.device_type === "tablet" ? "🖥" : "💻"}
-                      </span>
-                    )}
-                    {e.utm_source && (
-                      <span className="text-[10px] text-[#9A969A] truncate">{e.utm_source}</span>
-                    )}
-                    {e.time_on_page && e.time_on_page > 0 && (
-                      <span className="text-[10px] text-[#C0BBC0]">⏱ {e.time_on_page}ש׳</span>
-                    )}
-                    <span className="text-[10px] text-[#C0BBC0] mr-auto shrink-0">{time}</span>
+
+                    {/* Time on page */}
+                    <span className="tabular-nums text-[#9A969A] shrink-0">{timeOnPage}</span>
+
+                    {/* Session time */}
+                    <span className="text-[10px] text-[#C0BBC0] shrink-0 tabular-nums">{time}</span>
+
+                    {/* Conversion badge */}
+                    <span className="shrink-0">
+                      {s.converted ? (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                          ✓ ליד
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-[#E0DDE0]">—</span>
+                      )}
+                    </span>
                   </div>
                 );
               })}

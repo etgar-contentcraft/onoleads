@@ -48,12 +48,34 @@ export function HeroSection({ content, language }: HeroSectionProps) {
   const [counterValue, setCounterValue] = useState("0");
   const [visible, setVisible] = useState(false);
   const [parallaxY, setParallaxY] = useState(0);
+  /** Controls the gentle CTA pulse — active for 3s, pauses, restarts on tab focus */
+  const [ctaPulse, setCtaPulse] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const hasAnimated = useRef(false);
 
   /* ---- Appear on mount ---- */
   useEffect(() => {
     setVisible(true);
+  }, []);
+
+  /* ---- CTA button gentle pulse: 3s on, pause, restart on tab visibility ---- */
+  useEffect(() => {
+    /** Fire pulse for 3 seconds, then stop. Restarts when user returns to tab. */
+    const startPulse = () => {
+      setCtaPulse(true);
+      setTimeout(() => setCtaPulse(false), 3000);
+    };
+    // Start on mount (small delay so page has settled)
+    const initial = setTimeout(startPulse, 1200);
+    // Restart each time user focuses the tab
+    const handleFocus = () => startPulse();
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") handleFocus();
+    });
+    return () => {
+      clearTimeout(initial);
+      document.removeEventListener("visibilitychange", handleFocus);
+    };
   }, []);
 
   /* ---- Parallax scroll handler ---- */
@@ -216,14 +238,17 @@ export function HeroSection({ content, language }: HeroSectionProps) {
       {/* Content */}
       <div className="relative z-10 w-full max-w-6xl mx-auto px-5 md:px-8 pt-24 md:pt-32 pb-36 md:pb-44 lg:pb-48">
         <div className="max-w-3xl">
-          {/* College branding pill */}
+          {/* College branding pill — item 4: prominent badge */}
           <div
-            className="inline-flex items-center gap-3 px-5 py-2.5 mb-8 rounded-full bg-white/8 backdrop-blur-md border border-white/10 opacity-0"
+            className="inline-flex items-center gap-3 px-5 py-2.5 mb-8 rounded-full bg-white/10 backdrop-blur-md border border-[#B8D900]/30 opacity-0"
             style={{ animation: visible ? "fade-in-down 0.7s ease-out 0.1s forwards" : "none" }}
           >
-            <div className="w-2 h-2 rounded-full bg-[#B8D900] animate-pulse" />
-            <span className="text-white/80 text-xs md:text-sm font-medium tracking-wide font-heebo">
-              {isRtl ? "הקריה האקדמית אונו - המכללה המומלצת בישראל" : "Ono Academic College"}
+            {/* Award icon */}
+            <svg className="w-4 h-4 text-[#B8D900] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+            </svg>
+            <span className="text-white/90 text-xs md:text-sm font-semibold tracking-wide font-heebo">
+              {isRtl ? "הקריה האקדמית אונו — המכללה המומלצת בישראל" : "Ono Academic College — Israel's top-ranked college"}
             </span>
           </div>
 
@@ -279,7 +304,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
             {ctaEnabled && ctaText && (
               <button
                 onClick={() => open("hero_cta")}
-                className="group relative inline-flex items-center justify-center gap-3 px-10 py-5 md:px-12 md:py-6 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg md:text-xl transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_60px_rgba(184,217,0,0.5)] hover:scale-[1.03] active:scale-[0.98] animate-pulse-glow"
+                className={`group relative inline-flex items-center justify-center gap-3 px-10 py-5 md:px-12 md:py-6 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg md:text-xl transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_60px_rgba(184,217,0,0.5)] hover:scale-[1.03] active:scale-[0.98] ${ctaPulse ? "animate-pulse-glow" : ""}`}
               >
                 {ctaText}
                 <svg className={`w-5 h-5 md:w-6 md:h-6 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

@@ -145,6 +145,8 @@ const getPageData = cache(async function getPageData(slug: string) {
     facebook_pixel_id: pageOverrides.facebook_pixel_id || globalMap.facebook_pixel_id,
     social_proof_enabled: pageOverrides.social_proof_enabled === "true",
     social_proof_days: pageOverrides.social_proof_days ? parseInt(pageOverrides.social_proof_days, 10) : 7,
+    /* Sticky bottom CTA bar — opt-in per page */
+    sticky_bar_enabled: pageOverrides.sticky_bar_enabled === "true",
     /* Brand colors: page-level overrides win over global settings */
     brand_color_primary: pageOverrides.brand_color_primary || globalMap.brand_color_primary,
     brand_color_dark: pageOverrides.brand_color_dark || globalMap.brand_color_dark,

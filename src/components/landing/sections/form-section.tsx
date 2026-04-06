@@ -32,7 +32,7 @@ interface FormSectionProps {
 export function FormSection({ content, language, pageId, programId, pageSlug }: FormSectionProps) {
   const isRtl = language === "he" || language === "ar";
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "השאירו פרטים ונחזור אליכם" : "Leave your details");
-  const subheading = (content[`subheading_${language}`] as string) || (content.subheading_he as string) || (isRtl ? "יועץ לימודים אישי יחזור אליכם תוך 24 שעות" : "");
+  const subheading = (content[`subheading_${language}`] as string) || (content.subheading_he as string) || (isRtl ? "יועץ לימודים אישי יחזור אליכם בקרוב" : "");
   const submitText = (content[`submit_text_${language}`] as string) || (content.submit_text_he as string) || (isRtl ? "שלחו לי מידע מלא" : "Send me full info");
   const thankYouMessage = (content[`thank_you_message_${language}`] as string) || (content.thank_you_message_he as string) || "";
 
@@ -44,12 +44,17 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
 
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [fieldValid, setFieldValid] = useState<Record<string, boolean>>({});
   const [apiError, setApiError] = useState(false);
   const [apiErrorMsg, setApiErrorMsg] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [inView, setInView] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
+
+  /** Draft session-storage key — unique per page, never sent to server */
+  const draftKey = `fs_draft_${pageSlug || pageId || "default"}`;
 
   /** Bot-protection state */
   const [csrfToken, setCsrfToken] = useState("");
@@ -68,12 +73,18 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
     return Math.min(dwellScore + keystrokeScore + interactionScore, 100);
   }, []);
 
-  // Cookie setup + CSRF + form token + behavioral tracking
+  // Cookie setup + CSRF + form token + behavioral tracking + draft restore
   useEffect(() => {
     if (!document.cookie.includes("onoleads_id=")) {
       const cookieId = crypto.randomUUID();
       document.cookie = `onoleads_id=${cookieId}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
     }
+
+    // Restore draft from sessionStorage (local only, never transmitted)
+    try {
+      const saved = sessionStorage.getItem(draftKey);
+      if (saved) setFormData(JSON.parse(saved));
+    } catch { /* ignore */ }
 
     // Read CSRF token from cookie (set by middleware)
     const csrf = document.cookie
@@ -116,14 +127,53 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
     return (field[`label_${language}` as keyof FormField] as string) || field.label_he || field.name;
   };
 
-  /** Updates a field value, clears its validation error, and tracks keystrokes */
-  const handleChange = (fieldName: string, value: string) => {
+  /**
+   * Formats an Israeli phone number with a dash (052-8742573).
+   * Only applies to numbers starting with 0 and 9–10 digits total.
+   * International numbers (+XX...) are left untouched.
+   */
+  const formatPhone = (value: string): string => {
+    const digits = value.replace(/\D/g, "");
+    if (!digits.startsWith("0") || digits.length < 9 || digits.length > 10) return value;
+    if (digits.length === 10 && digits.startsWith("05")) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    if (digits.length === 9) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+    return value;
+  };
+
+  /** Updates a field value, auto-saves draft, clears error, tracks keystrokes */
+  const handleChange = (fieldName: string, rawValue: string) => {
     hasKeystrokeRef.current = true;
-    setFormData({ ...formData, [fieldName]: value });
-    if (errors[fieldName]) {
-      setErrors((prev) => { const next = { ...prev }; delete next[fieldName]; return next; });
-    }
+    const value = fieldName === "phone" ? rawValue : rawValue; // formatter applied on blur
+    const next = { ...formData, [fieldName]: value };
+    setFormData(next);
+    // Save draft locally (sessionStorage) — never sent to server
+    try { sessionStorage.setItem(draftKey, JSON.stringify(next)); } catch { /* ignore */ }
+    if (errors[fieldName]) setErrors((prev) => { const e = { ...prev }; delete e[fieldName]; return e; });
+    if (fieldValid[fieldName]) setFieldValid((prev) => { const v = { ...prev }; delete v[fieldName]; return v; });
     if (apiError) { setApiError(false); setApiErrorMsg(null); }
+  };
+
+  /** On blur: format phone, validate inline, mark field as touched + valid/invalid */
+  const handleBlur = (field: FormField) => {
+    const value = (formData[field.name] || "").trim();
+    setTouched((prev) => ({ ...prev, [field.name]: true }));
+
+    // Apply Israeli phone formatting on blur
+    if (field.type === "tel" && value) {
+      const formatted = formatPhone(value);
+      if (formatted !== value) {
+        const next = { ...formData, [field.name]: formatted };
+        setFormData(next);
+        try { sessionStorage.setItem(draftKey, JSON.stringify(next)); } catch { /* ignore */ }
+      }
+    }
+
+    // Inline validity check (show ✓ when valid)
+    let valid = true;
+    if (field.required && !value) valid = false;
+    if (field.type === "email" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) valid = false;
+    if (field.type === "tel" && value && !/^[\d\-+() ]{7,15}$/.test(value)) valid = false;
+    setFieldValid((prev) => ({ ...prev, [field.name]: valid && !!value }));
   };
 
   const validate = (): boolean => {
@@ -236,6 +286,8 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
         sessionStorage.setItem("ty_event_id", eventId);
         const firstName = (formData.full_name || "").trim().split(" ")[0] || "";
         if (firstName) sessionStorage.setItem("ty_name", firstName);
+        // Clear saved draft on successful submission
+        try { sessionStorage.removeItem(draftKey); } catch { /* ignore */ }
         setSubmitted(true);
       } else {
         const errorData = await res.json().catch(() => null);
@@ -322,6 +374,27 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
             onSubmit={handleSubmit}
             className="bg-white/[0.07] backdrop-blur-2xl rounded-3xl border border-white/10 p-7 md:p-10 shadow-[0_8px_60px_rgba(0,0,0,0.3)]"
           >
+            {/* Progress steps (item 9) */}
+            <div className="flex items-center justify-center gap-2 mb-7">
+              {[
+                { he: "מלאו פרטים", en: "Fill Details", ar: "أدخل التفاصيل" },
+                { he: "שיחת ייעוץ", en: "Advisory Call", ar: "مكالمة استشارية" },
+                { he: "התחלת לימודים", en: "Begin Studies", ar: "ابدأ الدراسة" },
+              ].map((step, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${i === 0 ? "bg-[#B8D900] text-[#2a2628]" : "bg-white/10 text-white/40"}`}>
+                      {i + 1}
+                    </div>
+                    <span className={`text-[11px] font-medium whitespace-nowrap ${i === 0 ? "text-[#B8D900]" : "text-white/30"}`}>
+                      {language === "en" ? step.en : language === "ar" ? step.ar : step.he}
+                    </span>
+                  </div>
+                  {i < 2 && <span className="text-white/20 text-xs mx-0.5">›</span>}
+                </div>
+              ))}
+            </div>
+
             <div className="space-y-5">
               {fields.map((field) => (
                 <div key={field.name}>
@@ -334,9 +407,10 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
                     <select
                       value={formData[field.name] || ""}
                       onChange={(e) => handleChange(field.name, e.target.value)}
+                      onBlur={() => handleBlur(field)}
                       aria-required={field.required || undefined}
                       required={field.required}
-                      className={`w-full h-14 rounded-xl bg-white/10 border px-5 text-white text-base focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none ${errors[field.name] ? "border-red-400/60" : "border-white/20"}`}
+                      className={`w-full h-14 rounded-xl bg-white/10 border px-5 text-white text-base focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none ${errors[field.name] ? "border-red-400/60" : fieldValid[field.name] ? "border-[#B8D900]/50" : "border-white/20"}`}
                     >
                       <option value="" className="bg-[#2a2628]">{isRtl ? "בחרו..." : "Select..."}</option>
                       {field.options?.map((opt) => (
@@ -344,16 +418,27 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
                       ))}
                     </select>
                   ) : (
-                    <input
-                      type={field.type}
-                      value={formData[field.name] || ""}
-                      onChange={(e) => handleChange(field.name, e.target.value)}
-                      dir={field.type === "tel" || field.type === "email" ? "ltr" : undefined}
-                      aria-required={field.required || undefined}
-                      required={field.required}
-                      className={`w-full h-14 rounded-xl bg-white/10 border px-5 text-white text-base placeholder:text-white/30 focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors[field.name] ? "border-red-400/60" : "border-white/20"}`}
-                      placeholder={getLabel(field)}
-                    />
+                    <div className="relative">
+                      <input
+                        type={field.type}
+                        value={formData[field.name] || ""}
+                        onChange={(e) => handleChange(field.name, e.target.value)}
+                        onBlur={() => handleBlur(field)}
+                        dir={field.type === "tel" || field.type === "email" ? "ltr" : undefined}
+                        aria-required={field.required || undefined}
+                        required={field.required}
+                        className={`w-full h-14 rounded-xl bg-white/10 border px-5 pr-10 text-white text-base placeholder:text-white/30 focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors[field.name] ? "border-red-400/60" : fieldValid[field.name] ? "border-[#B8D900]/50" : "border-white/20"}`}
+                        placeholder={getLabel(field)}
+                      />
+                      {/* Inline ✓ on valid blur — phone & email only */}
+                      {fieldValid[field.name] && (field.type === "tel" || field.type === "email") && (
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B8D900] pointer-events-none transition-opacity">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </span>
+                      )}
+                    </div>
                   )}
 
                   {errors[field.name] && (
@@ -429,6 +514,54 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
                 <span>{isRtl ? "100% פרטיות" : "100% privacy"}</span>
               </div>
             </div>
+
+            {/* What happens next? (item 13) */}
+            <div className="mt-8 pt-6 border-t border-white/10">
+              <p className="text-center text-white/40 text-[11px] uppercase tracking-widest mb-4">
+                {language === "en" ? "What happens next?" : language === "ar" ? "ماذا يحدث بعد ذلك؟" : "מה קורה אחרי?"}
+              </p>
+              <div className="space-y-3">
+                {[
+                  {
+                    he: "קיבלנו את פרטיכם בהצלחה",
+                    en: "We received your details",
+                    ar: "استلمنا بياناتك",
+                    done: true,
+                  },
+                  {
+                    he: "יועץ לימודים יחזור אליכם בקרוב",
+                    en: "An advisor will contact you shortly",
+                    ar: "مستشار سيتواصل معك قريبًا",
+                    done: false,
+                  },
+                  {
+                    he: "נתחיל לתכנן את המסלול שלכם",
+                    en: "We'll plan your academic path together",
+                    ar: "سنخطط مسارك الأكاديمي معاً",
+                    done: false,
+                  },
+                ].map((step, i) => (
+                  <div key={i} className={`flex items-center gap-3 ${isRtl ? "flex-row-reverse text-right" : ""}`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${step.done ? "bg-[#B8D900]/20 text-[#B8D900]" : "bg-white/5 text-white/25"}`}>
+                      {step.done
+                        ? <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        : i + 1}
+                    </div>
+                    <span className={`text-xs ${step.done ? "text-white/50" : "text-white/30"}`}>
+                      {language === "en" ? step.en : language === "ar" ? step.ar : step.he}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Security badge (item 14) — very subtle */}
+            <p className="text-center text-white/20 text-[10px] mt-4 flex items-center justify-center gap-1">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              {language === "en" ? "Secured with SSL 256-bit encryption" : language === "ar" ? "مؤمّن بتشفير SSL 256-bit" : "מאובטח בהצפנת SSL 256-bit"}
+            </p>
           </form>
         </div>
       </div>

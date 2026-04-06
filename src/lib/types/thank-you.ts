@@ -44,7 +44,7 @@ export interface ThankYouPageSettings {
 /** Ono's default thank-you page settings (used when no global/per-page settings are configured) */
 export const ONO_TY_DEFAULTS: ThankYouPageSettings = {
   heading_he: "תודה! קיבלנו את פרטיך",
-  subheading_he: "יועץ לימודים ייצור איתך קשר תוך 24 שעות",
+  subheading_he: "יועץ לימודים ייצור איתך קשר בקרוב",
   show_whatsapp: true,
   whatsapp_cta_he: "רוצים לדבר עכשיו? כתבו לנו",
   show_social: true,

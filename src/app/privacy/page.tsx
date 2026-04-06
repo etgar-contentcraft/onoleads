@@ -47,50 +47,72 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-xl font-bold text-[#2a2628] mt-8">2. מידע שאנו אוספים</h2>
-            <p>אנו אוספים את סוגי המידע הבאים:</p>
 
-            <h3 className="text-lg font-semibold text-[#2a2628] mt-4">2.1 מידע שנמסר על ידכם</h3>
+            <h3 className="text-lg font-semibold text-[#2a2628] mt-4">2.1 מידע אישי שנמסר בטופס (PII)</h3>
+            <p>
+              כאשר ממלאים טופס פנייה באתר, נאספים הפרטים הבאים:
+            </p>
             <ul className="list-disc list-inside space-y-1">
               <li>שם מלא</li>
               <li>מספר טלפון</li>
-              <li>כתובת דואר אלקטרוני</li>
+              <li>כתובת דואר אלקטרוני (אופציונלי)</li>
               <li>תחום עניין אקדמי (תוכנית לימודים מבוקשת)</li>
             </ul>
+            <div className="mt-3 p-3 bg-[#F7FBDA] border border-[#B8D900]/30 rounded-xl text-sm">
+              <strong className="text-[#4A6000]">🔒 עיקרון Privacy-First:</strong>
+              <p className="mt-1 text-[#4A6000]">
+                המידע האישי (שם, טלפון, מייל) <strong>לא נשמר כלל בבסיס הנתונים שלנו</strong>.
+                הוא מועבר <strong>ישירות בלבד</strong> למערכת ה-CRM המוסמכת (Make.com) באמצעות webhook
+                מוצפן ומאומת. לאחר ההעברה, המידע האישי נמחק משרתינו לחלוטין.
+              </p>
+            </div>
 
-            <h3 className="text-lg font-semibold text-[#2a2628] mt-4">2.2 מידע שנאסף אוטומטית</h3>
+            <h3 className="text-lg font-semibold text-[#2a2628] mt-4">2.2 נתוני אנליטיקה אנונימיים (ללא PII)</h3>
+            <p>אנו שומרים בבסיס הנתונים שלנו <strong>אך ורק</strong> נתונים אנונימיים:</p>
             <ul className="list-disc list-inside space-y-1">
-              <li>כתובת IP</li>
+              <li>מזהה מבקר אנונימי (Cookie ID ראשוני — ללא שם או מייל)</li>
               <li>סוג מכשיר (מחשב, טלפון, טאבלט)</li>
-              <li>מקור ההפניה (Referrer URL)</li>
-              <li>פרמטרי קמפיין שיווקי (UTM)</li>
-              <li>עוגיות מזהה (Cookie ID) - ראשוניות בלבד (First-party)</li>
+              <li>דומיין מקור ההפניה (ללא נתיב מלא, ללא PII)</li>
+              <li>פרמטרי קמפיין שיווקי (UTM source/medium/campaign)</li>
+              <li>עומק גלילה וזמן שהייה בדף (אגרגטיבי)</li>
+              <li>סטטוס שליחת webhook (הצלחה/כישלון)</li>
             </ul>
+
+            <h3 className="text-lg font-semibold text-[#2a2628] mt-4">2.3 מזהי קליקים (Click IDs)</h3>
+            <p>
+              מזהי קליקים פרסומיים (כגון gclid של Google, fbclid של Meta, ttclid של TikTok)
+              נשמרים <strong>אך ורק בדפדפן המבקר</strong> (localStorage) לצורך שיוך קמפיינים.
+              הם <strong>אינם נשמרים בשרתינו</strong> — הם מועברים ישירות לפלטפורמות הפרסום
+              הרלוונטיות בעת שליחת הטופס, ומוחקים אוטומטית לאחר תום חלון השיוך.
+            </p>
           </section>
 
           <section>
             <h2 className="text-xl font-bold text-[#2a2628] mt-8">3. מטרות השימוש במידע</h2>
             <p>המידע שנאסף משמש אך ורק למטרות הבאות:</p>
             <ul className="list-disc list-inside space-y-1">
-              <li>יצירת קשר עם מתעניינים בתוכניות הלימוד של המוסד</li>
-              <li>שיפור חוויית הגלישה והתאמת תוכן</li>
+              <li>יצירת קשר עם מתעניינים בתוכניות הלימוד של המוסד (דרך CRM בלבד)</li>
+              <li>שיפור חוויית הגלישה והתאמת תוכן (על בסיס נתונים אנונימיים)</li>
               <li>ניתוח סטטיסטי אנונימי של תנועת הגולשים באתר</li>
-              <li>שיפור המערכת והשירות</li>
+              <li>מדידת אפקטיביות קמפיינים פרסומיים (בהסכמה בלבד)</li>
             </ul>
-            <p>
+            <p className="mt-2">
               <strong>אנו לא משתמשים במידע למטרות שיווק ישיר ללא הסכמה מפורשת.</strong>
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-[#2a2628] mt-8">4. עוגיות (Cookies)</h2>
-            <p>האתר משתמש בעוגיות ראשוניות (First-party) בלבד. אנו לא משתמשים בעוגיות צד שלישי.</p>
+            <h2 className="text-xl font-bold text-[#2a2628] mt-8">4. עוגיות ואחסון מקומי (Cookies &amp; LocalStorage)</h2>
+            <p>האתר משתמש בעוגיות ראשוניות (First-party) ובאחסון מקומי בדפדפן. אנו לא משתמשים בעוגיות צד שלישי לצורך מעקב ללא הסכמה.</p>
 
-            <h3 className="text-lg font-semibold text-[#2a2628] mt-4">סוגי העוגיות באתר:</h3>
+            <h3 className="text-lg font-semibold text-[#2a2628] mt-4">סוגי האחסון באתר:</h3>
             <ul className="list-disc list-inside space-y-1">
-              <li><strong>עוגיות חיוניות:</strong> נדרשות לתפקוד תקין של האתר, כולל אבטחה וניהול הפעלה (Session)</li>
-              <li><strong>עוגיות ניתוח:</strong> עוזרות לנו להבין כיצד משתמשים מנווטים באתר, לצורך שיפור חוויית המשתמש</li>
+              <li><strong>עוגיות חיוניות:</strong> נדרשות לתפקוד תקין, אבטחה (CSRF) וניהול הפעלה</li>
+              <li><strong>Cookie ID אנונימי:</strong> מזהה ייחודי לניתוח התנהגות אנונימית — ללא קישור לשם/טלפון/מייל</li>
+              <li><strong>LocalStorage — מזהי קליקים:</strong> gclid, fbclid ומקבילים, נשמרים מקומית בדפדפן בלבד עד 90 יום, ואינם עולים לשרתינו</li>
+              <li><strong>SessionStorage — טיוטות טופס:</strong> טיוטת הטופס נשמרת זמנית בדפדפן בלבד, נמחקת עם שליחה או סגירת הלשונית</li>
             </ul>
-            <p>
+            <p className="mt-2">
               תוכלו לנהל את העדפות העוגיות שלכם באמצעות באנר העוגיות המופיע בכניסה לאתר,
               או דרך הגדרות הדפדפן שלכם.
             </p>
@@ -98,24 +120,26 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-xl font-bold text-[#2a2628] mt-8">5. אבטחת מידע</h2>
-            <p>אנו נוקטים באמצעי אבטחה מתקדמים להגנה על המידע האישי:</p>
+            <p>אנו נוקטים באמצעי אבטחה מתקדמים:</p>
             <ul className="list-disc list-inside space-y-1">
               <li>הצפנת נתונים בהעברה באמצעות TLS/SSL</li>
               <li>אחסון מאובטח בשרתי ענן מוגנים עם הצפנה במנוחה (At-rest encryption)</li>
+              <li>PII מועבר דרך webhook חתום HMAC — לא עובר דרך לוגים</li>
               <li>הגבלת גישה למידע לגורמים מורשים בלבד</li>
-              <li>ביקורות אבטחה תקופתיות</li>
-              <li>הגנת CSRF (Cross-Site Request Forgery)</li>
-              <li>סינון קלט והגנה מפני XSS (Cross-Site Scripting)</li>
-              <li>הגבלת קצב בקשות (Rate Limiting)</li>
-              <li>כותרות אבטחה (Security Headers) בהתאם לשיטות המומלצות</li>
+              <li>הגנת CSRF, סינון קלט, Rate Limiting והגנה מפני XSS ו-SSRF</li>
+              <li>כותרות אבטחה (Security Headers) בהתאם לשיטות המומלצות (OWASP)</li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-xl font-bold text-[#2a2628] mt-8">6. שמירת מידע</h2>
             <p>
-              מידע אישי נשמר לתקופה הנדרשת למימוש המטרות שלשמן נאסף, ובהתאם לדרישות חוקיות.
-              פניות של מתעניינים נשמרות לתקופה של עד 24 חודשים, אלא אם נדרש אחרת על פי דין.
+              <strong>מידע אישי (PII):</strong> אינו נשמר בשרתינו. הוא מועבר לCRM ומוחק אוטומטית.
+              שמירתו ב-CRM כפופה למדיניות שמירת המידע של אותה מערכת.
+            </p>
+            <p className="mt-2">
+              <strong>נתוני אנליטיקה אנונימיים:</strong> נשמרים עד 24 חודשים לצורך שיפור השירות,
+              אלא אם נדרש אחרת על פי דין.
             </p>
           </section>
 
@@ -125,7 +149,8 @@ export default function PrivacyPage() {
               איננו מוכרים, משכירים או מעבירים מידע אישי לצדדים שלישיים, למעט:
             </p>
             <ul className="list-disc list-inside space-y-1">
-              <li>ספקי שירות הפועלים מטעמנו (כגון מערכת CRM), הכפופים להסכמי סודיות</li>
+              <li><strong>מערכת CRM (Make.com):</strong> מקבלת PII דרך webhook מוצפן — כפופה להסכם עיבוד נתונים (DPA)</li>
+              <li><strong>פלטפורמות פרסום (Google, Meta, TikTok וכו׳):</strong> מקבלות מידע המרה ומזהי קליקים בהסכמת המשתמש בלבד, לצורך שיוך קמפיינים</li>
               <li>כנדרש על פי חוק, צו בית משפט או דרישה של רשות מוסמכת</li>
             </ul>
           </section>

@@ -453,7 +453,7 @@ export const SECTION_SCHEMAS: SectionSchema[] = [
     ],
     jsonExample: {
       heading_he: "מוכנים להתחיל?",
-      description_he: "השאירו פרטים ויועץ לימודים יחזור אליכם תוך 24 שעות",
+      description_he: "השאירו פרטים ויועץ לימודים יחזור אליכם בקרוב",
       button_text_he: "לפרטים נוספים",
     },
   },

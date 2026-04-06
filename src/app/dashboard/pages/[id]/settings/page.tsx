@@ -48,6 +48,8 @@ interface PageOverrides {
 
   social_proof_enabled?: string;
   social_proof_days?: string;
+  /** Sticky bottom CTA bar — shown after scroll, user-dismissable */
+  sticky_bar_enabled?: string;
   /** "I don't know" option — display text shown to the visitor */
   interest_unknown_enabled?: string;
   interest_unknown_text?: string;
@@ -1020,6 +1022,29 @@ export default function PageSettingsPage() {
                 <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${socialEnabled ? "translate-x-4" : "translate-x-0"}`} />
               </button>
             </div>
+
+            <div className="h-px bg-gray-100" />
+
+            {/* Sticky bottom CTA bar */}
+            {(() => {
+              const stickyEnabled = overrides.sticky_bar_enabled === "true";
+              return (
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <Label className="text-xs font-semibold text-[#2A2628] block">סרגל CTA תחתון</Label>
+                    <p className="text-[11px] text-[#9A969A] mt-0.5">
+                      פס קטן בתחתית הדף — מופיע אחרי גלילה, ניתן לסגירה על ידי המבקר
+                    </p>
+                  </div>
+                  <button type="button"
+                    onClick={() => set("sticky_bar_enabled", stickyEnabled ? "false" : "true")}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors mt-0.5 ${stickyEnabled ? "bg-[#B8D900]" : "bg-[#E5E5E5]"}`}
+                    role="switch" aria-checked={stickyEnabled}>
+                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${stickyEnabled ? "translate-x-4" : "translate-x-0"}`} />
+                  </button>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
@@ -1070,7 +1095,7 @@ export default function PageSettingsPage() {
             <div>
               <Label className="text-sm font-medium text-[#2a2628]">כותרת משנה</Label>
               <Input value={tySettings.subheading_he || ""} onChange={(e) => setTySettings((p) => ({ ...p, subheading_he: e.target.value }))}
-                placeholder="יועץ לימודים ייצור איתך קשר תוך 24 שעות" className="mt-1.5 h-9" dir="rtl" />
+                placeholder="יועץ לימודים ייצור איתך קשר בקרוב" className="mt-1.5 h-9" dir="rtl" />
             </div>
           </div>
 
