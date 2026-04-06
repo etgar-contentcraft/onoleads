@@ -613,19 +613,6 @@ function SortableSectionRow({
           {section.is_visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
         </Button>
 
-        {/* Save as Global */}
-        {!section.shared_section_id && onSaveAsGlobal && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onSaveAsGlobal}
-            className="h-8 w-8 p-0 text-[#C8C4C8] hover:text-blue-500 md:opacity-0 md:group-hover:opacity-100 transition-all"
-            title="שמור כסקציה גלובלית"
-          >
-            <Globe className="w-3.5 h-3.5" />
-          </Button>
-        )}
-
         {/* Delete */}
         <Button
           variant="ghost"
@@ -1572,9 +1559,11 @@ interface SectionEditModalProps {
   saving: boolean;
   /** Page language — determines which field suffix to edit (_he vs _en vs _ar) */
   pageLanguage?: "he" | "en" | "ar";
+  /** Called when user wants to save this section as a global (shared) section */
+  onSaveAsGlobal?: () => void;
 }
 
-function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he" }: SectionEditModalProps) {
+function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he", onSaveAsGlobal }: SectionEditModalProps) {
   const [draft, setDraft] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
@@ -1598,6 +1587,8 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
       case "hero":
         return (
           <div className="space-y-4">
+            <Field label={isEn ? "Faculty / Program Name" : "שם הפקולטה / תוכנית"} fieldKey={lk("faculty_name")} placeholder={isEn ? "Faculty of Law – International Program" : "פקולטה למשפטים – תוכנית בינלאומית"} draft={draft} set={set} />
+            <Field label={isEn ? "Degree Badge (e.g. LL.B.)" : "תג תואר (למשל LL.B.)"} fieldKey="degree_type" placeholder="LL.B." dir="ltr" draft={draft} set={set} />
             <Field label={isEn ? "Main Heading" : "כותרת ראשית"} fieldKey={lk("heading")} placeholder={isEn ? "Main heading..." : "כותרת ראשית..."} dtrHint draft={draft} set={set} />
             <TextareaField label={isEn ? "Subheading" : "כותרת משנה"} fieldKey={lk("subheading")} placeholder={isEn ? "Additional details..." : "פרטים נוספים..."} dtrHint draft={draft} set={set} />
             <Field label={isEn ? "Button Text" : "טקסט כפתור"} fieldKey={lk("cta_text")} placeholder={isEn ? "Get Info" : "השאירו פרטים"} draft={draft} set={set} />
@@ -2048,7 +2039,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
       default:
         return (
           <div className="space-y-2">
-            <p className="text-sm text-[#9A969A]">אין עורך מיוחד לסוג סקציה זה.</p>
+            <p className="text-sm text-[#9A969A]">אין עורך מיוחד לסוג מקטע זה.</p>
             <Label className="text-xs font-medium text-[#716C70]">תוכן (JSON)</Label>
             <Textarea
               value={JSON.stringify(draft, null, 2)}
@@ -2078,10 +2069,10 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
       >
         <DialogHeader className="px-6 py-4 border-b border-[#F0F0F0] shrink-0">
           <DialogTitle className="text-base font-bold text-[#2A2628]">
-            עריכת {label}
+            עריכת מקטע — {label}
           </DialogTitle>
           <DialogDescription className="text-xs text-[#9A969A]">
-            שנה את תוכן הסקציה ולחץ שמור
+            שנה את תוכן המקטע ולחץ שמור
           </DialogDescription>
         </DialogHeader>
 
@@ -2089,22 +2080,39 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
           <div className="px-6 py-5">{renderForm()}</div>
         </div>
 
-        <div className="px-6 py-4 border-t border-[#F0F0F0] flex items-center justify-end gap-3 shrink-0">
-          <Button variant="outline" onClick={onClose} className="h-9">
-            ביטול
-          </Button>
-          <Button
-            onClick={() => onSave(section.id, draft)}
-            disabled={saving}
-            className="h-9 bg-[#B8D900] text-[#2A2628] hover:bg-[#A8C400] gap-2"
-          >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            שמור
-          </Button>
+        <div className="px-6 py-4 border-t border-[#F0F0F0] flex items-center justify-between gap-3 shrink-0">
+          {/* Save as Global — left side, only for non-shared sections */}
+          {onSaveAsGlobal && !section.shared_section_id ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { onClose(); onSaveAsGlobal(); }}
+              className="h-8 gap-1.5 text-xs text-[#9A969A] hover:text-blue-600 hover:bg-blue-50"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              שמור כמקטע משותף
+            </Button>
+          ) : (
+            <div />
+          )}
+
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={onClose} className="h-9">
+              ביטול
+            </Button>
+            <Button
+              onClick={() => onSave(section.id, draft)}
+              disabled={saving}
+              className="h-9 bg-[#B8D900] text-[#2A2628] hover:bg-[#A8C400] gap-2"
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              שמור
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -2138,10 +2146,10 @@ function DeleteConfirmDialog({
             <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
               <AlertTriangle className="w-5 h-5 text-red-500" />
             </div>
-            <DialogTitle className="text-base font-bold text-[#2A2628]">מחיקת סקציה</DialogTitle>
+            <DialogTitle className="text-base font-bold text-[#2A2628]">מחיקת מקטע</DialogTitle>
           </div>
           <DialogDescription className="text-sm text-[#9A969A] pr-13">
-            האם אתה בטוח שברצונך למחוק סקציה זו? פעולה זו אינה ניתנת לביטול.
+            האם אתה בטוח שברצונך למחוק מקטע זה? פעולה זו אינה ניתנת לביטול.
           </DialogDescription>
         </DialogHeader>
         <div className="flex gap-2 justify-end mt-2">
@@ -2301,9 +2309,9 @@ export default function PageBuilderPage() {
       .single();
     if (!error && data) {
       setSections((prev) => [...prev, data as PageSection]);
-      showToast(`סקציה גלובלית "${gs.name_he}" נוספה`);
+      showToast(`מקטע משותף "${gs.name_he}" נוספה`);
     } else {
-      showToast("שגיאה בהוספת סקציה גלובלית", "error");
+      showToast("שגיאה בהוספת מקטע משותף", "error");
     }
   }, [pageId, sections, supabase, showToast]);
 
@@ -2334,7 +2342,7 @@ export default function PageBuilderPage() {
       );
       setGlobalEditDialogOpen(false);
       setEditingSection(null);
-      showToast("הסקציה הגלובלית עודכנה — כל הדפים המשתמשים בה עודכנו");
+      showToast("המקטע המשותף עודכנה — כל הדפים המשתמשים בה עודכנו");
     } else {
       showToast("שגיאה בשמירה הגלובלית", "error");
     }
@@ -2365,12 +2373,12 @@ export default function PageBuilderPage() {
       setSections((prev) =>
         prev.map((s) => s.id === saveAsGlobalSection.id ? { ...s, shared_section_id: data.id } : s)
       );
-      showToast(`הסקציה נשמרה כגלובלית: "${saveAsGlobalName.trim()}"`);
+      showToast(`המקטע נשמר כגלובלית: "${saveAsGlobalName.trim()}"`);
       setSaveAsGlobalSection(null);
       setSaveAsGlobalName("");
       setSaveAsGlobalCategory("");
     } else {
-      showToast("שגיאה בשמירת הסקציה הגלובלית", "error");
+      showToast("שגיאה בשמירת המקטע המשותף", "error");
     }
     setSaveAsGlobalSaving(false);
   }, [saveAsGlobalSection, saveAsGlobalName, saveAsGlobalCategory, supabase, showToast]);
@@ -2488,7 +2496,7 @@ export default function PageBuilderPage() {
         .from("page_sections")
         .update({ is_visible: newVisible })
         .eq("id", id);
-      showToast(newVisible ? "הסקציה מוצגת כעת" : "הסקציה הוסתרה");
+      showToast(newVisible ? "המקטע מוצג כעת" : "המקטע הוסתר");
     },
     [sections, supabase, showToast]
   );
@@ -2514,12 +2522,12 @@ export default function PageBuilderPage() {
 
       if (!error && data) {
         setSections((prev) => [...prev, data as PageSection]);
-        showToast("סקציה חדשה נוספה");
+        showToast("מקטע חדש נוסף");
         /* Auto-open editor for the new section */
         setEditingSection(data as PageSection);
       } else {
         console.error("[addSection] insert error:", JSON.stringify(error));
-        showToast(`שגיאה בהוספת סקציה: ${error?.message || error?.code || "unknown"}`, "error");
+        showToast(`שגיאה בהוספת מקטע: ${error?.message || error?.code || "unknown"}`, "error");
       }
       setAddingType(null);
     },
@@ -2568,7 +2576,7 @@ export default function PageBuilderPage() {
       if (!error) {
         setSections((prev) => prev.filter((s) => s.id !== id));
         setDeleteTargetId(null);
-        showToast("הסקציה נמחקה");
+        showToast("המקטע נמחק");
       } else {
         showToast("שגיאה במחיקה", "error");
       }
@@ -2907,7 +2915,7 @@ export default function PageBuilderPage() {
                 <Layers className="w-3.5 h-3.5 text-[#B8D900]" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-white">ספריית סקציות</h2>
+                <h2 className="text-sm font-bold text-white">ספריית מקטעים</h2>
                 <p className="text-[10px] text-white/40 mt-0.5">לחץ להוספה לדף</p>
               </div>
             </div>
@@ -2921,7 +2929,7 @@ export default function PageBuilderPage() {
                     : "text-white/50 hover:text-white/80"
                 }`}
               >
-                סוגי סקציות
+                סוגי מקטעים
               </button>
               <button
                 onClick={() => {
@@ -3046,11 +3054,11 @@ export default function PageBuilderPage() {
                     <div className="text-center py-10">
                       <Globe className="w-8 h-8 mx-auto mb-2 text-white/20" />
                       <p className="text-xs text-white/30">
-                        {globalSections.length === 0 ? "אין סקציות בספרייה עדיין" : "לא נמצאו תוצאות"}
+                        {globalSections.length === 0 ? "אין מקטעים בספרייה עדיין" : "לא נמצאו תוצאות"}
                       </p>
                       {globalSections.length === 0 && (
                         <p className="text-[10px] text-white/20 mt-1">
-                          הוסיפו מ&ldquo;סקציות גלובליות&rdquo; בסיידבר
+                          הוסיפו מ&ldquo;מקטעים משותפים&rdquo; בסיידבר
                         </p>
                       )}
                     </div>
@@ -3098,7 +3106,7 @@ export default function PageBuilderPage() {
           {/* Bottom hint */}
           <div className="px-4 py-3 border-t border-white/10">
             <p className="text-[10px] text-white/25 text-center">
-              {sections.length} סקציות בדף הנוכחי
+              {sections.length} מקטעים בדף הנוכחי
             </p>
           </div>
         </aside>
@@ -3108,9 +3116,9 @@ export default function PageBuilderPage() {
           {/* Canvas header */}
           <div className="shrink-0 px-6 py-3 bg-white border-b border-[#F0F0F0] flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-bold text-[#2A2628]">סקציות הדף</h2>
+              <h2 className="text-sm font-bold text-[#2A2628]">מקטעי הדף</h2>
               <p className="text-xs text-[#9A969A]">
-                {sections.length} סקציות · גרור לשינוי סדר
+                {sections.length} מקטעים · גרור לשינוי סדר
               </p>
             </div>
             <div className="flex items-center gap-1.5">
@@ -3135,7 +3143,7 @@ export default function PageBuilderPage() {
                   </div>
                   <p className="text-base font-semibold text-[#4A4648]">הדף ריק</p>
                   <p className="text-sm text-[#9A969A] mt-1 max-w-xs">
-                    בחר סקציה מהפאנל הימני כדי להתחיל לבנות את הדף
+                    בחר מקטע מהפאנל הימני כדי להתחיל לבנות את הדף
                   </p>
                 </div>
               ) : (
@@ -3208,6 +3216,12 @@ export default function PageBuilderPage() {
         onSave={saveEditSection}
         saving={editSaving}
         pageLanguage={page?.language || "he"}
+        onSaveAsGlobal={editingSection ? () => {
+          const label = SECTION_LABELS[editingSection.section_type] || editingSection.section_type;
+          const heading = (editingSection.content as Record<string, unknown>)?.heading_he;
+          setSaveAsGlobalSection(editingSection);
+          setSaveAsGlobalName(typeof heading === "string" && heading ? heading : label);
+        } : undefined}
       />
 
       {/* ── Delete Confirmation ── */}
@@ -3273,7 +3287,7 @@ export default function PageBuilderPage() {
                     <div key={v.id} className="rounded-xl border border-[#E5E5E5] p-3 bg-[#FAFAFA] hover:border-[#B8D900]/50 transition-all">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs font-bold text-[#2A2628]">גרסה {v.version_num}</span>
-                        <span className="text-[10px] text-[#9A969A]">{v.sections_snapshot.length} סקציות</span>
+                        <span className="text-[10px] text-[#9A969A]">{v.sections_snapshot.length} מקטעים</span>
                       </div>
                       <p className="text-[11px] text-[#716C70] mb-2">{rel}</p>
                       <button
@@ -3301,12 +3315,12 @@ export default function PageBuilderPage() {
                 <Globe className="w-5 h-5 text-blue-500" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-[#2A2628]">עריכת סקציה גלובלית</h2>
-                <p className="text-xs text-[#9A969A] mt-0.5">סקציה זו משותפת בין מספר עמודים</p>
+                <h2 className="text-sm font-bold text-[#2A2628]">עריכת מקטע משותף</h2>
+                <p className="text-xs text-[#9A969A] mt-0.5">מקטע זה משותף בין מספר עמודים</p>
               </div>
             </div>
             <p className="text-sm text-[#4A4648] leading-relaxed">
-              כיצד תרצו לערוך את הסקציה?
+              כיצד תרצו לערוך את המקטע?
             </p>
             <div className="space-y-2">
               <button
@@ -3317,7 +3331,7 @@ export default function PageBuilderPage() {
                 className="w-full px-4 py-3 rounded-xl bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors text-right"
               >
                 <p className="text-sm font-semibold text-blue-700">ערוך גלובלי</p>
-                <p className="text-xs text-blue-500 mt-0.5">השינויים יעודכנו בכל הדפים המשתמשים בסקציה זו</p>
+                <p className="text-xs text-blue-500 mt-0.5">השינויים יעודכנו בכל הדפים המשתמשים במקטע זה</p>
               </button>
               <button
                 onClick={async () => {
@@ -3328,7 +3342,7 @@ export default function PageBuilderPage() {
                 className="w-full px-4 py-3 rounded-xl bg-[#F8F9FA] border border-[#E5E5E5] hover:bg-[#F0F0F0] transition-colors text-right"
               >
                 <p className="text-sm font-semibold text-[#2A2628]">ניתוק ועריכה מקומית</p>
-                <p className="text-xs text-[#9A969A] mt-0.5">הסקציה תנותק מהספרייה ותהיה ייחודית לעמוד זה בלבד</p>
+                <p className="text-xs text-[#9A969A] mt-0.5">המקטע ינותק מהספרייה ותהיה ייחודית לעמוד זה בלבד</p>
               </button>
             </div>
             <button
@@ -3350,13 +3364,13 @@ export default function PageBuilderPage() {
                 <Globe className="w-5 h-5 text-blue-500" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-[#2A2628]">שמירה כסקציה גלובלית</h2>
-                <p className="text-[11px] text-[#9A969A]">הסקציה תהיה זמינה לשימוש בכל העמודים</p>
+                <h2 className="text-sm font-bold text-[#2A2628]">שמירה כמקטע משותף</h2>
+                <p className="text-[11px] text-[#9A969A]">המקטע יהיה זמינה לשימוש בכל העמודים</p>
               </div>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-[#4A4648] mb-1">שם הסקציה</label>
+                <label className="block text-xs font-medium text-[#4A4648] mb-1">שם המקטע</label>
                 <input
                   type="text"
                   value={saveAsGlobalName}
