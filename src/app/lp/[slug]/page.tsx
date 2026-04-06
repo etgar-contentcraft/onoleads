@@ -70,7 +70,7 @@ const getPageData = cache(async function getPageData(slug: string) {
   if (!pageRes.data) return null;
   const page = pageRes.data;
 
-  const [sectionsRes, programRes, campaignsRes, interestAreasRes] = await Promise.all([
+  const [sectionsRes, programRes, campaignsRes, interestAreasRes, pagePixelOverridesRes] = await Promise.all([
     supabase
       .from("page_sections")
       .select("*, shared_sections:shared_section_id(content, styles)")
@@ -91,6 +91,12 @@ const getPageData = cache(async function getPageData(slug: string) {
       .select("interest_area_id, sort_order, interest_area:interest_areas(id, name_he, name_en, slug)")
       .eq("page_id", page.id)
       .order("sort_order", { ascending: true }),
+    // Per-page pixel overrides — can replace or disable global pixel config
+    adminClient
+      .from("page_pixel_overrides")
+      .select("platform, is_enabled, pixel_id_override, event_name_override, custom_data")
+      .eq("page_id", page.id)
+      .then((res) => ({ data: res.error ? [] : res.data })),
   ]);
 
   // Build global settings map from key-value rows
@@ -104,6 +110,21 @@ const getPageData = cache(async function getPageData(slug: string) {
   for (const row of pixelConfigRes.data || []) {
     if (row.is_enabled && row.pixel_id) {
       pixelMap[row.platform] = { pixel_id: row.pixel_id, additional_config: (row.additional_config as Record<string, string | null>) || {} };
+    }
+  }
+
+  // Apply per-page pixel overrides — can replace pixel_id or disable a platform for this page
+  const pagePixelOverrides = pagePixelOverridesRes?.data || [];
+  for (const override of pagePixelOverrides) {
+    if (!override.is_enabled) {
+      // Page explicitly disables this platform
+      delete pixelMap[override.platform];
+    } else if (override.pixel_id_override) {
+      // Page uses a different pixel ID for this platform (e.g. different ad account)
+      pixelMap[override.platform] = {
+        pixel_id: override.pixel_id_override,
+        additional_config: (override.custom_data as Record<string, string | null>) || pixelMap[override.platform]?.additional_config || {},
+      };
     }
   }
 

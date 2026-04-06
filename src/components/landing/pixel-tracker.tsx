@@ -36,9 +36,13 @@ let _leadFireCount = 0;
 export function fireLeadPixelEvent(
   eventId: string,
   userEmail?: string | null,
-  userPhone?: string | null
+  userPhone?: string | null,
+  fullName?: string | null
 ): void {
-  if (!_pixelConfig) return;
+  if (!_pixelConfig) {
+    console.warn("[pixel] fireLeadPixelEvent called before PixelTracker mounted — pixels not fired");
+    return;
+  }
   // Guard: only fire once per session per form submission
   _leadFireCount++;
   const thisCount = _leadFireCount;
@@ -53,6 +57,11 @@ export function fireLeadPixelEvent(
     updateConsentGranted();
     if (_pixelConfig) initializePixels(_pixelConfig);
 
+    // Split full name for Enhanced Conversions (gtag auto-hashes these)
+    const nameParts = fullName?.trim().split(/\s+/) || [];
+    const firstName = nameParts[0] || undefined;
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined;
+
     firePixelEvent(
       "lead_submit",
       {
@@ -61,6 +70,10 @@ export function fireLeadPixelEvent(
         user_data: {
           email_address: userEmail || undefined,
           phone_number: userPhone || undefined,
+          address: {
+            first_name: firstName,
+            last_name: lastName,
+          },
         },
       },
       _pixelConfig!

@@ -497,6 +497,71 @@ const HELP_SECTIONS: HelpSection[] = [
       },
     ],
   },
+  {
+    id: "tracking-events",
+    icon: TrendingUp,
+    title: "מעקב ומדידה — אירועים לפי פלטפורמה",
+    description: "מפת האירועים המלאה: מה נשלח, לאן, ומתי. כולל אירועי מעורבות ואירועי לידים, בצד לקוח ובצד שרת.",
+    color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    features: [
+      {
+        name: "📊 GA4 — Google Analytics 4",
+        description: "צד לקוח: page_view (אוטומטי בטעינת דף), scroll (75% גלילה), engaged_session (60 שניות בדף), form_start (פוקוס ראשון בטופס), lead_form_submit (שליחת טופס — אות עזר, לא המרה). צד שרת (Measurement Protocol): generate_lead — אירוע ההמרה הרשמי, נשלח מהשרת אחרי שמירת הליד.",
+        tip: "GA4 לא תומך ב-dedup מובנה, לכן ההמרה (generate_lead) נשלחת רק מהשרת. הדפדפן שולח lead_form_submit כאות מעורבות בלבד.",
+      },
+      {
+        name: "📘 Meta (Facebook) Pixel + CAPI",
+        description: "צד לקוח (דפדפן): PageView (טעינת דף), Lead (בעמוד תודה, עם eventID לdedup). צד שרת (Conversions API): Lead — עם אותו eventID כדי ש-Meta לא יספור כפול. כולל: email hash, phone hash, first/last name hash, fbc, fbp, country, IP, user-agent.",
+        tip: "Meta מסיר כפילויות לפי eventID. חובה שהדפדפן והשרת ישלחו אותו ID — המערכת מטפלת בזה אוטומטית.",
+      },
+      {
+        name: "🎯 Google Ads — Enhanced Conversions",
+        description: "צד לקוח (דפדפן): conversion (בעמוד תודה, עם transaction_id). צד שרת: uploadClickConversions — רק כשיש gclid (click ID מגוגל). כולל: hashed email, phone, name.",
+        tip: "Google Ads CAPI דורש gclid. אם המבקר לא הגיע מגוגל — רק אירוע הדפדפן יישלח.",
+      },
+      {
+        name: "🎵 TikTok Pixel + Events API",
+        description: "צד לקוח (דפדפן): page() (טעינת דף), CompleteRegistration (בעמוד תודה, עם event_id). צד שרת (Events API): CompleteRegistration — עם אותו event_id. כולל: email hash, phone hash, ttclid, IP, user-agent.",
+        tip: "TikTok API: event_id חייב להישלח כארגומנט שלישי (options), לא כ-property. המערכת מטפלת בזה נכון.",
+      },
+      {
+        name: "💼 LinkedIn Insight + Conversions API",
+        description: "צד לקוח (דפדפן): לא נשלח אירוע Lead ספציפי — LinkedIn Insight Tag עוקב אוטומטית אחרי צפיות בדפים. צד שרת: Lead conversion — עם SHA256_EMAIL ו/או li_fat_id (LinkedIn click ID).",
+        tip: "LinkedIn CAPI תומך רק ב-2 סוגי מזהים: SHA256_EMAIL ו-LINKEDIN_FIRST_PARTY_ADS_TRACKING_UUID.",
+      },
+      {
+        name: "📰 Outbrain",
+        description: "צד לקוח: PAGE_VIEW (טעינת פיקסל), CONVERSION (בעמוד תודה). צד שרת: Lead — רק כשיש obclid (click ID מ-Outbrain). ללא click ID, רק אירוע הדפדפן נשלח.",
+      },
+      {
+        name: "📑 Taboola",
+        description: "צד לקוח: page_view (טעינת פיקסל), complete_registration (בעמוד תודה). צד שרת: lead — עם order-id ו-tblclid אם זמין.",
+      },
+      {
+        name: "🐦 Twitter / X",
+        description: "צד לקוח: tw-lead (בעמוד תודה, עם conversion_id). צד שרת: LEAD conversion — עם hashed email, phone, name, ו-twclid אם זמין.",
+      },
+      {
+        name: "מתי אירועי הליד נשלחים?",
+        description: "1) המבקר ממלא טופס ולוחץ 'שלח'. 2) הנתונים נשלחים ל-API (/api/leads). 3) השרת שומר ליד אנונימי + שולח webhook + שולח CAPI לכל הפלטפורמות (צד שרת). 4) הדפדפן מנותב לעמוד תודה. 5) עמוד התודה טוען את הפיקסלים ושולח אירועי Lead (צד לקוח). 6) כל הפלטפורמות מסירות כפילויות לפי event_id משותף.",
+        tip: "event_id נוצר בצד הלקוח, נשמר ב-sessionStorage, ומועבר גם לשרת וגם לעמוד התודה — כך כולם משתמשים באותו ID.",
+      },
+      {
+        name: "אירועי מעורבות — מתי נשלחים?",
+        description: "scroll (75% גלילה), engaged_visitor (60 שניות בדף), form_interact (פוקוס ראשון בשדה טופס). אלו נשלחים רק ל-GA4 בצד לקוח, ורק אחרי שהמבקר נתן הסכמה לעוגיות (או שלח טופס).",
+      },
+      {
+        name: "דריסת פיקסלים ברמת דף",
+        description: "בהגדרות כל עמוד → כרטיסיית 'מעקב ואנליטיקס' ניתן: 1) להזין מזהה פיקסל חלופי (למשל חשבון פרסום אחר) — ידרוס את הגלובלי. 2) לכבות פלטפורמה מסוימת רק בדף הזה. 3) להשאיר ריק — ישתמש בהגדרות הגלובליות מ'ניהול פיקסלים'.",
+        tip: "שימושי כשיש כמה חשבונות פרסום (למשל Meta Pixel שונה לקמפיין MBA ו-Pixel אחר לקמפיין משפטים).",
+      },
+      {
+        name: "Consent Mode v2",
+        description: "כל הפיקסלים מוגנים בהסכמת עוגיות (Consent Mode v2). כשהמבקר לא אישר — GA4 שולח אירועים אנונימיים בלבד (ללא עוגיות), שאר הפיקסלים לא נטענים. שליחת טופס = הסכמה שיווקית — כל הפיקסלים מופעלים אוטומטית.",
+        tip: "Consent Mode v2 חובה מאז מרץ 2024 באירופה. GA4 עם Consent Mode שולח cookieless pings גם ללא הסכמה.",
+      },
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------

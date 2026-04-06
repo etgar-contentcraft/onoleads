@@ -246,7 +246,9 @@ export async function sendGoogleCAPI(payload: CAPILeadPayload, configs: PixelCon
 // ============================================================================
 
 /**
- * Sends a SubmitForm event to TikTok Events API.
+ * Sends a CompleteRegistration event to TikTok Events API.
+ * Uses CompleteRegistration (not SubmitForm) for better lead gen campaign optimization.
+ * Must match the client-side pixel event name for deduplication.
  * @param payload - Lead event data
  * @param configs - Pre-loaded pixel config map
  */
@@ -264,7 +266,7 @@ export async function sendTikTokCAPI(payload: CAPILeadPayload, configs: PixelCon
     event_source: "web",
     partner_name: "onoleads",
     data: [{
-      event: "SubmitForm",
+      event: "CompleteRegistration",
       event_id: payload.eventId,
       event_time: Math.floor(Date.now() / 1000),
       user: (() => {
@@ -346,7 +348,7 @@ export async function sendGA4CAPI(payload: CAPILeadPayload, configs: PixelConfig
       name: "generate_lead",
       params: {
         // engagement_time_msec required for events to appear in Explorations
-        engagement_time_msec: 1,
+        engagement_time_msec: 100,
         page_location: payload.sourceUrl,
         // transaction_id used for dedup in some GA4 contexts
         transaction_id: payload.eventId,

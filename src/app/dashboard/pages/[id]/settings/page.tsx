@@ -219,6 +219,139 @@ function OverrideField({
 }
 
 // ---------------------------------------------------------------------------
+// Per-page pixel overrides component
+// ---------------------------------------------------------------------------
+
+/** Platform metadata for the per-page override UI */
+const PIXEL_PLATFORMS = [
+  { key: "ga4", label: "Google Analytics 4", placeholder: "G-XXXXXXXXXX", icon: "📊" },
+  { key: "meta", label: "Meta (Facebook) Pixel", placeholder: "1234567890123456", icon: "📘" },
+  { key: "google", label: "Google Ads", placeholder: "AW-XXXXXXXXXX", icon: "🎯" },
+  { key: "tiktok", label: "TikTok Pixel", placeholder: "CXXXXXXXXXXXXXXXXXX", icon: "🎵" },
+  { key: "linkedin", label: "LinkedIn Insight", placeholder: "123456", icon: "💼" },
+  { key: "outbrain", label: "Outbrain", placeholder: "00xxxxxxxxxxxxxx", icon: "📰" },
+  { key: "taboola", label: "Taboola", placeholder: "1234567", icon: "📑" },
+  { key: "twitter", label: "Twitter / X", placeholder: "xxxxx", icon: "🐦" },
+] as const;
+
+interface PixelOverrideRow {
+  platform: string;
+  is_enabled: boolean;
+  pixel_id_override: string;
+}
+
+/**
+ * Per-page pixel overrides — allows overriding or disabling global pixel config per page.
+ * Reads/writes to the page_pixel_overrides table independently of the main save button.
+ */
+function PerPagePixelOverrides({ pageId, supabase }: { pageId: string; supabase: ReturnType<typeof createClient> }) {
+  const [rows, setRows] = useState<PixelOverrideRow[]>([]);
+  const [globalPixels, setGlobalPixels] = useState<Record<string, string>>({});
+  const [loaded, setLoaded] = useState(false);
+  const [savingPlatform, setSavingPlatform] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadPixelOverrides() {
+      const [overridesRes, globalRes] = await Promise.all([
+        supabase.from("page_pixel_overrides").select("platform, is_enabled, pixel_id_override").eq("page_id", pageId),
+        supabase.from("pixel_configurations").select("platform, pixel_id, is_enabled"),
+      ]);
+      if (overridesRes.data) setRows(overridesRes.data as PixelOverrideRow[]);
+      if (globalRes.data) {
+        const gp: Record<string, string> = {};
+        for (const r of globalRes.data) {
+          if (r.is_enabled && r.pixel_id) gp[r.platform] = r.pixel_id;
+        }
+        setGlobalPixels(gp);
+      }
+      setLoaded(true);
+    }
+    loadPixelOverrides();
+  }, [pageId, supabase]);
+
+  /** Get the current override for a platform (or defaults) */
+  function getRow(platform: string): PixelOverrideRow {
+    return rows.find((r) => r.platform === platform) || { platform, is_enabled: true, pixel_id_override: "" };
+  }
+
+  /** Save a single platform override to DB */
+  async function saveOverride(platform: string, isEnabled: boolean, pixelIdOverride: string) {
+    setSavingPlatform(platform);
+    const trimmed = pixelIdOverride.trim();
+
+    if (!trimmed && isEnabled) {
+      // No override and enabled = use global → delete the row
+      await supabase.from("page_pixel_overrides").delete().eq("page_id", pageId).eq("platform", platform);
+      setRows((prev) => prev.filter((r) => r.platform !== platform));
+    } else {
+      // Upsert the override
+      await supabase.from("page_pixel_overrides").upsert(
+        { page_id: pageId, platform, is_enabled: isEnabled, pixel_id_override: trimmed || null },
+        { onConflict: "page_id,platform" }
+      );
+      setRows((prev) => {
+        const existing = prev.find((r) => r.platform === platform);
+        if (existing) return prev.map((r) => r.platform === platform ? { platform, is_enabled: isEnabled, pixel_id_override: trimmed } : r);
+        return [...prev, { platform, is_enabled: isEnabled, pixel_id_override: trimmed }];
+      });
+    }
+    setSavingPlatform(null);
+  }
+
+  if (!loaded) return <div className="text-xs text-[#9A969A] py-2">טוען...</div>;
+
+  return (
+    <div className="space-y-3">
+      {PIXEL_PLATFORMS.map((p) => {
+        const row = getRow(p.key);
+        const globalId = globalPixels[p.key];
+        const hasOverride = !!row.pixel_id_override;
+        const isDisabled = rows.some((r) => r.platform === p.key && !r.is_enabled);
+
+        return (
+          <div key={p.key} className={`flex items-center gap-3 p-2.5 rounded-lg border ${isDisabled ? "bg-red-50/50 border-red-100" : hasOverride ? "bg-[#B8D900]/5 border-[#B8D900]/20" : "bg-gray-50/50 border-gray-100"}`}>
+            <span className="text-lg shrink-0">{p.icon}</span>
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-[#2a2628]">{p.label}</span>
+                {isDisabled && <Badge className="text-[9px] bg-red-100 text-red-600 border-0 px-1 py-0">מושבת בדף זה</Badge>}
+                {hasOverride && !isDisabled && <Badge className="text-[9px] bg-[#B8D900]/15 text-[#5a7000] border-0 px-1 py-0">דריסה ידנית</Badge>}
+                {!hasOverride && !isDisabled && globalId && <Badge className="text-[9px] bg-gray-100 text-[#9A969A] border-0 px-1 py-0">גלובלי: {globalId}</Badge>}
+                {!globalId && !hasOverride && <Badge className="text-[9px] bg-gray-100 text-[#CBCBCB] border-0 px-1 py-0">לא מו��דר</Badge>}
+              </div>
+              <Input
+                value={row.pixel_id_override}
+                onChange={(e) => setRows((prev) => {
+                  const exists = prev.find((r) => r.platform === p.key);
+                  if (exists) return prev.map((r) => r.platform === p.key ? { ...r, pixel_id_override: e.target.value } : r);
+                  return [...prev, { platform: p.key, is_enabled: true, pixel_id_override: e.target.value }];
+                })}
+                onBlur={() => saveOverride(p.key, row.is_enabled, row.pixel_id_override)}
+                placeholder={globalId ? `גלובלי: ${globalId}` : p.placeholder}
+                className="h-7 text-xs"
+                dir="ltr"
+                disabled={isDisabled}
+              />
+            </div>
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <Switch
+                checked={!isDisabled}
+                onCheckedChange={(checked) => saveOverride(p.key, checked, row.pixel_id_override)}
+                className="data-[state=checked]:bg-[#B8D900]"
+              />
+              {savingPlatform === p.key && <Loader2 className="w-3 h-3 animate-spin text-[#9A969A]" />}
+            </div>
+          </div>
+        );
+      })}
+      <p className="text-[11px] text-[#CBCBCB]">
+        הזינו מזהה פיקסל חלופי כדי לדרוס את ההגדרה הגלובלית. כבו את המתג כדי להשבית פלטפורמה בד�� זה.
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page Component
 // ---------------------------------------------------------------------------
 
@@ -846,15 +979,16 @@ export default function PageSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Tracking */}
+        {/* Per-page pixel overrides */}
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base text-[#2a2628]">מעקב ואנליטיקס</CardTitle>
-            <CardDescription>GA ו-Pixel ייעודיים לעמוד זה</CardDescription>
+            <CardTitle className="text-base text-[#2a2628]">מעקב ואנליטיקס — ברמת דף</CardTitle>
+            <CardDescription>
+              דריסת פיקסלים גלובליים עבור עמוד זה. השאירו ריק כדי להשתמש בהגדרות הגלובליות מ<a href="/dashboard/pixels" className="text-[#B8D900] hover:underline">ניהול פיקסלים</a>.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <OverrideField label="Google Analytics ID" fieldKey="google_analytics_id" globalValue={globalSettings.google_analytics_id} hint="מזהה GA4 ייעודי לעמוד זה" overrides={overrides} onChange={set} />
-            <OverrideField label="Facebook Pixel ID" fieldKey="facebook_pixel_id" globalValue={globalSettings.facebook_pixel_id} hint="Pixel ייעודי לקמפיין" overrides={overrides} onChange={set} />
+            <PerPagePixelOverrides pageId={pageId} supabase={supabase} />
           </CardContent>
         </Card>
 

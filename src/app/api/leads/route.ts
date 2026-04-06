@@ -350,6 +350,9 @@ export async function POST(request: NextRequest) {
       fbc: data.fbc ? sanitizeGeneral(data.fbc) : "",
       ttclid: data.ttclid ? sanitizeGeneral(data.ttclid) : "",
       li_fat_id: data.li_fat_id ? sanitizeGeneral(data.li_fat_id) : "",
+      obclid: data.obclid ? sanitizeGeneral(data.obclid) : "",
+      tblclid: data.tblclid ? sanitizeGeneral(data.tblclid) : "",
+      twclid: data.twclid ? sanitizeGeneral(data.twclid) : "",
     };
 
     let webhookStatus = "sent";

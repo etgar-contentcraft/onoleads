@@ -11,7 +11,7 @@
  * Usage: See PixelTracker component in src/components/landing/pixel-tracker.tsx
  */
 
-import { generateEventId, generateRandomEventId } from "./event-id";
+import { generateEventId } from "./event-id";
 import { getOrCreateCookieId } from "@/hooks/use-page-tracking";
 
 // ============================================================================
@@ -47,7 +47,7 @@ declare global {
     gtag: (...args: unknown[]) => void;
     fbq: (...args: unknown[]) => void;
     ttq: {
-      track: (event: string, params?: Record<string, unknown>) => void;
+      track: (event: string, params?: Record<string, unknown>, options?: Record<string, unknown>) => void;
       load: (pixelId: string) => void;
       page: () => void;
     };
@@ -357,9 +357,9 @@ function fireLeadSubmit(
     window.fbq("track", "Lead", {}, { eventID: eventId });
   }
 
-  // TikTok SubmitForm
+  // TikTok CompleteRegistration (standard lead gen event — better campaign optimization than SubmitForm)
   if (config.tikTokPixelId && window.ttq) {
-    window.ttq.track("SubmitForm", { event_id: eventId });
+    window.ttq.track("CompleteRegistration", {}, { event_id: eventId });
   }
 
   // Outbrain conversion

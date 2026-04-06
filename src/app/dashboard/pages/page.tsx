@@ -248,16 +248,30 @@ export default function PagesManagementPage() {
       // Create the duplicate page record with a timestamped slug to avoid conflicts
       const newSlug = `${page.slug}-copy-${Date.now()}`;
 
+      // Fetch full source page to copy ALL settings (custom_styles, SEO, etc.)
+      const { data: sourcePage } = await supabase
+        .from("pages")
+        .select("program_id, specialization_id, template_id, title_ar, seo_title, seo_description, og_image_url, custom_styles")
+        .eq("id", page.id)
+        .single();
+
       const { data: newPage, error: pageError } = await supabase
         .from("pages")
         .insert({
           title_he: page.title_he ? `${page.title_he} (העתק)` : null,
           title_en: page.title_en ? `${page.title_en} (copy)` : null,
+          title_ar: sourcePage?.title_ar ? `${sourcePage.title_ar} (نسخة)` : null,
           slug: newSlug,
           language: page.language,
           status: "draft" as const,
           page_type: page.page_type,
-          program_id: (page as unknown as Record<string, unknown>).program_id ?? null,
+          program_id: sourcePage?.program_id ?? null,
+          specialization_id: sourcePage?.specialization_id ?? null,
+          template_id: sourcePage?.template_id ?? null,
+          seo_title: sourcePage?.seo_title ?? null,
+          seo_description: sourcePage?.seo_description ?? null,
+          og_image_url: sourcePage?.og_image_url ?? null,
+          custom_styles: sourcePage?.custom_styles ?? {},
         })
         .select()
         .single();
@@ -290,6 +304,31 @@ export default function PagesManagementPage() {
         if (sectionsWriteError) {
           // Non-fatal — page exists, sections just didn't copy
           console.warn("Failed to copy page sections:", sectionsWriteError);
+        }
+      }
+
+      // Copy per-page pixel overrides (if any exist)
+      const { data: pixelOverrides } = await supabase
+        .from("page_pixel_overrides")
+        .select("platform, is_enabled, pixel_id_override, event_name_override, custom_data")
+        .eq("page_id", page.id);
+
+      if (pixelOverrides && pixelOverrides.length > 0) {
+        const overrideInserts = pixelOverrides.map((o) => ({
+          page_id: (newPage as { id: string }).id,
+          platform: o.platform,
+          is_enabled: o.is_enabled,
+          pixel_id_override: o.pixel_id_override,
+          event_name_override: o.event_name_override,
+          custom_data: o.custom_data,
+        }));
+
+        const { error: overridesError } = await supabase
+          .from("page_pixel_overrides")
+          .insert(overrideInserts);
+
+        if (overridesError) {
+          console.warn("Failed to copy pixel overrides:", overridesError);
         }
       }
 

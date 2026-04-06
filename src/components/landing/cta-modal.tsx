@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { getLeadClickIds } from "@/lib/analytics/click-ids";
-import { generateRandomEventId } from "@/lib/analytics/event-id";
+import { generateEventId } from "@/lib/analytics/event-id";
 
 // ============================================================================
 // CTA Modal Context - allows any component to open/close the form modal
@@ -445,7 +445,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
       const clickIds = getLeadClickIds();
       /* Deduplicate browser pixel + CAPI using a shared event ID.
        * Stored in sessionStorage so TyPixelFire can fire Lead with the same ID. */
-      const eventId = generateRandomEventId();
+      const eventId = generateEventId("lead_submit", pageId || "unknown", cookieId);
 
       const payload = {
         full_name: formData.full_name.trim(),
