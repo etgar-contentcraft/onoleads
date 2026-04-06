@@ -26,8 +26,6 @@ import {
   Loader2,
   ExternalLink,
   Paperclip,
-  X,
-  FileText,
 } from "lucide-react";
 import { generateAiPrompt, SECTION_SCHEMAS, validateImportedContent } from "@/lib/ai-import/content-schema";
 
@@ -51,8 +49,8 @@ export default function AiImportPage() {
     new Set(SECTION_SCHEMAS.filter((s) => s.recommended).map((s) => s.type))
   );
 
-  // File attachments (text content extracted from uploaded files)
-  const [attachments, setAttachments] = useState<{ name: string; content: string }[]>([]);
+  // Whether the user plans to attach marketing files to the AI chat
+  const [hasAttachments, setHasAttachments] = useState(false);
 
   // Step 2: Generated prompt
   const [prompt, setPrompt] = useState("");
@@ -63,32 +61,6 @@ export default function AiImportPage() {
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
   const [importResult, setImportResult] = useState<{ page_id: string; slug: string; builder_url: string } | null>(null);
-
-  /**
-   * Handles file upload — reads text content from uploaded files.
-   * Supports .txt, .csv, .md, .json, .docx (text only), .pdf (text only).
-   */
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const content = reader.result as string;
-        setAttachments((prev) => [...prev, { name: file.name, content }]);
-      };
-      reader.readAsText(file);
-    });
-
-    /* Reset input so the same file can be re-selected */
-    e.target.value = "";
-  }, []);
-
-  /** Remove an attachment by index */
-  const removeAttachment = useCallback((index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
-  }, []);
 
   /** Generate the AI prompt from Step 1 inputs */
   const handleGenerate = useCallback(() => {
@@ -103,17 +75,17 @@ export default function AiImportPage() {
       Array.from(selectedSections),
     );
 
-    /* Append file attachments to the prompt */
-    if (attachments.length > 0) {
-      generated += "\n\n---\n\n## קבצים מצורפים (מידע נוסף לעיון)\n\n";
-      attachments.forEach((att) => {
-        generated += `### קובץ: ${att.name}\n\`\`\`\n${att.content}\n\`\`\`\n\n`;
-      });
+    /* Add instruction to read attached files if the user indicated they have them */
+    if (hasAttachments) {
+      generated += "\n\n---\n\n## קבצים מצורפים\n\n";
+      generated += "שים לב: המשתמש צירף קבצים נוספים לשיחה זו (ידיעונים, חוברות מידע, מסמכי שיווק).\n";
+      generated += "אנא קרא את התוכן מכל הקבצים המצורפים והשתמש במידע הרלוונטי מהם בעת יצירת תוכן העמוד.\n";
+      generated += "שלב את המידע מהקבצים באופן טבעי בסקשנים המתאימים — יתרונות, תוכנית לימודים, המלצות וכו׳.\n";
     }
 
     setPrompt(generated);
     setStep(2);
-  }, [programName, degreeType, faculty, campuses, duration, language, additionalInfo, referenceUrls, selectedSections, attachments]);
+  }, [programName, degreeType, faculty, campuses, duration, language, additionalInfo, referenceUrls, selectedSections, hasAttachments]);
 
   /** Copy prompt to clipboard */
   const handleCopy = useCallback(async () => {
@@ -304,52 +276,37 @@ export default function AiImportPage() {
             </p>
           </div>
 
-          {/* File attachments */}
+          {/* Attachments checkbox */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold flex items-center gap-1.5">
-              <Paperclip className="w-3.5 h-3.5" />
-              קבצים מצורפים (אופציונלי)
-            </Label>
-            <p className="text-[10px] text-[#9A969A] mb-2">
-              העלו ידיעונים, מסמכי מידע, או כל קובץ טקסט שיעזור ל-AI לייצר תוכן מדויק יותר
-            </p>
-
-            {/* Uploaded files list */}
-            {attachments.length > 0 && (
-              <div className="space-y-1.5 mb-2">
-                {attachments.map((att, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#B8D900]/5 border border-[#B8D900]/20 text-xs"
-                  >
-                    <FileText className="w-4 h-4 text-[#B8D900] shrink-0" />
-                    <span className="flex-1 truncate text-[#2A2628] font-medium">{att.name}</span>
-                    <span className="text-[#9A969A] shrink-0">
-                      {(att.content.length / 1024).toFixed(1)}KB
-                    </span>
-                    <button
-                      onClick={() => removeAttachment(i)}
-                      className="text-[#9A969A] hover:text-red-400 transition-colors shrink-0"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+            <button
+              type="button"
+              onClick={() => setHasAttachments(!hasAttachments)}
+              className={`flex items-center gap-3 w-full p-3 rounded-lg border text-right transition-all ${
+                hasAttachments
+                  ? "border-[#B8D900] bg-[#B8D900]/5"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${
+                hasAttachments ? "bg-[#B8D900] border-[#B8D900]" : "border-gray-300"
+              }`}>
+                {hasAttachments && (
+                  <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
               </div>
-            )}
-
-            {/* Upload button */}
-            <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-[#E5E5E5] text-[#9A969A] text-xs cursor-pointer hover:border-[#B8D900] hover:text-[#2A2628] transition-all">
-              <Upload className="w-4 h-4" />
-              העלו קובץ
-              <input
-                type="file"
-                multiple
-                accept=".txt,.csv,.md,.json,.rtf,.html,.xml"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
+              <div className="flex-1">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-[#2A2628]">
+                  <Paperclip className="w-3.5 h-3.5" />
+                  יש לי חומרי שיווק נוספים לצרף
+                </span>
+                <p className="text-[10px] text-[#9A969A] mt-1">
+                  אם יש ברשותך ידיעונים, חוברות מידע, או מסמכים שיווקיים נוספים — סמן תיבה זו.
+                  הפרומפט יכלול הנחיה ל-AI לקרוא ולהשתמש בתוכן הקבצים שתצרף לשיחה.
+                </p>
+              </div>
+            </button>
           </div>
 
           {/* Section selection */}
@@ -403,6 +360,11 @@ export default function AiImportPage() {
             <ol className="space-y-1.5 text-sm text-[#716C70] list-decimal pr-5">
               <li>לחצו <strong>&quot;העתק פרומפט&quot;</strong> למטה</li>
               <li>פתחו את <strong>ChatGPT</strong> או <strong>Claude</strong></li>
+              {hasAttachments && (
+                <li className="text-[#B8D900] font-semibold">
+                  צרפו את הקבצים השיווקיים לשיחה (גרירה לחלון הצ׳אט או כפתור הצירוף)
+                </li>
+              )}
               <li>הדביקו את הפרומפט ושלחו</li>
               <li>העתיקו את התשובה (JSON) והדביקו בשלב 3</li>
             </ol>
