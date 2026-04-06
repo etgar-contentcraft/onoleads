@@ -2,12 +2,12 @@
  * Click Heatmap — renders a scrollable preview of the landing page with
  * a canvas overlay showing click density as a coloured gradient.
  *
- * Architecture: The iframe is ALWAYS rendered at a large fixed height
- * (IFRAME_RENDER_HEIGHT) so the full landing page can render inside it.
- * A separate `detectedHeight` state (only grows, never shrinks) is used
- * to size the scrollable container once we know the real page height.
- * This avoids the circular dependency where shrinking the iframe
- * prevents the page from rendering, which returns a small scrollHeight.
+ * Key design decisions:
+ *   1. Iframe always renders at IFRAME_RENDER_HEIGHT to avoid circular shrinking.
+ *   2. Desktop/Mobile toggle renders the iframe at the correct viewport width
+ *      so heatmap dots align with the layout the visitor actually saw.
+ *   3. detectedHeight only grows (never shrinks) to prevent layout jitter.
+ *   4. postMessage height reporter injected for reliable async updates.
  */
 "use client";
 
@@ -21,13 +21,6 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Monitor,
   Smartphone,
@@ -63,25 +56,24 @@ const DOT_RADIUS = 22;
 /** Max click events to fetch */
 const MAX_CLICK_EVENTS = 5000;
 
-/** Visible scroll viewport height */
+/** Scroll viewport height */
 const VIEWPORT_HEIGHT = 650;
 
-/**
- * The iframe is ALWAYS this tall. This ensures the full landing page
- * renders inside even before we detect the real height.
- * Most LPs are 3000-6000px; 8000px covers even very long pages.
- */
+/** Iframe is always this tall so the full page renders regardless of detection */
 const IFRAME_RENDER_HEIGHT = 8000;
 
-/** Polling intervals (ms) for height detection after iframe loads */
+/** Mobile viewport width — matches common phones (iPhone 14/15 logical width) */
+const MOBILE_VIEWPORT_WIDTH = 390;
+
+/** Height poll delays after iframe load */
 const HEIGHT_POLL_DELAYS = [300, 800, 1500, 3000, 5000, 8000];
 
 /* ─── Heatmap drawing ────────────────────────── */
 
 /**
- * Draws a heatmap overlay on a canvas element.
- * Uses additive blending of semi-transparent circles, then colorizes
- * the intensity map into a blue → cyan → green → yellow → red gradient.
+ * Draws a heatmap overlay on a canvas.
+ * Builds an intensity map from semi-transparent circles, then colorizes
+ * into a blue → cyan → green → yellow → red gradient.
  */
 function drawHeatmap(
   canvas: HTMLCanvasElement,
@@ -95,45 +87,41 @@ function drawHeatmap(
   canvas.width = width;
   canvas.height = height;
   ctx.clearRect(0, 0, width, height);
-
   if (points.length === 0) return;
 
   ctx.globalCompositeOperation = "source-over";
   const alpha = Math.max(0.02, Math.min(0.15, 5 / points.length));
 
   for (const pt of points) {
-    const gradient = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, DOT_RADIUS);
-    gradient.addColorStop(0, `rgba(255, 0, 0, ${alpha * 3})`);
-    gradient.addColorStop(0.5, `rgba(255, 0, 0, ${alpha})`);
-    gradient.addColorStop(1, "rgba(255, 0, 0, 0)");
-    ctx.fillStyle = gradient;
+    const g = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, DOT_RADIUS);
+    g.addColorStop(0, `rgba(255, 0, 0, ${alpha * 3})`);
+    g.addColorStop(0.5, `rgba(255, 0, 0, ${alpha})`);
+    g.addColorStop(1, "rgba(255, 0, 0, 0)");
+    ctx.fillStyle = g;
     ctx.fillRect(pt.x - DOT_RADIUS, pt.y - DOT_RADIUS, DOT_RADIUS * 2, DOT_RADIUS * 2);
   }
 
   const imageData = ctx.getImageData(0, 0, width, height);
-  const data = imageData.data;
-
-  for (let i = 0; i < data.length; i += 4) {
-    const intensity = data[i];
-    if (intensity === 0) { data[i + 3] = 0; continue; }
-
+  const d = imageData.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const intensity = d[i];
+    if (intensity === 0) { d[i + 3] = 0; continue; }
     const t = intensity / 255;
     if (t < 0.25) {
       const lt = t / 0.25;
-      data[i] = 0; data[i + 1] = Math.round(lt * 200); data[i + 2] = 255;
+      d[i] = 0; d[i + 1] = Math.round(lt * 200); d[i + 2] = 255;
     } else if (t < 0.5) {
       const lt = (t - 0.25) / 0.25;
-      data[i] = 0; data[i + 1] = 200 + Math.round(lt * 55); data[i + 2] = Math.round(255 * (1 - lt));
+      d[i] = 0; d[i + 1] = 200 + Math.round(lt * 55); d[i + 2] = Math.round(255 * (1 - lt));
     } else if (t < 0.75) {
       const lt = (t - 0.5) / 0.25;
-      data[i] = Math.round(lt * 255); data[i + 1] = 255; data[i + 2] = 0;
+      d[i] = Math.round(lt * 255); d[i + 1] = 255; d[i + 2] = 0;
     } else {
       const lt = (t - 0.75) / 0.25;
-      data[i] = 255; data[i + 1] = Math.round(255 * (1 - lt)); data[i + 2] = 0;
+      d[i] = 255; d[i + 1] = Math.round(255 * (1 - lt)); d[i + 2] = 0;
     }
-    data[i + 3] = Math.min(200, intensity + 60);
+    d[i + 3] = Math.min(200, intensity + 60);
   }
-
   ctx.putImageData(imageData, 0, 0);
 }
 
@@ -142,17 +130,18 @@ function drawHeatmap(
 export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeatmapProps) {
   const [clicks, setClicks] = useState<ClickPoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deviceFilter, setDeviceFilter] = useState<"all" | "desktop" | "mobile">("all");
+  const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [iframeReady, setIframeReady] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(true);
   const [showStats, setShowStats] = useState(false);
   const [scrollPct, setScrollPct] = useState(0);
 
   /**
-   * The detected real page height. Starts at 0 (unknown).
-   * Only ever GROWS — never shrinks — to avoid re-triggering layout shifts.
+   * Separate detected heights for desktop & mobile.
+   * Only grow, never shrink, per viewport mode.
    */
-  const [detectedHeight, setDetectedHeight] = useState(0);
+  const [desktopHeight, setDesktopHeight] = useState(0);
+  const [mobileHeight, setMobileHeight] = useState(0);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -161,10 +150,16 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
 
   const supabase = createClient();
 
-  /**
-   * The height used for the scrollable container and canvas.
-   * If we've detected the real height, use it. Otherwise use the full iframe height.
-   */
+  /** Whether we're in mobile preview mode */
+  const isMobile = viewMode === "mobile";
+
+  /** Current detected height for active mode */
+  const detectedHeight = isMobile ? mobileHeight : desktopHeight;
+  const setDetectedHeight = isMobile
+    ? (h: number) => setMobileHeight((p) => Math.max(p, h))
+    : (h: number) => setDesktopHeight((p) => Math.max(p, h));
+
+  /** Effective container height — detected or fallback */
   const effectiveHeight = detectedHeight > 500 ? detectedHeight : IFRAME_RENDER_HEIGHT;
 
   /* ── Data fetching ── */
@@ -211,101 +206,88 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
 
   useEffect(() => { fetchClicks(); }, [fetchClicks]);
 
+  /* ── Click filtering by device ── */
+
+  const filteredClicks = clicks.filter((c) => {
+    if (isMobile) return c.device_type === "mobile";
+    return c.device_type === "desktop" || c.device_type === "tablet";
+  });
+
+  const desktopCount = clicks.filter((c) => c.device_type === "desktop" || c.device_type === "tablet").length;
+  const mobileCount = clicks.filter((c) => c.device_type === "mobile").length;
+
   /* ── Height detection ── */
 
-  /**
-   * Reads the iframe's scrollHeight. ONLY GROWS detectedHeight — never shrinks.
-   * The iframe itself stays at IFRAME_RENDER_HEIGHT always.
-   */
   const readIframeHeight = useCallback(() => {
     try {
       const doc = iframeRef.current?.contentDocument
         ?? iframeRef.current?.contentWindow?.document;
       if (!doc) return;
+      const h = Math.max(doc.documentElement?.scrollHeight ?? 0, doc.body?.scrollHeight ?? 0);
+      if (h > 500) setDetectedHeight(h);
+    } catch { /* blocked */ }
+  }, [isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
 
-      const h = Math.max(
-        doc.documentElement?.scrollHeight ?? 0,
-        doc.body?.scrollHeight ?? 0
-      );
-
-      if (h > 500) {
-        setDetectedHeight((prev) => Math.max(prev, h)); // ONLY GROW
-      }
-    } catch {
-      /* contentDocument access blocked — ignore, we have the fallback */
-    }
-  }, []);
-
-  /** Inject postMessage height reporter into iframe for async updates */
+  /** Inject postMessage reporter */
   const injectHeightReporter = useCallback(() => {
     try {
-      const doc = iframeRef.current?.contentDocument
-        ?? iframeRef.current?.contentWindow?.document;
+      const doc = iframeRef.current?.contentDocument ?? iframeRef.current?.contentWindow?.document;
       if (!doc?.body) return;
-
       const script = doc.createElement("script");
-      script.textContent = `
-        (function(){
-          function r(){
-            var h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight);
-            parent.postMessage({type:'__ono_h',h:h},'*');
-          }
-          r();
-          if(typeof ResizeObserver!=='undefined') new ResizeObserver(r).observe(document.body);
-          addEventListener('load',function(){setTimeout(r,300);setTimeout(r,1000);setTimeout(r,3000);});
-        })();
-      `;
+      script.textContent = `(function(){
+        function r(){var h=Math.max(document.documentElement.scrollHeight,document.body.scrollHeight);
+        parent.postMessage({type:'__ono_h',h:h},'*');}
+        r();if(typeof ResizeObserver!=='undefined')new ResizeObserver(r).observe(document.body);
+        addEventListener('load',function(){setTimeout(r,300);setTimeout(r,1000);setTimeout(r,3000);});
+      })();`;
       doc.body.appendChild(script);
-    } catch { /* blocked — handled by polling */ }
+    } catch { /* blocked */ }
   }, []);
 
-  /** Listen for postMessage height reports from the iframe */
+  /** Listen for postMessage height */
   useEffect(() => {
     function onMsg(e: MessageEvent) {
       if (e.data?.type === "__ono_h" && typeof e.data.h === "number" && e.data.h > 500) {
-        setDetectedHeight((prev) => Math.max(prev, e.data.h));
+        setDetectedHeight(e.data.h);
       }
     }
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, []);
+  }, [isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** On iframe load — read height, inject reporter, start polling */
+  /** Reset iframe state when switching modes */
+  useEffect(() => {
+    setIframeReady(false);
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [viewMode]);
+
+  /** On iframe load */
   const handleIframeLoad = useCallback(() => {
     setIframeReady(true);
     readIframeHeight();
     injectHeightReporter();
-
-    /* Poll at increasing intervals to catch lazy-loaded sections */
-    const timers = HEIGHT_POLL_DELAYS.map((d) =>
-      setTimeout(() => readIframeHeight(), d)
-    );
+    const timers = HEIGHT_POLL_DELAYS.map((d) => setTimeout(() => readIframeHeight(), d));
     return () => timers.forEach(clearTimeout);
   }, [readIframeHeight, injectHeightReporter]);
-
-  /* ── Click filtering ── */
-
-  const filteredClicks = deviceFilter === "all"
-    ? clicks
-    : clicks.filter((c) => c.device_type === deviceFilter);
 
   /* ── Canvas rendering ── */
 
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current || !iframeReady || !showHeatmap) return;
 
-    const width = containerRef.current.offsetWidth;
-    const height = effectiveHeight;
+    /** Width of the actual iframe viewport (what the visitor saw at that device) */
+    const canvasWidth = containerRef.current.offsetWidth;
+    const canvasHeight = effectiveHeight;
 
     const points = filteredClicks.map((c) => ({
-      x: (c.x_pct / 100) * width,
-      y: (c.y_pct / 100) * height,
+      x: (c.x_pct / 100) * canvasWidth,
+      y: (c.y_pct / 100) * canvasHeight,
     }));
 
-    drawHeatmap(canvasRef.current, points, width, height);
-  }, [filteredClicks, iframeReady, showHeatmap, effectiveHeight]);
+    drawHeatmap(canvasRef.current, points, canvasWidth, canvasHeight);
+  }, [filteredClicks, iframeReady, showHeatmap, effectiveHeight, viewMode]);
 
-  /* ── Scroll position indicator ── */
+  /* ── Scroll indicator ── */
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -332,9 +314,6 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
       .map(([element, count]) => ({ element, count }));
   })();
 
-  const desktopCount = clicks.filter((c) => c.device_type === "desktop").length;
-  const mobileCount = clicks.filter((c) => c.device_type === "mobile").length;
-
   const iframeUrl = `/lp/${pageSlug}?_heatmap=1`;
 
   const scrollTo = (pos: "top" | "bottom") => {
@@ -356,16 +335,39 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
               מפת חום — לחיצות
             </CardTitle>
             <CardDescription className="text-xs">
-              {loading ? "טוען..." : `${filteredClicks.length.toLocaleString("he-IL")} לחיצות`}
+              {loading ? "טוען..." : `${filteredClicks.length.toLocaleString("he-IL")} לחיצות (${viewMode === "desktop" ? "מחשב" : "נייד"})`}
               {!loading && clicks.length === 0 && " — אין נתונים עדיין"}
             </CardDescription>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Inline device count */}
-            <div className="hidden sm:flex items-center gap-3 text-[11px] text-[#9A969A] border-l border-gray-200 pl-3 ml-1">
-              <span>🖥 {desktopCount.toLocaleString("he-IL")}</span>
-              <span>📱 {mobileCount.toLocaleString("he-IL")}</span>
+          {/* Toolbar */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Device toggle — pill buttons */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+              <button
+                onClick={() => setViewMode("desktop")}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                  viewMode === "desktop"
+                    ? "bg-white text-[#2a2628] shadow-sm"
+                    : "text-[#9A969A] hover:text-[#716C70]"
+                }`}
+              >
+                <Monitor className="w-3.5 h-3.5" />
+                מחשב
+                <span className="text-[10px] opacity-60">({desktopCount})</span>
+              </button>
+              <button
+                onClick={() => setViewMode("mobile")}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                  viewMode === "mobile"
+                    ? "bg-white text-[#2a2628] shadow-sm"
+                    : "text-[#9A969A] hover:text-[#716C70]"
+                }`}
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                נייד
+                <span className="text-[10px] opacity-60">({mobileCount})</span>
+              </button>
             </div>
 
             <Button
@@ -375,28 +377,8 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
               className="h-8 text-xs gap-1"
             >
               <Layers className="w-3.5 h-3.5" />
-              {showHeatmap ? "הסתר שכבה" : "הצג שכבה"}
+              {showHeatmap ? "הסתר" : "הצג"}
             </Button>
-
-            <Select
-              value={deviceFilter}
-              onValueChange={(v) => setDeviceFilter(v as "all" | "desktop" | "mobile")}
-            >
-              <SelectTrigger className="h-8 w-[110px] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">
-                  <span className="flex items-center gap-1"><Layers className="w-3 h-3" /> הכל</span>
-                </SelectItem>
-                <SelectItem value="desktop">
-                  <span className="flex items-center gap-1"><Monitor className="w-3 h-3" /> מחשב</span>
-                </SelectItem>
-                <SelectItem value="mobile">
-                  <span className="flex items-center gap-1"><Smartphone className="w-3 h-3" /> נייד</span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
 
             <Button variant="outline" size="sm" onClick={fetchClicks} className="h-8 w-8 p-0" title="רענון">
               <RefreshCw className="w-3.5 h-3.5" />
@@ -418,70 +400,100 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
           </div>
         ) : (
           <>
-            {/* ── Scrollable heatmap viewer ── */}
+            {/* ── Heatmap viewer ── */}
             <div className="relative">
               <div
                 ref={scrollRef}
-                className="rounded-xl border border-gray-200 bg-gray-50"
+                className="rounded-xl border border-gray-200 bg-gray-100"
                 style={{
                   height: `${VIEWPORT_HEIGHT}px`,
-                  overflowY: "scroll",     /* force scrollbar always visible */
+                  overflowY: "scroll",
                   overflowX: "hidden",
                 }}
               >
                 {/*
-                  Inner container = effectiveHeight (detected OR fallback).
-                  The iframe inside is ALWAYS IFRAME_RENDER_HEIGHT to ensure
-                  the full page renders. The container clips the excess.
+                  Mobile mode: center a narrow iframe (390px) with a phone-like frame.
+                  Desktop mode: full-width iframe.
                 */}
                 <div
-                  ref={containerRef}
-                  className="relative w-full"
-                  style={{
-                    height: `${effectiveHeight}px`,
-                    overflow: "hidden",        /* clip iframe beyond effective height */
-                  }}
+                  className={`relative ${isMobile ? "mx-auto" : "w-full"}`}
+                  style={isMobile ? { width: `${MOBILE_VIEWPORT_WIDTH}px` } : undefined}
                 >
-                  {/* Iframe: always tall, never shrinks */}
-                  <iframe
-                    ref={iframeRef}
-                    src={iframeUrl}
-                    title="מפת חום — תצוגה מקדימה"
-                    className="w-full border-0 block"
-                    style={{
-                      height: `${IFRAME_RENDER_HEIGHT}px`,
-                      pointerEvents: "none",
-                    }}
-                    onLoad={handleIframeLoad}
-                  />
-
-                  {/* Canvas overlay — matches the effective container height */}
-                  {showHeatmap && (
-                    <canvas
-                      ref={canvasRef}
-                      className="absolute top-0 left-0 w-full pointer-events-none"
-                      style={{
-                        height: `${effectiveHeight}px`,
-                        mixBlendMode: "multiply",
-                        opacity: 0.85,
-                      }}
-                    />
-                  )}
-
-                  {/* Empty state */}
-                  {filteredClicks.length === 0 && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-                      <div className="text-center space-y-2">
-                        <MousePointerClick className="w-10 h-10 mx-auto text-[#E5E5E5]" />
-                        <p className="text-sm text-[#9A969A]">אין לחיצות לתקופה זו</p>
-                        <p className="text-xs text-[#CBCBCB]">נתונים יופיעו לאחר שמבקרים ילחצו בדף</p>
+                  {/* Mobile device frame chrome */}
+                  {isMobile && (
+                    <div className="sticky top-0 z-10 bg-[#1a1a1a] rounded-t-2xl px-4 py-1.5 flex items-center justify-between">
+                      <span className="text-[10px] text-gray-400">9:41</span>
+                      <div className="w-20 h-4 bg-[#333] rounded-full" />
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-2 border border-gray-500 rounded-sm"><div className="w-1.5 h-full bg-gray-400 rounded-sm" /></div>
                       </div>
                     </div>
                   )}
+
+                  {/* Inner container — full content height */}
+                  <div
+                    ref={containerRef}
+                    className={`relative ${isMobile ? "bg-white" : ""}`}
+                    style={{
+                      width: isMobile ? `${MOBILE_VIEWPORT_WIDTH}px` : "100%",
+                      height: `${effectiveHeight}px`,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <iframe
+                      ref={iframeRef}
+                      key={viewMode} /* Force remount when switching modes */
+                      src={iframeUrl}
+                      title="מפת חום"
+                      className="border-0 block"
+                      style={{
+                        width: isMobile ? `${MOBILE_VIEWPORT_WIDTH}px` : "100%",
+                        height: `${IFRAME_RENDER_HEIGHT}px`,
+                        pointerEvents: "none",
+                      }}
+                      onLoad={handleIframeLoad}
+                    />
+
+                    {/* Canvas overlay */}
+                    {showHeatmap && (
+                      <canvas
+                        ref={canvasRef}
+                        className="absolute top-0 left-0 pointer-events-none"
+                        style={{
+                          width: isMobile ? `${MOBILE_VIEWPORT_WIDTH}px` : "100%",
+                          height: `${effectiveHeight}px`,
+                          mixBlendMode: "multiply",
+                          opacity: 0.85,
+                        }}
+                      />
+                    )}
+
+                    {/* Empty state */}
+                    {filteredClicks.length === 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                        <div className="text-center space-y-2">
+                          <MousePointerClick className="w-10 h-10 mx-auto text-[#E5E5E5]" />
+                          <p className="text-sm text-[#9A969A]">
+                            אין לחיצות {isMobile ? "מנייד" : "ממחשב"} לתקופה זו
+                          </p>
+                          <p className="text-xs text-[#CBCBCB]">
+                            {isMobile
+                              ? desktopCount > 0
+                                ? `יש ${desktopCount} לחיצות ממחשב — נסה לעבור לתצוגת מחשב`
+                                : "נתונים יופיעו לאחר שמבקרים ילחצו בדף"
+                              : mobileCount > 0
+                                ? `יש ${mobileCount} לחיצות מנייד — נסה לעבור לתצוגת נייד`
+                                : "נתונים יופיעו לאחר שמבקרים ילחצו בדף"
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Scroll position mini-bar (left side for RTL) */}
+              {/* Scroll position indicator */}
               <div className="absolute left-1.5 top-2 bottom-2 w-1.5 rounded-full bg-black/5 pointer-events-none">
                 <div
                   className="w-full rounded-full bg-[#B8D900] transition-all duration-150"
@@ -541,10 +553,7 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
                             </span>
                           </div>
                           <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-[#B8D900] transition-all duration-500"
-                              style={{ width: `${pct}%` }}
-                            />
+                            <div className="h-full rounded-full bg-[#B8D900] transition-all duration-500" style={{ width: `${pct}%` }} />
                           </div>
                         </div>
                       );
