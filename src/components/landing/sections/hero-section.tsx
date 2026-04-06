@@ -47,11 +47,15 @@ export function HeroSection({ content, language }: HeroSectionProps) {
   /* ---- State ---- */
   const [counterValue, setCounterValue] = useState("0");
   const [visible, setVisible] = useState(false);
-  const [parallaxY, setParallaxY] = useState(0);
   /** Controls the gentle CTA pulse — active for 3s, pauses, restarts on tab focus */
   const [ctaPulse, setCtaPulse] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const hasAnimated = useRef(false);
+  /** Refs for parallax elements — direct DOM mutation avoids React re-renders on scroll */
+  const parallaxRefs = useRef<HTMLElement[]>([]);
+  const addParallaxRef = useCallback((el: HTMLElement | null) => {
+    if (el && !parallaxRefs.current.includes(el)) parallaxRefs.current.push(el);
+  }, []);
 
   /* ---- Appear on mount ---- */
   useEffect(() => {
@@ -78,17 +82,23 @@ export function HeroSection({ content, language }: HeroSectionProps) {
     };
   }, []);
 
-  /* ---- Parallax scroll handler ---- */
-  const handleScroll = useCallback(() => {
-    const scrollY = window.scrollY;
-    const clamped = Math.min(scrollY, PARALLAX_MAX_SCROLL);
-    setParallaxY(clamped * PARALLAX_FACTOR);
-  }, []);
-
+  /* ---- Parallax scroll handler (direct DOM, no React re-renders) ---- */
   useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = Math.min(window.scrollY, PARALLAX_MAX_SCROLL) * PARALLAX_FACTOR;
+        for (const el of parallaxRefs.current) {
+          el.style.transform = `translateY(-${y}px)`;
+        }
+        ticking = false;
+      });
+    };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
+  }, []);
 
   /* ---- Counter animation on intersection ---- */
   useEffect(() => {
@@ -148,8 +158,9 @@ export function HeroSection({ content, language }: HeroSectionProps) {
             {/* YouTube background — muted, autoplay, loop, no controls.
                 Extra bottom extension (220px) prevents gap when parallax shifts the frame up. */}
             <div
+              ref={addParallaxRef}
               className="absolute inset-0 will-change-transform"
-              style={{ transform: `translateY(-${parallaxY}px)`, bottom: "-220px" }}
+              style={{ bottom: "-220px" }}
             >
               {/* Cover the container like object-fit:cover — center the 16:9 iframe
                   and make it large enough to always fill the parent, cropping edges */}
@@ -191,31 +202,33 @@ export function HeroSection({ content, language }: HeroSectionProps) {
           </>
         ) : bgVideo ? (
           <>
-            <video
-              autoPlay
-              muted
-              loop
-              playsInline
-              poster={bgImage || undefined}
-              className="absolute inset-0 w-full h-full object-cover will-change-transform"
-              style={{ transform: `translateY(-${parallaxY}px)`, bottom: "-220px" }}
-            >
-              <source src={bgVideo} type="video/mp4" />
-            </video>
+            <div ref={addParallaxRef} className="absolute inset-0 will-change-transform" style={{ bottom: "-220px" }}>
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                poster={bgImage || undefined}
+                className="w-full h-full object-cover"
+              >
+                <source src={bgVideo} type="video/mp4" />
+              </video>
+            </div>
             <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity * 0.15}), rgba(0,0,0,${overlayOpacity * 0.5}) 40%, rgba(0,0,0,${overlayOpacity * 0.85}) 70%, rgba(0,0,0,${Math.min(overlayOpacity * 1.2, 0.95)}))` }} />
           </>
         ) : bgImage ? (
           <>
-            <Image
-              src={bgImage}
-              alt=""
-              fill
-              priority
-              className="object-cover will-change-transform"
-              style={{ transform: `translateY(-${parallaxY}px)`, bottom: "-220px" }}
-              sizes="100vw"
-              quality={80}
-            />
+            <div ref={addParallaxRef} className="absolute inset-0 will-change-transform" style={{ bottom: "-220px" }}>
+              <Image
+                src={bgImage}
+                alt=""
+                fill
+                priority
+                className="object-cover"
+                sizes="100vw"
+                quality={80}
+              />
+            </div>
             <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,${overlayOpacity * 0.15}), rgba(0,0,0,${overlayOpacity * 0.5}) 40%, rgba(0,0,0,${overlayOpacity * 0.85}) 70%, rgba(0,0,0,${Math.min(overlayOpacity * 1.2, 0.95)}))` }} />
           </>
         ) : (

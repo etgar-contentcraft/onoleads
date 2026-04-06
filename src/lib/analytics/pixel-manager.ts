@@ -163,6 +163,10 @@ export function initializeGA4Early(config: PixelConfig): void {
  * Must only be called when consent is granted.
  * @param config - Pixel IDs and page context
  */
+/** Delay between staggered pixel script injections (ms).
+ * Prevents main thread congestion from loading all pixels simultaneously. */
+const PIXEL_STAGGER_MS = 150;
+
 export function initializePixels(config: PixelConfig): void {
   if (typeof window === "undefined") return;
   if (initialized) return;
@@ -171,14 +175,25 @@ export function initializePixels(config: PixelConfig): void {
 
   updateConsentGranted();
 
-  // GA4 may already be loaded via initializeGA4Early; initGA4 is idempotent
+  /* Priority: GA4 + Meta load immediately (essential for measurement).
+   * Remaining pixels are staggered to avoid blocking First Input Delay (FID). */
   if (config.ga4Id) initGA4(config.ga4Id);
   if (config.metaPixelId) initMetaPixel(config.metaPixelId);
-  if (config.tikTokPixelId) initTikTokPixel(config.tikTokPixelId);
-  if (config.linkedInPartnerId) initLinkedInInsight(config.linkedInPartnerId);
-  if (config.outbrainAccountId) initOutbrain(config.outbrainAccountId);
-  if (config.taboolaAccountId) initTaboola(config.taboolaAccountId);
-  if (config.twitterPixelId) initTwitterPixel(config.twitterPixelId);
+
+  /* Stagger lower-priority pixels via requestIdleCallback (or setTimeout fallback).
+   * Each platform loads after a small delay so the main thread stays responsive. */
+  const deferredPixels: Array<() => void> = [];
+  if (config.tikTokPixelId) deferredPixels.push(() => initTikTokPixel(config.tikTokPixelId!));
+  if (config.linkedInPartnerId) deferredPixels.push(() => initLinkedInInsight(config.linkedInPartnerId!));
+  if (config.outbrainAccountId) deferredPixels.push(() => initOutbrain(config.outbrainAccountId!));
+  if (config.taboolaAccountId) deferredPixels.push(() => initTaboola(config.taboolaAccountId!));
+  if (config.twitterPixelId) deferredPixels.push(() => initTwitterPixel(config.twitterPixelId!));
+
+  const scheduleIdle = typeof requestIdleCallback !== "undefined"
+    ? (fn: () => void, delay: number) => setTimeout(() => requestIdleCallback(fn), delay)
+    : (fn: () => void, delay: number) => setTimeout(fn, delay);
+
+  deferredPixels.forEach((fn, i) => scheduleIdle(fn, (i + 1) * PIXEL_STAGGER_MS));
 
   // Flush any queued events
   flushPendingEvents(config);
