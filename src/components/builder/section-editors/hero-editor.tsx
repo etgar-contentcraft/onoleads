@@ -28,6 +28,10 @@ interface HeroContent {
   subheading_he?: string;
   subheading_en?: string;
   subheading_ar?: string;
+  faculty_name_he?: string;
+  faculty_name_en?: string;
+  faculty_name_ar?: string;
+  degree_type?: string;
   background_image_url?: string;
   background_video_url?: string;
   background_video_type?: "mp4" | "youtube";
@@ -93,6 +97,20 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
 
         <TabsContent value="he" className="space-y-4 mt-4">
           <Field
+            label="שם הפקולטה / תוכנית"
+            tooltip="מופיע מעל הכותרת הראשית בצבע ירוק. לדוגמה: 'פקולטה למשפטים – תוכנית בינלאומית'. לא חובה."
+            count={content.faculty_name_he || ""}
+            max={60}
+          >
+            <Input
+              value={content.faculty_name_he || ""}
+              onChange={(e) => update("faculty_name_he", e.target.value)}
+              placeholder="פקולטה למשפטים – תוכנית בינלאומית"
+              dir="rtl"
+            />
+          </Field>
+
+          <Field
             label="כותרת ראשית"
             tooltip="הכותרת הגדולה שרואים ראשונה. עצרו בין 25-35 תווים לתוצאה הטובה ביותר בשורה אחת."
             count={content.heading_he || ""}
@@ -152,6 +170,19 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
 
         <TabsContent value="en" className="space-y-4 mt-4">
           <Field
+            label="Faculty / Program Name"
+            tooltip="Appears above the main heading in green. E.g. 'Faculty of Law – International Program'. Optional."
+            count={content.faculty_name_en || ""}
+            max={60}
+          >
+            <Input
+              value={content.faculty_name_en || ""}
+              onChange={(e) => update("faculty_name_en", e.target.value)}
+              placeholder="Faculty of Law – International Program"
+            />
+          </Field>
+
+          <Field
             label="Heading"
             tooltip="Main display heading. Keep under 35 characters for best single-line display."
             count={content.heading_en || ""}
@@ -206,6 +237,20 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
         </TabsContent>
 
         <TabsContent value="ar" className="space-y-4 mt-4">
+          <Field
+            label="اسم الكلية / البرنامج"
+            tooltip="يظهر فوق العنوان الرئيسي باللون الأخضر. اختياري."
+            count={content.faculty_name_ar || ""}
+            max={60}
+          >
+            <Input
+              value={content.faculty_name_ar || ""}
+              onChange={(e) => update("faculty_name_ar", e.target.value)}
+              placeholder="كلية الحقوق – برنامج دولي"
+              dir="rtl"
+            />
+          </Field>
+
           <Field
             label="العنوان"
             tooltip="العنوان الرئيسي. حافظ على 35 حرفاً كحد أقصى لأفضل عرض."
@@ -332,6 +377,19 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
             </div>
           </Field>
         )}
+
+        <Field
+          label="תואר / תג (Degree Badge)"
+          tooltip="תג הצבעוני שמופיע מתחת לשם הפקולטה. לדוגמה: 'LL.B.', 'M.B.A.', 'B.Sc.'. ריק = לא מוצג."
+          count={content.degree_type || ""}
+          max={20}
+        >
+          <Input
+            value={content.degree_type || ""}
+            onChange={(e) => update("degree_type", e.target.value)}
+            placeholder="LL.B."
+          />
+        </Field>
 
         <Field
           label="ערך סטטיסטי"
