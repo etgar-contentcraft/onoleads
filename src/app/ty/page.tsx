@@ -18,6 +18,8 @@ import { TyPixelFire } from "@/components/landing/ty-pixel-fire";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 import type { PixelConfig } from "@/lib/analytics/pixel-manager";
+import { CONSENT_MODE_INIT_SCRIPT } from "@/lib/analytics/pixel-manager";
+import Script from "next/script";
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 
@@ -132,6 +134,12 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
       }
     >
       <head>
+        {/* Consent Mode v2 — MUST execute before any gtag/GA4 script loads */}
+        <Script
+          id="consent-mode-v2"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: CONSENT_MODE_INIT_SCRIPT }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}

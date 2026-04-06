@@ -15,6 +15,7 @@
 import { useEffect } from "react";
 import type { PixelConfig } from "@/lib/analytics/pixel-manager";
 import {
+  initConsentModeDefaults,
   updateConsentGranted,
   initializePixels,
   firePixelEvent,
@@ -42,6 +43,11 @@ export function TyPixelFire({ config }: TyPixelFireProps) {
     // Used for CAPI ↔ browser pixel deduplication — Meta/Google discard duplicates.
     const eventId = sessionStorage.getItem("ty_event_id") || "";
     if (eventId) sessionStorage.removeItem("ty_event_id"); // consume once
+
+    // Safety net: ensure consent defaults are set before GA4 loads.
+    // The primary consent defaults come from the inline script in <head>,
+    // but this guards against edge cases.
+    initConsentModeDefaults();
 
     // Form submission = explicit marketing consent. Upgrade consent mode before
     // initializing pixels so GA4/Google Ads don't operate in denied mode.

@@ -67,12 +67,21 @@ const pendingEvents: QueuedEvent[] = [];
 // ============================================================================
 
 /**
- * Initializes Google Consent Mode v2 with default-denied state.
+ * Initializes Google Consent Mode v2 with default consent state.
+ * analytics_storage defaults to "granted" — basic analytics (pageviews, sessions)
+ * is considered legitimate interest under Israeli Privacy Protection Law 5741-1981.
+ * Marketing consent (ad_storage, ad_user_data, ad_personalization) defaults to "denied"
+ * and requires explicit user consent via the cookie banner.
+ *
+ * Idempotent — safe to call multiple times (only the first call has effect).
  * MUST be called before any gtag/GTM loads.
- * Call this in a beforeInteractive script in the page <head>.
  */
+let consentDefaultsSet = false;
 export function initConsentModeDefaults(): void {
   if (typeof window === "undefined") return;
+  if (consentDefaultsSet) return;
+  consentDefaultsSet = true;
+
   window.dataLayer = window.dataLayer || [];
   if (!window.gtag) {
     window.gtag = function (...args: unknown[]) {
@@ -80,7 +89,7 @@ export function initConsentModeDefaults(): void {
     };
   }
   window.gtag("consent", "default", {
-    analytics_storage: "denied",
+    analytics_storage: "granted",
     ad_storage: "denied",
     ad_user_data: "denied",
     ad_personalization: "denied",
@@ -444,7 +453,7 @@ export const CONSENT_MODE_INIT_SCRIPT = `
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('consent', 'default', {
-    analytics_storage: 'denied',
+    analytics_storage: 'granted',
     ad_storage: 'denied',
     ad_user_data: 'denied',
     ad_personalization: 'denied',
@@ -453,7 +462,6 @@ export const CONSENT_MODE_INIT_SCRIPT = `
   var consent = typeof localStorage !== 'undefined' && localStorage.getItem('ono_cookie_consent');
   if (consent === 'all') {
     gtag('consent', 'update', {
-      analytics_storage: 'granted',
       ad_storage: 'granted',
       ad_user_data: 'granted',
       ad_personalization: 'granted'
