@@ -455,8 +455,14 @@ function InnerLayout({
   const isRtl = language === "he" || language === "ar";
   const urlParams = useUrlParams();
 
-  /* Track anonymous page view */
-  usePageTracking(pageId || null);
+  /* Detect heatmap preview mode — skip all tracking to avoid polluting data */
+  const [isHeatmapPreview] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).has("_heatmap");
+  });
+
+  /* Track anonymous page view (skip in heatmap mode) */
+  usePageTracking(isHeatmapPreview ? null : (pageId || null));
 
   /* Only pass CTA text override when it matches the page language.
      Global settings may store Hebrew text — don't show it on English pages. */
@@ -695,27 +701,32 @@ function InnerLayout({
         />
       )}
 
-      {/* Client-side pixel tracking — Consent Mode v2 + engagement events */}
-      <PixelTracker config={{
-        ga4Id: settings?.ga4_id,
-        metaPixelId: settings?.meta_pixel_id,
-        googleAdsId: settings?.google_ads_id,
-        googleAdsConversionLabel: settings?.google_ads_conversion_label,
-        tikTokPixelId: settings?.tiktok_pixel_id,
-        linkedInPartnerId: settings?.linkedin_partner_id,
-        outbrainAccountId: settings?.outbrain_account_id,
-        taboolaAccountId: settings?.taboola_account_id,
-        twitterPixelId: settings?.twitter_pixel_id,
-        pageId: pageId,
-        pageSlug: pageSlug,
-      } satisfies PixelConfig} />
+      {/* Skip all tracking & overlays in heatmap preview mode */}
+      {!isHeatmapPreview && (
+        <>
+          {/* Client-side pixel tracking — Consent Mode v2 + engagement events */}
+          <PixelTracker config={{
+            ga4Id: settings?.ga4_id,
+            metaPixelId: settings?.meta_pixel_id,
+            googleAdsId: settings?.google_ads_id,
+            googleAdsConversionLabel: settings?.google_ads_conversion_label,
+            tikTokPixelId: settings?.tiktok_pixel_id,
+            linkedInPartnerId: settings?.linkedin_partner_id,
+            outbrainAccountId: settings?.outbrain_account_id,
+            taboolaAccountId: settings?.taboola_account_id,
+            twitterPixelId: settings?.twitter_pixel_id,
+            pageId: pageId,
+            pageSlug: pageSlug,
+          } satisfies PixelConfig} />
 
-      {/* Compliance widgets */}
-      <CookieConsent language={language} />
-      <AccessibilityWidget language={language} />
+          {/* Compliance widgets */}
+          <CookieConsent language={language} />
+          <AccessibilityWidget language={language} />
+        </>
+      )}
 
       {/* Scroll depth + time-on-page tracking (invisible, renders nothing) */}
-      {pageId && (
+      {pageId && !isHeatmapPreview && (
         <>
           <ScrollTracker
             pageId={pageId}
