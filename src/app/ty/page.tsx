@@ -14,8 +14,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ThankYouPage } from "@/components/landing/thank-you-page";
+import { TyPixelFire } from "@/components/landing/ty-pixel-fire";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
+import type { PixelConfig } from "@/lib/analytics/pixel-manager";
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 
@@ -36,11 +38,36 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
   // The thank-you page is public so we use the admin client for settings reads.
   const adminClient = createAdminClient();
 
-  // ── Fetch global TY settings ──────────────────────────────────────────────
-  const [{ data: globalTyRow }, { data: globalWaRow }] = await Promise.all([
+  // ── Fetch global TY settings + pixel config in parallel ──────────────────
+  const [{ data: globalTyRow }, { data: globalWaRow }, { data: pixelRows }] = await Promise.all([
     adminClient.from("settings").select("value").eq("key", "thank_you_page_settings").single(),
     adminClient.from("settings").select("value").eq("key", "whatsapp_number").single(),
+    adminClient.from("pixel_configurations").select("platform, is_enabled, pixel_id, additional_config"),
   ]);
+
+  // Build pixel config from enabled platform rows
+  const pixelMap: Record<string, { pixel_id: string | null; additional_config: Record<string, string | null> }> = {};
+  for (const row of pixelRows || []) {
+    if (row.is_enabled && row.pixel_id) {
+      pixelMap[row.platform] = {
+        pixel_id: row.pixel_id,
+        additional_config: (row.additional_config as Record<string, string | null>) || {},
+      };
+    }
+  }
+
+  const pixelConfig: PixelConfig = {
+    metaPixelId: pixelMap["meta"]?.pixel_id || null,
+    ga4Id: pixelMap["ga4"]?.pixel_id || null,
+    googleAdsId: pixelMap["google"]?.pixel_id || null,
+    googleAdsConversionLabel: pixelMap["google"]?.additional_config?.conversion_label || null,
+    tikTokPixelId: pixelMap["tiktok"]?.pixel_id || null,
+    linkedInPartnerId: pixelMap["linkedin"]?.pixel_id || null,
+    outbrainAccountId: pixelMap["outbrain"]?.pixel_id || null,
+    taboolaAccountId: pixelMap["taboola"]?.pixel_id || null,
+    twitterPixelId: pixelMap["twitter"]?.pixel_id || null,
+    pageSlug: slug || null,
+  };
 
   let globalTySettings: ThankYouPageSettings = { ...ONO_TY_DEFAULTS };
   if (globalTyRow?.value) {
@@ -115,6 +142,9 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
         <style dangerouslySetInnerHTML={{ __html: `:root,html{--font-heading:'Rubik',sans-serif;--font-heebo:'Heebo',sans-serif}.font-heading{font-family:'Rubik',sans-serif!important}` }} />
       </head>
       <body className="antialiased">
+        {/* Fire Lead pixel event on all configured platforms.
+            Must render inside <body> so scripts can inject into <head>. */}
+        <TyPixelFire config={pixelConfig} />
         <ThankYouPage
           programName={programName}
           settings={settings}

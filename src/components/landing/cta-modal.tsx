@@ -7,8 +7,6 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { getLeadClickIds } from "@/lib/analytics/click-ids";
-import { fireLeadPixelEvent } from "./pixel-tracker";
-import { isMarketingConsentGranted } from "@/lib/analytics/pixel-manager";
 import { generateRandomEventId } from "@/lib/analytics/event-id";
 
 // ============================================================================
@@ -405,9 +403,9 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
 
       /* Click IDs from localStorage — captured at page load, sent with every lead */
       const clickIds = getLeadClickIds();
-      /* Deduplicate browser pixel + CAPI using a shared event ID */
+      /* Deduplicate browser pixel + CAPI using a shared event ID.
+       * Stored in sessionStorage so TyPixelFire can fire Lead with the same ID. */
       const eventId = generateRandomEventId();
-      const marketingConsent = isMarketingConsentGranted();
 
       const payload = {
         full_name: formData.full_name.trim(),
@@ -459,18 +457,14 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
       });
 
       if (res.ok) {
-        /* Fire browser-side pixel Lead event (deduped with CAPI via eventId) */
-        if (marketingConsent) {
-          fireLeadPixelEvent(
-            eventId,
-            formData.email.trim() || null,
-            formData.phone.trim() || null
-          );
-        }
-
         // Store first name in sessionStorage — never in the URL (PII)
         const firstName = formData.full_name.trim().split(" ")[0] || "";
         if (firstName) sessionStorage.setItem("ty_name", firstName);
+
+        /* Store event_id for TyPixelFire on the thank-you page.
+         * The TY page fires the Lead pixel with this ID so CAPI + browser pixel
+         * share the same event_id for deduplication. */
+        sessionStorage.setItem("ty_event_id", eventId);
 
         /* Record submit time for 15-second session cooldown */
         sessionStorage.setItem("last_lead_submit", Date.now().toString());
