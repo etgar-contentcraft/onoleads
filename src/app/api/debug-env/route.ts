@@ -12,8 +12,10 @@ export async function GET() {
     hasSupaUrl: !!supaUrl,
     hasServiceRole: !!serviceRole,
     nodeEnv: process.env.NODE_ENV,
+    hasTestVar: !!process.env.MY_TEST_VAR,
+    testVarVal: process.env.MY_TEST_VAR || null,
     allEnvKeys: Object.keys(process.env).filter(k =>
-      k.includes("CAPI") || k.includes("SUPA") || k.includes("NEXT_PUBLIC_SUPA")
+      k.includes("CAPI") || k.includes("SUPA") || k.includes("NEXT_PUBLIC_SUPA") || k.includes("MY_TEST")
     ),
   });
 }
