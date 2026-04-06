@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import type { Language } from "@/lib/types/database";
 import { getLeadClickIds } from "@/lib/analytics/click-ids";
 import { generateEventId } from "@/lib/analytics/event-id";
@@ -30,6 +31,7 @@ interface FormSectionProps {
 }
 
 export function FormSection({ content, language, pageId, programId, pageSlug }: FormSectionProps) {
+  const router = useRouter();
   const isRtl = language === "he" || language === "ar";
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "השאירו פרטים ונחזור אליכם" : "Leave your details");
   const subheading = (content[`subheading_${language}`] as string) || (content.subheading_he as string) || (isRtl ? "יועץ לימודים אישי יחזור אליכם בקרוב" : "");
@@ -286,9 +288,13 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
         sessionStorage.setItem("ty_event_id", eventId);
         const firstName = (formData.full_name || "").trim().split(" ")[0] || "";
         if (firstName) sessionStorage.setItem("ty_name", firstName);
+        /* Record submit time for 15-second session cooldown */
+        sessionStorage.setItem("last_lead_submit", Date.now().toString());
         // Clear saved draft on successful submission
         try { sessionStorage.removeItem(draftKey); } catch { /* ignore */ }
-        setSubmitted(true);
+        /* Redirect to the thank-you page — fires conversion pixel (same flow as CTA modal) */
+        const tyUrl = pageSlug ? `/ty?slug=${encodeURIComponent(pageSlug)}` : "/ty";
+        router.push(tyUrl);
       } else {
         const errorData = await res.json().catch(() => null);
         setApiErrorMsg(errorData?.error || null);
@@ -427,12 +433,12 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
                         dir={field.type === "tel" || field.type === "email" ? "ltr" : undefined}
                         aria-required={field.required || undefined}
                         required={field.required}
-                        className={`w-full h-14 rounded-xl bg-white/10 border px-5 pr-10 text-white text-base placeholder:text-white/30 focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors[field.name] ? "border-red-400/60" : fieldValid[field.name] ? "border-[#B8D900]/50" : "border-white/20"}`}
+                        className={`w-full h-14 rounded-xl bg-white/10 border px-5 ${(field.type === "tel" || field.type === "email") ? "pr-10" : ""} text-white text-base placeholder:text-white/30 focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors[field.name] ? "border-red-400/60" : fieldValid[field.name] ? "border-[#B8D900]/50" : "border-white/20"}`}
                         placeholder={getLabel(field)}
                       />
-                      {/* Inline ✓ on valid blur — phone & email only */}
+                      {/* Inline ✓ on valid blur — phone & email only, positioned at input end */}
                       {fieldValid[field.name] && (field.type === "tel" || field.type === "email") && (
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B8D900] pointer-events-none transition-opacity">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B8D900] pointer-events-none transition-opacity">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
