@@ -120,6 +120,9 @@ const leadSchema = z.object({
   fbc: z.string().max(200).optional().nullable(),        // fb.1.{ts}.{fbclid}
   ttclid: z.string().max(200).optional().nullable(),
   li_fat_id: z.string().max(200).optional().nullable(),
+  obclid: z.string().max(200).optional().nullable(),     // Outbrain click ID
+  tblclid: z.string().max(200).optional().nullable(),    // Taboola click ID
+  twclid: z.string().max(200).optional().nullable(),     // Twitter/X click ID
   /* Client-generated dedup event ID — shared with browser pixel to prevent double-counting */
   event_id: z.string().max(64).optional().nullable(),
   /* Consent state — gate CAPI calls on this */
@@ -388,10 +391,15 @@ export async function POST(request: NextRequest) {
         sourceUrl: `${process.env.NEXT_PUBLIC_BASE_URL || "https://onoleads.vercel.app"}/lp/${data.page_slug || ""}`,
         clientIp,
         userAgent: request.headers.get("user-agent") || "",
+        /* Click IDs — all 8 platforms */
         gclid: data.gclid || null,
         fbclid: data.fbclid || null,
         fbc: data.fbc || null,
         ttclid: data.ttclid || null,
+        li_fat_id: data.li_fat_id || null,
+        obclid: data.obclid || null,
+        tblclid: data.tblclid || null,
+        twclid: data.twclid || null,
         pageId,
         cookieId,
       };

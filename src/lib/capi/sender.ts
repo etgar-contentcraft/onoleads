@@ -37,6 +37,10 @@ export interface CAPILeadPayload {
   fbclid?: string | null;
   fbc?: string | null;          // fb.1.{ts}.{fbclid}
   ttclid?: string | null;
+  li_fat_id?: string | null;    // LinkedIn click ID
+  obclid?: string | null;       // Outbrain click ID
+  tblclid?: string | null;      // Taboola click ID
+  twclid?: string | null;       // Twitter/X click ID
   /** Supabase page UUID */
   pageId: string | null;
   /** anonymous cookie ID */
@@ -255,6 +259,198 @@ export async function sendTikTokCAPI(payload: CAPILeadPayload): Promise<void> {
 }
 
 // ============================================================================
+// GA4 Measurement Protocol (server-side)
+// ============================================================================
+
+/**
+ * Sends a generate_lead event to GA4 via the Measurement Protocol.
+ * Requires GA4 measurement_id (pixel_id) and api_secret (access_token_enc).
+ * @param payload - Lead event data
+ */
+export async function sendGA4CAPI(payload: CAPILeadPayload): Promise<void> {
+  const config = await loadPixelConfig("ga4");
+  if (!config?.is_enabled || !config.pixel_id) return;
+
+  const apiSecret = safeDecryptToken(config.access_token_enc);
+  if (!apiSecret) return;
+
+  const body = {
+    client_id: payload.cookieId || "server",
+    events: [{
+      name: "generate_lead",
+      params: {
+        event_id: payload.eventId,
+        page_location: payload.sourceUrl,
+        send_to: config.pixel_id,
+      },
+    }],
+  };
+
+  const url = `${CAPI_ENDPOINTS.ga4}?measurement_id=${encodeURIComponent(config.pixel_id)}&api_secret=${encodeURIComponent(apiSecret)}`;
+
+  const start = Date.now();
+  const result = await sendWebhookWithRetry(url, body as Record<string, unknown>, null);
+  logCapiResult("ga4", payload.eventId, payload.pageId, result.success, result.statusCode, Date.now() - start);
+}
+
+// ============================================================================
+// LinkedIn Conversions API
+// ============================================================================
+
+/**
+ * Sends a Lead conversion to LinkedIn Conversions API.
+ * Requires access token (access_token_enc) and conversion_id in additional_config.
+ * @param payload - Lead event data
+ */
+export async function sendLinkedInCAPI(payload: CAPILeadPayload): Promise<void> {
+  const config = await loadPixelConfig("linkedin");
+  if (!config?.is_enabled || !config.pixel_id) return;
+
+  const accessToken = safeDecryptToken(config.access_token_enc);
+  if (!accessToken) return;
+
+  const conversionId = config.additional_config?.conversion_id;
+  if (!conversionId) return;
+
+  const userIds: Array<Record<string, string>> = [];
+  const emailHash = payload.email ? hashPii(payload.email) : null;
+  if (emailHash) userIds.push({ idType: "SHA256_EMAIL", idValue: emailHash });
+  if (payload.li_fat_id) {
+    userIds.push({ idType: "LINKEDIN_FIRST_PARTY_ADS_TRACKING_UUID", idValue: payload.li_fat_id });
+  }
+  if (userIds.length === 0) return;
+
+  const body = {
+    conversion: `urn:lla:llaPartnerConversion:${conversionId}`,
+    conversionHappenedAt: Date.now(),
+    eventId: payload.eventId,
+    user: { userIds },
+  };
+
+  const url = `${CAPI_ENDPOINTS.linkedin}/conversionEvents`;
+
+  const start = Date.now();
+  const result = await sendWebhookWithRetry(url, body as Record<string, unknown>, null, {
+    Authorization: `Bearer ${accessToken}`,
+    "LinkedIn-Version": "202406",
+    "X-Restli-Protocol-Version": "2.0.0",
+  });
+  logCapiResult("linkedin", payload.eventId, payload.pageId, result.success, result.statusCode, Date.now() - start);
+}
+
+// ============================================================================
+// Outbrain S2S Pixel
+// ============================================================================
+
+/**
+ * Sends a Lead conversion to Outbrain via server-to-server pixel endpoint.
+ * Requires ob_click_id from client — if missing, call is skipped (click ID required for attribution).
+ * @param payload - Lead event data
+ */
+export async function sendOutbrainCAPI(payload: CAPILeadPayload): Promise<void> {
+  if (!payload.obclid) return; // Outbrain S2S requires click ID
+
+  const config = await loadPixelConfig("outbrain");
+  if (!config?.is_enabled || !config.pixel_id) return;
+
+  // Outbrain S2S: GET request with click ID and conversion data
+  const params = new URLSearchParams({
+    ob_click_id: payload.obclid,
+    name: "Lead",
+    orderid: payload.eventId,
+    amount: "0",
+    currency: "ILS",
+  });
+
+  const url = `${CAPI_ENDPOINTS.outbrain}?${params.toString()}`;
+
+  const start = Date.now();
+  // Outbrain S2S is a GET — send an empty body with GET method via webhook
+  const result = await sendWebhookWithRetry(url, {} as Record<string, unknown>, null);
+  logCapiResult("outbrain", payload.eventId, payload.pageId, result.success, result.statusCode, Date.now() - start);
+}
+
+// ============================================================================
+// Taboola Server-Side Events
+// ============================================================================
+
+/**
+ * Sends a Lead event to Taboola via server-to-server events API.
+ * Requires tblclid (Taboola click ID) for attribution.
+ * @param payload - Lead event data
+ */
+export async function sendTaboolaCAPI(payload: CAPILeadPayload): Promise<void> {
+  const config = await loadPixelConfig("taboola");
+  if (!config?.is_enabled || !config.pixel_id) return;
+
+  const body: Record<string, unknown> = {
+    "pixel-id": config.pixel_id,
+    "event-name": "lead",
+    "revenue": 0,
+    "currency": "ILS",
+    "order-id": payload.eventId,
+    "page-url": payload.sourceUrl,
+  };
+
+  // Include click ID for attribution if available
+  if (payload.tblclid) {
+    body["click-id"] = payload.tblclid;
+  }
+
+  // Optional signed request secret for enhanced security
+  const secret = safeDecryptToken(config.access_token_enc);
+  const url = secret
+    ? `${CAPI_ENDPOINTS.taboola}?secret=${encodeURIComponent(secret)}`
+    : CAPI_ENDPOINTS.taboola;
+
+  const start = Date.now();
+  const result = await sendWebhookWithRetry(url, body, null);
+  logCapiResult("taboola", payload.eventId, payload.pageId, result.success, result.statusCode, Date.now() - start);
+}
+
+// ============================================================================
+// Twitter/X Conversions API
+// ============================================================================
+
+/**
+ * Sends a SIGN_UP conversion to Twitter/X via Conversions API.
+ * Requires access token (access_token_enc).
+ * @param payload - Lead event data
+ */
+export async function sendTwitterCAPI(payload: CAPILeadPayload): Promise<void> {
+  const config = await loadPixelConfig("twitter");
+  if (!config?.is_enabled || !config.pixel_id) return;
+
+  const accessToken = safeDecryptToken(config.access_token_enc);
+  if (!accessToken) return;
+
+  const identifiers: Array<Record<string, string>> = [];
+  const twitterEmailHash = payload.email ? hashPii(payload.email) : null;
+  const twitterPhoneHash = payload.phone ? hashPhone(payload.phone) : null;
+  if (twitterEmailHash) identifiers.push({ hashed_email: twitterEmailHash });
+  if (twitterPhoneHash) identifiers.push({ hashed_phone_number: twitterPhoneHash });
+  if (identifiers.length === 0) return;
+
+  const body = {
+    conversions: [{
+      conversion_time: new Date().toISOString(),
+      event_id: payload.eventId,
+      conversion_type: "SIGN_UP",
+      identifiers,
+      ...(payload.twclid ? { click_id: payload.twclid } : {}),
+    }],
+  };
+
+  const url = `${CAPI_ENDPOINTS.twitter}/${config.pixel_id}`;
+
+  const start = Date.now();
+  const result = await sendWebhookWithRetry(url, body as Record<string, unknown>, null, {
+    Authorization: `Bearer ${accessToken}`,
+  });
+  logCapiResult("twitter", payload.eventId, payload.pageId, result.success, result.statusCode, Date.now() - start);
+}
+
+// ============================================================================
 // Fire all CAPI platforms in parallel
 // ============================================================================
 
@@ -273,14 +469,29 @@ export async function fireAllCAPI(
   if (!marketingConsent) return;
 
   await Promise.allSettled([
-    sendMetaCAPI(payload).catch((err) => {
+    sendMetaCAPI(payload).catch((err: Error) => {
       console.error("[capi:meta]", { error: err.message, page: payload.pageId });
     }),
-    sendGoogleCAPI(payload).catch((err) => {
+    sendGoogleCAPI(payload).catch((err: Error) => {
       console.error("[capi:google]", { error: err.message, page: payload.pageId });
     }),
-    sendTikTokCAPI(payload).catch((err) => {
+    sendTikTokCAPI(payload).catch((err: Error) => {
       console.error("[capi:tiktok]", { error: err.message, page: payload.pageId });
+    }),
+    sendGA4CAPI(payload).catch((err: Error) => {
+      console.error("[capi:ga4]", { error: err.message, page: payload.pageId });
+    }),
+    sendLinkedInCAPI(payload).catch((err: Error) => {
+      console.error("[capi:linkedin]", { error: err.message, page: payload.pageId });
+    }),
+    sendOutbrainCAPI(payload).catch((err: Error) => {
+      console.error("[capi:outbrain]", { error: err.message, page: payload.pageId });
+    }),
+    sendTaboolaCAPI(payload).catch((err: Error) => {
+      console.error("[capi:taboola]", { error: err.message, page: payload.pageId });
+    }),
+    sendTwitterCAPI(payload).catch((err: Error) => {
+      console.error("[capi:twitter]", { error: err.message, page: payload.pageId });
     }),
   ]);
 }

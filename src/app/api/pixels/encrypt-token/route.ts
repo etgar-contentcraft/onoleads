@@ -9,8 +9,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { encryptToken } from "@/lib/security/token-encryption";
 
-/** Platforms that support CAPI tokens */
-const CAPI_PLATFORMS = new Set(["meta", "google", "tiktok"]);
+/** Platforms that accept an encrypted access token / API secret */
+const CAPI_PLATFORMS = new Set(["meta", "google", "tiktok", "ga4", "linkedin", "taboola", "twitter"]);
 
 export async function POST(req: NextRequest) {
   try {

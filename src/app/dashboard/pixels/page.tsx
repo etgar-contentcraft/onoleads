@@ -22,15 +22,17 @@ import { Separator } from "@/components/ui/separator";
 const PLATFORMS = [
   {
     key: "ga4",
-    name: "Google Analytics 4",
+    name: "Google Analytics 4 + Measurement Protocol",
     icon: "📊",
     color: "#E37400",
     pixelLabel: "Measurement ID",
     pixelPlaceholder: "G-XXXXXXXXXX",
     pixelHelp: "מזהה המדידה של GA4. נמצא ב: Admin → Data Streams → Web → Measurement ID",
-    hasToken: false,
-    hasCapi: false,
-    helpUrl: "https://support.google.com/analytics/answer/9304153",
+    hasToken: true,
+    tokenLabel: "API Secret (Measurement Protocol)",
+    tokenHelp: "מפתח API לשליחת אירועים server-side. נמצא ב: Admin → Data Streams → Web → Measurement Protocol API secrets",
+    hasCapi: true,
+    helpUrl: "https://developers.google.com/analytics/devguides/collection/protocol/ga4/sending-data",
     category: "analytics",
   },
   {
@@ -85,54 +87,62 @@ const PLATFORMS = [
   },
   {
     key: "linkedin",
-    name: "LinkedIn Insight Tag",
+    name: "LinkedIn Insight Tag + Conversions API",
     icon: "💼",
     color: "#0A66C2",
     pixelLabel: "Partner ID",
     pixelPlaceholder: "1234567",
     pixelHelp: "מזהה השותף. נמצא ב: Campaign Manager → Analyze → Insight Tag",
-    hasToken: false,
-    hasCapi: false,
-    helpUrl: "https://www.linkedin.com/help/lms/answer/a418880",
+    hasToken: true,
+    tokenLabel: "Access Token (Conversions API)",
+    tokenHelp: "טוקן גישה ל-Conversions API. נמצא ב: Campaign Manager → Account Assets → Conversions API",
+    hasCapi: true,
+    hasConversionId: true,
+    conversionIdHelp: "מזהה המרה. נמצא ב: Campaign Manager → Account Assets → Conversions → Conversion rule ID",
+    helpUrl: "https://learn.microsoft.com/en-us/linkedin/marketing/conversions/conversion-tracking-overview",
     category: "social",
   },
   {
     key: "outbrain",
-    name: "Outbrain Pixel",
+    name: "Outbrain Pixel + S2S",
     icon: "📰",
     color: "#FF4B1F",
     pixelLabel: "Account ID",
     pixelPlaceholder: "XXXXXXXXXXXXXXXXXXXXXXXXXX",
     pixelHelp: "מזהה החשבון. נמצא ב: Outbrain → Settings → Pixel",
     hasToken: false,
-    hasCapi: false,
+    hasCapi: true,
     helpUrl: "https://www.outbrain.com/help/advertisers/outbrain-pixel/",
     category: "advertising",
   },
   {
     key: "taboola",
-    name: "Taboola Pixel",
+    name: "Taboola Pixel + S2S",
     icon: "📢",
     color: "#0056D6",
     pixelLabel: "Account ID",
     pixelPlaceholder: "taboola-account-id",
     pixelHelp: "מזהה החשבון. נמצא ב: Taboola Ads → Tracking → Pixel",
-    hasToken: false,
-    hasCapi: false,
+    hasToken: true,
+    tokenLabel: "Secret Key (S2S signed events)",
+    tokenHelp: "מפתח סודי לאימות אירועי S2S. נמצא ב: Taboola Ads → Tracking → Pixel → Secret Key",
+    hasCapi: true,
     helpUrl: "https://help.taboola.com/hc/en-us/articles/115006880507",
     category: "advertising",
   },
   {
     key: "twitter",
-    name: "X (Twitter) Pixel",
+    name: "X (Twitter) Pixel + Conversions API",
     icon: "🐦",
     color: "#000000",
     pixelLabel: "Pixel ID",
     pixelPlaceholder: "o1234",
     pixelHelp: "מזהה הפיקסל. נמצא ב: X Ads → Tools → Conversion Tracking",
-    hasToken: false,
-    hasCapi: false,
-    helpUrl: "https://business.twitter.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites.html",
+    hasToken: true,
+    tokenLabel: "Bearer Token (Conversions API)",
+    tokenHelp: "טוקן Bearer ל-X Conversions API. נמצא ב: X Developer Portal → Apps → Keys & Tokens",
+    hasCapi: true,
+    helpUrl: "https://developer.twitter.com/en/docs/twitter-ads-api/measurement/api-reference/conversions",
     category: "social",
   },
 ] as const;
@@ -158,7 +168,10 @@ interface FormState {
   /** True if the DB already has an encrypted token */
   has_saved_token: boolean;
   test_event_code: string;
+  /** Google Ads conversion label */
   conversion_label: string;
+  /** LinkedIn conversion rule ID */
+  conversion_id: string;
   /** Whether save is in progress */
   saving: boolean;
   /** Last save result message */
@@ -173,6 +186,7 @@ const emptyForm = (): FormState => ({
   has_saved_token: false,
   test_event_code: "",
   conversion_label: "",
+  conversion_id: "",
   saving: false,
   message: "",
   messageType: "",
@@ -218,6 +232,7 @@ export default function PixelsPage() {
           has_saved_token: !!row.access_token_enc,
           test_event_code: row.test_event_code || "",
           conversion_label: row.additional_config?.conversion_label || "",
+          conversion_id: row.additional_config?.conversion_id || "",
         };
       }
       return next;
@@ -277,6 +292,7 @@ export default function PixelsPage() {
         test_event_code: form.test_event_code.trim() || null,
         additional_config: {
           conversion_label: form.conversion_label.trim() || null,
+          conversion_id: form.conversion_id.trim() || null,
         },
         updated_at: new Date().toISOString(),
       };
@@ -536,6 +552,32 @@ function PlatformCard({ platform, form, onFieldChange, onSave }: PlatformCardPro
                   className="font-mono text-sm"
                 />
                 <p className="text-xs text-gray-400">{platform.conversionLabelHelp}</p>
+              </div>
+            )}
+
+            {/* Conversion ID (LinkedIn only) */}
+            {"hasConversionId" in platform && platform.hasConversionId && (
+              <div className="space-y-1.5">
+                <Label htmlFor={`${platform.key}-conv-id`} className="text-sm font-medium">
+                  Conversion Rule ID
+                </Label>
+                <Input
+                  id={`${platform.key}-conv-id`}
+                  value={form.conversion_id}
+                  onChange={(e) => onFieldChange("conversion_id", e.target.value)}
+                  placeholder="123456789"
+                  dir="ltr"
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-gray-400">{platform.conversionIdHelp}</p>
+              </div>
+            )}
+
+            {/* CAPI badge */}
+            {"hasCapi" in platform && platform.hasCapi && (
+              <div className="flex items-center gap-1.5 p-2 bg-blue-50 rounded-lg border border-blue-100">
+                <span className="text-xs font-medium text-blue-700">🔗 Server-side CAPI מופעל</span>
+                <span className="text-xs text-blue-500">— אירועים נשלחים גם מהשרת לשיפור דיוק</span>
               </div>
             )}
 

@@ -46,6 +46,13 @@ export function CookieConsent() {
   function handleConsent(choice: "all" | "essential") {
     localStorage.setItem(CONSENT_KEY, choice);
     setVisible(false);
+
+    /* Notify PixelTracker (and any other listeners) that marketing consent was
+     * granted. Fired only when the user explicitly accepts all cookies so that
+     * pixels initialize immediately without requiring a page reload. */
+    if (choice === "all") {
+      window.dispatchEvent(new CustomEvent("ono_consent_granted"));
+    }
   }
 
   if (!visible) return null;

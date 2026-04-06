@@ -120,6 +120,7 @@ export function captureClickIdsFromUrl(): void {
 /**
  * Returns click IDs in the shape expected by the /api/leads route payload.
  * Only includes click IDs that are currently valid (not expired).
+ * Covers all 8 supported CAPI platforms.
  */
 export function getLeadClickIds(): {
   gclid?: string;
@@ -127,9 +128,12 @@ export function getLeadClickIds(): {
   fbc?: string;
   ttclid?: string;
   li_fat_id?: string;
+  obclid?: string;
+  tblclid?: string;
+  twclid?: string;
 } {
   const result: Record<string, string> = {};
-  for (const name of ["gclid", "fbclid", "fbc", "ttclid", "li_fat_id"]) {
+  for (const name of ["gclid", "fbclid", "fbc", "ttclid", "li_fat_id", "obclid", "tblclid", "twclid"]) {
     const value = readClickId(name);
     if (value) result[name] = value;
   }
