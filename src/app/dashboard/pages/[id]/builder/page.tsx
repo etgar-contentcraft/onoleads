@@ -2818,7 +2818,7 @@ export default function PageBuilderPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push(`/dashboard/analytics?page=${params.id}`)}
+            onClick={() => router.push(`/dashboard/pages/${params.id}/analytics`)}
             className="h-9 w-9 p-0 border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900] hover:text-[#4A4648]"
             title="אנליטיקס עמוד"
           >

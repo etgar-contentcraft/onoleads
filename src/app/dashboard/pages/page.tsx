@@ -571,7 +571,7 @@ export default function PagesManagementPage() {
                           <Pencil className="w-4 h-4" />
                           עריכה
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => router.push(`/dashboard/analytics?page=${page.id}`)} className="gap-2">
+                      <DropdownMenuItem onClick={() => router.push(`/dashboard/pages/${page.id}/analytics`)} className="gap-2">
                           <BarChart3 className="w-4 h-4" />
                           אנליטיקס
                       </DropdownMenuItem>
@@ -682,7 +682,7 @@ export default function PagesManagementPage() {
                                 <Pencil className="w-4 h-4" />
                                 עריכה
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => router.push(`/dashboard/analytics?page=${page.id}`)} className="gap-2">
+                            <DropdownMenuItem onClick={() => router.push(`/dashboard/pages/${page.id}/analytics`)} className="gap-2">
                                 <BarChart3 className="w-4 h-4" />
                                 אנליטיקס
                             </DropdownMenuItem>
