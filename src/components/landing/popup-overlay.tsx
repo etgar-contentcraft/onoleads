@@ -16,6 +16,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { PopupContent } from "@/lib/types/popup-campaigns";
 import { useCtaModal, type LeadSource } from "@/components/landing/cta-modal";
+import { getLeadClickIds } from "@/lib/analytics/click-ids";
+import { generateEventId } from "@/lib/analytics/event-id";
 
 // ============================================================================
 // Props
@@ -392,6 +394,7 @@ export function PopupOverlay({
   const [formData, setFormData] = useState({ full_name: "", phone: "", email: "" });
   const [honeypot, setHoneypot] = useState("");
   const [csrfToken, setCsrfToken] = useState("");
+  const [formToken, setFormToken] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -400,6 +403,19 @@ export function PopupOverlay({
   const [selectedInterestArea, setSelectedInterestArea] = useState("");
   const [privacyExpanded, setPrivacyExpanded] = useState(false);
   const hasMultipleAreas = (pageInterestAreas?.length ?? 0) > 1;
+  /** Behavioral tracking refs for bot-detection scoring */
+  const formMountTimeRef = useRef<number>(0);
+  const hasKeystrokeRef = useRef(false);
+  const hasInteractionRef = useRef(false);
+
+  /** Computes a 0–100 behavioral score from dwell time, keystrokes, and interaction */
+  const computeBehaviorScore = useCallback((): number => {
+    const dwell = Date.now() - formMountTimeRef.current;
+    const dwellScore = dwell < 2000 ? 0 : dwell < 5000 ? 40 : 60;
+    const keystrokeScore = hasKeystrokeRef.current ? 30 : 0;
+    const interactionScore = hasInteractionRef.current ? 10 : 0;
+    return Math.min(dwellScore + keystrokeScore + interactionScore, 100);
+  }, []);
   const singleAreaName = pageInterestAreas?.length === 1 ? pageInterestAreas[0].name_he : undefined;
   const privacyUrls = PRIVACY_URLS[language] || PRIVACY_URLS.he;
 
@@ -430,11 +446,29 @@ export function PopupOverlay({
 
   useEffect(() => {
     if (content.include_form) {
+      // CSRF token from middleware cookie
       const token = document.cookie
         .split("; ")
         .find((c) => c.startsWith("csrf_token="))
         ?.split("=")[1] || "";
       setCsrfToken(token);
+
+      // Form time-token: base64({t, n}) — server validates age 4s–15min
+      const ft = { t: Date.now(), n: crypto.randomUUID() };
+      setFormToken(btoa(JSON.stringify(ft)));
+
+      // Start behavioral tracking
+      formMountTimeRef.current = Date.now();
+      hasKeystrokeRef.current = false;
+      hasInteractionRef.current = false;
+
+      const handleInteraction = () => { hasInteractionRef.current = true; };
+      window.addEventListener("mousemove", handleInteraction, { once: true });
+      window.addEventListener("touchstart", handleInteraction, { once: true });
+      return () => {
+        window.removeEventListener("mousemove", handleInteraction);
+        window.removeEventListener("touchstart", handleInteraction);
+      };
     }
   }, [content.include_form]);
 
@@ -476,6 +510,26 @@ export function PopupOverlay({
             : (selectedInterestArea || null))
         : (singleAreaName || null);
 
+      const cookieId = document.cookie
+        .split("; ")
+        .find((c) => c.startsWith("onoleads_id="))
+        ?.split("=")[1] || "";
+
+      /* UTM cookie persistence */
+      const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
+      const utmFromUrl: Record<string, string> = {};
+      for (const k of UTM_KEYS) { const v = urlParams.get(k); if (v) utmFromUrl[k] = v; }
+      let storedUtm: Record<string, string> = {};
+      const storedUtmCookie = document.cookie.split("; ").find((c) => c.startsWith("ono_utm="))?.split("=").slice(1).join("=") || "";
+      if (storedUtmCookie) { try { storedUtm = JSON.parse(decodeURIComponent(storedUtmCookie)); } catch { /* ignore */ } }
+      if (Object.keys(utmFromUrl).length > 0) {
+        document.cookie = `ono_utm=${encodeURIComponent(JSON.stringify(utmFromUrl))}; path=/; max-age=${90 * 24 * 60 * 60}; SameSite=Lax`;
+        storedUtm = utmFromUrl;
+      }
+
+      const clickIds = getLeadClickIds();
+      const eventId = generateEventId("lead_submit", pageId || "unknown", cookieId);
+
       const payload = {
         full_name: formData.full_name.trim(),
         phone: formData.phone.trim() || null,
@@ -484,16 +538,26 @@ export function PopupOverlay({
         page_slug: pageSlug || null,
         program_id: programId || null,
         interest_area: resolvedInterestArea,
-        utm_source: urlParams.get("utm_source"),
-        utm_medium: urlParams.get("utm_medium"),
-        utm_campaign: urlParams.get("utm_campaign"),
-        utm_content: urlParams.get("utm_content"),
-        utm_term: urlParams.get("utm_term"),
+        utm_source: utmFromUrl.utm_source || storedUtm.utm_source || null,
+        utm_medium: utmFromUrl.utm_medium || storedUtm.utm_medium || null,
+        utm_campaign: utmFromUrl.utm_campaign || storedUtm.utm_campaign || null,
+        utm_content: utmFromUrl.utm_content || storedUtm.utm_content || null,
+        utm_term: utmFromUrl.utm_term || storedUtm.utm_term || null,
         referrer: document.referrer || null,
+        cookie_id: cookieId,
         device_type: window.innerWidth < 768 ? "mobile" : window.innerWidth < 1024 ? "tablet" : "desktop" as "mobile" | "tablet" | "desktop",
         lead_source: popupLeadSource,
+        /* Security fields */
         csrf_token: csrfToken,
+        form_token: formToken,
+        behavior_score: computeBehaviorScore(),
         website: honeypot,
+        /* Attribution */
+        event_id: eventId,
+        marketing_consent: true,
+        ...clickIds,
+        fbp: (() => { const c = document.cookie.split("; ").find(x => x.startsWith("_fbp=")); return c ? c.split("=").slice(1).join("=") : null; })(),
+        ga_client_id: (() => { const c = document.cookie.split("; ").find(x => x.startsWith("_ga=")); return c ? c.split("=").slice(1).join("=") : null; })(),
       };
 
       const res = await fetch("/api/leads", {
@@ -508,6 +572,7 @@ export function PopupOverlay({
 
         const firstName = formData.full_name.trim().split(" ")[0] || "";
         if (firstName) sessionStorage.setItem("ty_name", firstName);
+        sessionStorage.setItem("ty_event_id", generateEventId("lead_submit", pageId || "unknown", document.cookie.split("; ").find((c) => c.startsWith("onoleads_id="))?.split("=")[1] || ""));
 
         if (pageSlug) {
           onDismiss();
@@ -625,7 +690,7 @@ export function PopupOverlay({
             {/* Full Name */}
             <div>
               <input id="popup_full_name" type="text" value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                onChange={(e) => { hasKeystrokeRef.current = true; setFormData({ ...formData, full_name: e.target.value }); }}
                 placeholder={isRtl ? "שם מלא *" : "Full name *"} autoComplete="name"
                 className="w-full h-11 rounded-xl bg-black/5 border border-black/10 px-4 text-[#2a2628] text-sm placeholder:text-[#9A969A] focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
                 aria-required="true" aria-invalid={!!errors.full_name} />
@@ -635,7 +700,7 @@ export function PopupOverlay({
             {/* Phone */}
             <div>
               <input id="popup_phone" type="tel" value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => { hasKeystrokeRef.current = true; setFormData({ ...formData, phone: e.target.value }); }}
                 placeholder={isRtl ? "טלפון *" : "Phone *"} dir="ltr" autoComplete="tel"
                 className="w-full h-11 rounded-xl bg-black/5 border border-black/10 px-4 text-[#2a2628] text-sm placeholder:text-[#9A969A] text-left focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
                 aria-required="true" aria-invalid={!!errors.phone} />
