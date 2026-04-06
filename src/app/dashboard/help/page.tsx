@@ -1,6 +1,7 @@
 /**
- * Help & Documentation page, full reference of all system capabilities.
- * Designed for marketing team members who are new to the admin panel.
+ * Help & Documentation page — comprehensive reference of all system capabilities.
+ * Includes a general help center, role-specific sub-pages (IT, Security, Privacy),
+ * and JSON guide for AI-assisted content creation.
  */
 "use client";
 
@@ -8,8 +9,21 @@ import { useState } from "react";
 import {
   FileText, Users, BarChart3, Settings, Globe, ShieldCheck,
   Search, ImageIcon, BookOpen, ChevronDown, ChevronUp,
-  Zap, Target, Eye, Edit3, Layers, TrendingUp, Code2, Copy, Check
+  Zap, Target, Eye, Edit3, Layers, TrendingUp, Code2, Copy, Check,
+  Server, Lock, UserCheck, AlertTriangle, Shield, Monitor,
+  Network
 } from "lucide-react";
+
+// ============================================================================
+// Types
+// ============================================================================
+
+interface HelpFeature {
+  name: string;
+  description: string;
+  tip?: string;
+  codeExample?: string;
+}
 
 interface HelpSection {
   id: string;
@@ -17,14 +31,15 @@ interface HelpSection {
   title: string;
   description: string;
   color: string;
-  features: {
-    name: string;
-    description: string;
-    tip?: string;
-    /** Dark code block shown below the description (JSON examples etc.) */
-    codeExample?: string;
-  }[];
+  features: HelpFeature[];
 }
+
+/** Tab definition for the main help area */
+type HelpTab = "general" | "it-admin" | "security" | "privacy";
+
+// ============================================================================
+// General Help Sections (expanded)
+// ============================================================================
 
 const HELP_SECTIONS: HelpSection[] = [
   {
@@ -36,49 +51,60 @@ const HELP_SECTIONS: HelpSection[] = [
     features: [
       {
         name: "הוספת סקציות",
-        description: "לחצו על כל סוג סקציה בלוח הצד הימני כדי להוסיפה לתחתית הדף. ניתן להוסיף אותה כמה פעמים.",
+        description: "לחצו על כל סוג סקציה בלוח הצד הימני כדי להוסיפה לתחתית הדף. ניתן להוסיף אותה כמה פעמים. 18 סוגי סקציות זמינות (Hero, יתרונות, FAQ, סגל, גלריה ועוד). כל סקציה מגיעה עם תוכן ברירת מחדל שניתן לשנות.",
+        tip: "ניתן להוסיף מספר סקציות מאותו סוג — למשל שני בלוקי יתרונות עם תוכן שונה.",
       },
       {
-        name: "שינוי סדר",
-        description: "גרור את ידית ה-⠿ (שמאל לכל שורה) כדי לשנות את סדר הסקציות בדף.",
+        name: "שינוי סדר (Drag & Drop)",
+        description: "גררו את ידית ה-⠿ (בצד שמאל של כל שורה) כדי לשנות את סדר הסקציות בדף. השינוי נשמר אוטומטית. סדר הסקציות קובע את סדר הופעתן בדף הנחיתה הסופי.",
+        tip: "סדר מומלץ: Hero > יתרונות > סטטיסטיקות > תוכנית לימודים > סגל > המלצות > FAQ > CTA",
       },
       {
         name: "הסתרת סקציה",
-        description: "לחצו על אייקון העין בכרטיס הסקציה כדי להסתירה מהמבקרים, הסקציה נשמרת אך לא מוצגת.",
+        description: "לחצו על אייקון העין בכרטיס הסקציה כדי להסתירה מהמבקרים. הסקציה נשמרת במערכת אך לא מוצגת בדף. שימושי לסקציות עונתיות (כמו ספירה לאחור לפני מועד רישום) שרוצים לשמור אך לא להציג.",
+        tip: "סקציה מוסתרת מסומנת באפור בבילדר. לחצו שוב על העין להצגה חוזרת.",
       },
       {
         name: "עריכת תוכן",
-        description: "לחצו על אייקון העיפרון כדי לפתוח את עורך התוכן של הסקציה. כל שדה ניתן לעריכה.",
+        description: "לחצו על אייקון העיפרון כדי לפתוח את עורך התוכן של הסקציה. כל שדה ניתן לעריכה — כותרות, תיאורים, תמונות, סרטונים ועוד. העורך תומך בשדות בעברית ובאנגלית. שינויים נשמרים בלחיצה על 'שמור'.",
+        tip: "ניתן להדביק JSON מלא (שנוצר עם ChatGPT/Claude) לעדכון מהיר של סקציה שלמה. ראו מדריך JSON למטה.",
       },
       {
         name: "שכפול סקציה",
-        description: "לחצו על אייקון הקופיה כדי לשכפל סקציה קיימת עם כל התוכן שלה.",
+        description: "לחצו על אייקון הקופיה כדי לשכפל סקציה קיימת עם כל התוכן שלה. שימושי כשרוצים ליצור וריאציה של סקציה קיימת עם שינויים קלים.",
+      },
+      {
+        name: "מחיקת סקציה",
+        description: "לחצו על אייקון הפח כדי למחוק סקציה מהדף. פעולה זו היא סופית — אך תמיד ניתן לשחזר דרך היסטוריית גרסאות אם שמרתם לפני המחיקה.",
+        tip: "לפני מחיקה, שקלו להסתיר את הסקציה במקום למחוק — כך תוכלו להחזיר אותה בקלות.",
       },
       {
         name: "Dynamic Text (DTR)",
-        description: "השתמשו ב-{{utm_source}}, {{utm_campaign}} וכו' בכותרות ותיאורים, הטקסט יוחלף אוטומטית לפי UTM params של המבקר.",
-        tip: "דוגמה: כותרת \"קורס מ-{{utm_source|Google}}\" תוצג כ-\"קורס מ-Facebook\" למבקר עם utm_source=Facebook",
+        description: "השתמשו ב-{{utm_source}}, {{utm_campaign}} וכו' בכותרות ותיאורים. הטקסט יוחלף אוטומטית לפי UTM params של המבקר. אם אין UTM, מוצג הfallback. תומך ב-6 משתנים: utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer.",
+        tip: "דוגמה: כותרת \"קורס מ-{{utm_source|Google}}\" תוצג כ-\"קורס מ-Facebook\" למבקר עם utm_source=Facebook. אם אין UTM — יוצג \"קורס מ-Google\".",
       },
       {
-        name: "היסטוריית גרסאות",
-        description: "לחצו על אייקון השעון בטופבר לצפות ב-20 הגרסאות האחרונות של הדף ולשחזר כל אחת מהן.",
-        tip: "גרסה נשמרת אוטומטית לפני כל שמירה, אין צורך בפעולה ידנית",
+        name: "היסטוריית גרסאות (Rollback)",
+        description: "לחצו על אייקון השעון בטופבר לצפות ב-20 הגרסאות האחרונות של הדף ולשחזר כל אחת מהן. גרסה נשמרת אוטומטית לפני כל שמירה — אין צורך בפעולה ידנית. כל גרסה כוללת תאריך ושעה מדויקים.",
+        tip: "שחזור גרסה יוצר גרסה חדשה מהגרסה הנוכחית לפני שהוא מחליף — כלומר גם אחרי שחזור ניתן לחזור אחורה.",
       },
       {
         name: "הגדרות עמוד",
-        description: "לחצו 'הגדרות עמוד' לפתח אפשרויות ייחודיות לכל עמוד: exit intent popup, social proof toast, webhook, מספר טלפון, לוגו מותאם, ועמוד תודה.",
+        description: "לחצו 'הגדרות עמוד' כדי לגשת לאפשרויות ייחודיות לכל עמוד: exit intent popup, social proof toast, webhook ייעודי, מספר טלפון, לוגו מותאם, עמוד תודה, ודריסת פיקסלים. ההגדרות מחולקות לכרטיסיות: כללי, המרות, אינטגרציות, מעקב.",
       },
       {
         name: "כותרות וקריאה לפעולה מותאמות",
-        description: "כל סקשן מאפשר עריכת כותרת וטקסט כפתור CTA בעברית ובאנגלית. ניתן להסתיר את הכפתור לחלוטין או לבחור אייקון מתאים.",
+        description: "כל סקשן מאפשר עריכת כותרת וטקסט כפתור CTA בעברית ובאנגלית. ניתן להסתיר את הכפתור לחלוטין (מתג 'הצג כפתור קריאה לפעולה') או לבחור אייקון מתאים מ-5 אפשרויות.",
       },
       {
-        name: "סרטון רקע",
-        description: "ניתן להוסיף סרטון MP4 כרקע לסקשן Hero. הסרטון מופעל אוטומטית ללא סאונד בלופ.",
+        name: "סרטון רקע (Hero Video)",
+        description: "ניתן להוסיף סרטון MP4 כרקע לסקשן Hero. הסרטון מופעל אוטומטית ללא סאונד בלופ. משקל מקסימלי מומלץ: 5MB. יש להשתמש בסרטון קצר (5-15 שניות) בלופ חלק.",
+        tip: "סרטון רקע מעלה משמעותית את זמן הטעינה. השתמשו בקבצים דחוסים (H.264, 720p) ובדקו מהירות בנייד.",
       },
       {
-        name: "כותרת סרגל עליון",
-        description: "ניתן להגדיר כותרת מקוצרת שתוצג בסרגל העליון הנעוץ. אם לא מוגדרת, שם העמוד המלא יוצג.",
+        name: "שכפול עמוד שלם",
+        description: "בדף ניהול העמודים, לחצו על 'שכפל' ליצירת עותק מלא של עמוד כולל כל הסקציות, ההגדרות, דריסות הפיקסלים, סגנונות מותאמים, ו-SEO. העמוד החדש מקבל slug חדש עם סיומת -copy.",
+        tip: "שכפול הוא הדרך המהירה ביותר ליצור עמוד חדש — שכפלו עמוד דומה ושנו את התוכן.",
       },
     ],
   },
@@ -86,86 +112,89 @@ const HELP_SECTIONS: HelpSection[] = [
     id: "sections",
     icon: Layers,
     title: "סוגי סקציות",
-    description: "18 סוגי סקציות שניתן לשלב בכל דף נחיתה.",
+    description: "18 סוגי סקציות שניתן לשלב בכל דף נחיתה. כל סקציה מותאמת ל-RTL, רספונסיבית, ותומכת בהנפשות.",
     color: "bg-blue-50 text-blue-700 border-blue-200",
     features: [
-      { name: "Hero", description: "כותרת ראשית עם רקע, כותרת משנה, CTA, וסטטיסטיקה מונפשת." },
-      { name: "אודות", description: "שני עמודות: טקסט + תמונה, עם נקודות USP ב-checkmarks." },
-      { name: "יתרונות", description: "כרטיסיות יתרונות מונפשות, מה מבדל את התוכנית." },
-      { name: "סטטיסטיקות", description: "מספרים גדולים עם הנפשת ספירה, אחוזי תעסוקה, מספר בוגרים וכו'." },
-      { name: "תוכנית לימודים", description: "אקורדיון לפי שנים/סמסטרים, מצוין ל-SEO." },
-      { name: "קריירה", description: "תפקידים נפוצים של בוגרים + ציטוטים." },
-      { name: "סגל", description: "רשת כרטיסיות אנשי סגל עם תמונה, תואר, ומוסד." },
-      { name: "המלצות", description: "ציטוטים מסטודנטים בוגרים עם שם, תוכנית, ותמונה." },
-      { name: "שאלות נפוצות", description: "אקורדיון FAQ עם JSON-LD schema אוטומטי לגוגל ו-AI." },
-      { name: "וידאו", description: "נגן YouTube, ראשי + רשת סרטונים נוספים." },
-      { name: "גלריה", description: "פסיפס תמונות לקמפוס, אירועים, חיי סטודנטים." },
-      { name: "ספירה לאחור", description: "טיימר evergreen (מתאפס לכל מבקר) או קבוע לתאריך, יוצר דחיפות." },
-      { name: "קריאה לפעולה", description: "CTA גדול ומרשים לתחתית הדף." },
-      { name: "מפה", description: "כתובת + embed של Google Maps." },
+      { name: "Hero", description: "הסקציה הראשונה בדף. כותרת ראשית עם רקע (תמונה או סרטון), כותרת משנה, כפתור CTA בולט, וסטטיסטיקה מונפשת. זו הסקציה הכי חשובה — המבקר מחליט תוך 3 שניות אם להישאר.", tip: "כתבו כותרת Hero קצרה (5-8 מילים) שמסבירה את הערך — למשל 'תואר MBA שיקדם את הקריירה שלך'." },
+      { name: "אודות", description: "שני עמודות: טקסט + תמונה, עם נקודות USP ב-checkmarks ירוקים. מתאים להסבר על התוכנית, הפקולטה או המוסד. התמונה מונפשת (fade-in) בגלילה." },
+      { name: "יתרונות (Benefits)", description: "כרטיסיות יתרונות מונפשות עם אייקונים. כל כרטיסיה כוללת כותרת, תיאור קצר, ואייקון אמוג'י. מציגות מה מבדל את התוכנית מהמתחרים.", tip: "3-6 יתרונות הם המספר האידיאלי. יותר מ-6 מתחילים להיראות עמוסים." },
+      { name: "סטטיסטיקות (Stats)", description: "מספרים גדולים עם הנפשת ספירה (count-up), למשל: '95% תעסוקה', '3,500+ בוגרים', '20+ שנות ניסיון'. ההנפשה מופעלת כשהסקציה נכנסת לתצוגה." },
+      { name: "תוכנית לימודים (Curriculum)", description: "אקורדיון לפי שנים/סמסטרים עם רשימת קורסים. כל שנה נפתחת בלחיצה. מצוין ל-SEO כי גוגל (ומנועי AI) אוהבים תוכן מובנה.", tip: "השתמשו בשמות קורסים מדויקים ורלוונטיים — זה גם SEO וגם אמינות." },
+      { name: "קריירה (Career)", description: "תפקידים נפוצים של בוגרים עם טווח שכר, תיאור קצר, וציטוטים. מראה למבקר לאן הלימודים יובילו אותו." },
+      { name: "סגל (Faculty)", description: "רשת כרטיסיות אנשי סגל עם תמונה, שם, תואר, ומוסד. כולל הנפשת hover. בנייד מוצג כרשימה אנכית." },
+      { name: "המלצות (Testimonials)", description: "ציטוטים מסטודנטים בוגרים עם שם, תוכנית, ותמונה. קרוסלה אוטומטית עם חצים לניווט. אחד הגורמים החזקים ביותר לשכנוע.", tip: "3-5 המלצות הן מספיק. כתבו ציטוטים ספציפיים ('קיבלתי עבודה 3 חודשים אחרי סיום') ולא כלליים ('מוסד מצוין')." },
+      { name: "שאלות נפוצות (FAQ)", description: "אקורדיון FAQ עם JSON-LD schema אוטומטי. גוגל מציג את השאלות ישירות בתוצאות החיפוש (Rich Results), ומנועי AI (ChatGPT, Gemini, Perplexity) משתמשים בתוכן לתשובות.", tip: "כתבו 5-8 שאלות שאנשים באמת שואלים. השאלה הראשונה צריכה להיות 'כמה זמן נמשכים הלימודים?' או 'מהם תנאי הקבלה?'." },
+      { name: "וידאו (Video)", description: "נגן YouTube עם סרטון ראשי + רשת סרטונים נוספים (אופציונלי). הסרטון נטען ב-lazy loading כדי לא לפגוע במהירות הדף." },
+      { name: "גלריה (Gallery)", description: "פסיפס תמונות לקמפוס, אירועים, חיי סטודנטים. 4-8 תמונות ברשת רספונסיבית עם lightbox (הגדלה בלחיצה)." },
+      { name: "ספירה לאחור (Countdown)", description: "שני מצבי עבודה: (1) Evergreen — מתאפס לכל מבקר חדש, יוצר דחיפות אישית. (2) Fixed — ספירה לתאריך קבוע (כמו מועד רישום אחרון). כשהטיימר מגיע לאפס, ניתן להציג הודעה מותאמת.", tip: "Evergreen מומלץ לקמפיינים שוטפים. Fixed מומלץ כשיש מועד אמיתי." },
+      { name: "קריאה לפעולה (CTA)", description: "CTA גדול ומרשים לתחתית הדף — כותרת שכנועית, תיאור קצר, וכפתור בולט. מומלץ להוסיף בתחתית הדף כ-'רשת ביטחון' אחרונה." },
+      { name: "מפה (Map)", description: "כתובת טקסטואלית + embed של Google Maps. מציג את מיקום הקמפוס/המוסד. נטען ב-lazy loading." },
+      { name: "WhatsApp", description: "סקציה עם כפתור WhatsApp צף + הודעה מותאמת אישית. מופיעה גם ככפתור צף בפינת המסך." },
     ],
   },
   {
     id: "conversions",
     icon: Target,
     title: "כלי המרות",
-    description: "פיצ'רים לבניית אמון ודחיפת המבקר להשאיר פרטים.",
+    description: "פיצ'רים לבניית אמון ודחיפת המבקר להשאיר פרטים. כל הכלים ניתנים להפעלה/כיבוי ברמת עמוד.",
     color: "bg-amber-50 text-amber-700 border-amber-200",
     features: [
       {
         name: "Exit Intent Popup",
-        description: "פופאפ שמופיע כשהמבקר מנסה לעזוב (עכבר עוזב המסך למעלה), או אחרי גלילה חזרה למעלה במובייל.",
-        tip: "כבוי כברירת מחדל, הפעל בהגדרות עמוד תחת 'המרות'",
+        description: "פופאפ שמופיע כשהמבקר מנסה לעזוב — עכבר עוזב המסך למעלה (דסקטופ) או גלילה מהירה חזרה למעלה (מובייל). מציג כותרת שכנועית, תיאור, וכפתור CTA. מופיע פעם אחת בלבד לכל ביקור.",
+        tip: "כבוי כברירת מחדל. הפעל בהגדרות עמוד ← 'המרות'. כותרת מומלצת: 'רגע! לפני שעוזבים...'",
       },
       {
         name: "Social Proof Toast",
-        description: "toast בתחתית המסך: \"23 אנשים נרשמו לתוכנית זו השבוע\", מביא נתונים בזמן אמת מה-DB.",
-        tip: "כבוי כברירת מחדל, הפעל בהגדרות עמוד, ניתן לשנות את חלון הימים",
+        description: "toast בתחתית המסך: '23 אנשים נרשמו לתוכנית זו השבוע'. מביא נתונים בזמן אמת מה-DB (ספירת לידים בטווח הימים שהוגדר). מופיע אחרי 3 שניות, נעלם אחרי 5 שניות.",
+        tip: "כבוי כברירת מחדל. הפעל בהגדרות עמוד. ניתן לשנות את חלון הימים (7 ימים ברירת מחדל).",
       },
       {
         name: "Sticky Mobile Header",
-        description: "כותרת נצמדת עם כפתור CTA ומספר טלפון שמופיעה בזמן גלילה, מעלה המרות במובייל.",
+        description: "כותרת נצמדת בראש המסך שמופיעה בזמן גלילה מטה. מכילה: שם התוכנית (מקוצר), כפתור CTA, ומספר טלפון ללחיצה. מעלה המרות במובייל כי כפתור ה-CTA תמיד נגיש.",
       },
       {
         name: "WhatsApp Floating Button",
-        description: "כפתור WhatsApp צף עם הודעה מותאמת אישית, הוסיפו סקציית WhatsApp לדף.",
+        description: "כפתור WhatsApp ירוק צף בפינה השמאלית-תחתונה של המסך. לחיצה פותחת שיחה עם הודעה מותאמת אישית שכוללת את שם העמוד.",
       },
       {
         name: "טופס לידים (CTA Modal)",
-        description: "טופס 3 שדות (שם, טלפון, אימייל) שנפתח בלחיצה על כל כפתור CTA בדף. שולח ל-webhook ול-Supabase.",
+        description: "טופס 3 שדות (שם מלא, טלפון, אימייל) שנפתח בלחיצה על כל כפתור CTA בדף. כולל: (1) ולידציה בזמן אמת (טלפון ישראלי, פורמט אימייל). (2) שליחה ל-Supabase + webhook. (3) הפעלת פיקסלים על כל 8 הפלטפורמות. (4) ניתוב לעמוד תודה מותאם.",
+        tip: "הטופס כולל טקסט הסכמה לפרטיות + לינק למדיניות פרטיות. טלפון חייב להתחיל ב-05 (10 ספרות).",
       },
       {
-        name: "ספירה לאחור (Countdown)",
-        description: "טיימר evergreen: מתאפס ל-X ימים לכל מבקר חדש (מבוסס sessionStorage). טיימר קבוע: קובעים תאריך.",
+        name: "עמוד תודה מותאם (Thank You Page)",
+        description: "לאחר שליחת טופס, המבקר מנותב לעמוד תודה. ניתן להגדיר: כותרת, תיאור, כפתור להמשך. עמוד התודה גם טוען את פיקסלי ההמרה בצד הלקוח — חיוני למדידה תקינה.",
       },
     ],
   },
   {
     id: "leads",
     icon: Users,
-    title: "לידים",
-    description: "כל ליד שנשמר דרך הטפסים, עם פרטים מלאים ו-UTM attribution.",
+    title: "ניהול לידים",
+    description: "כל ליד שנשמר דרך הטפסים, עם פרטים מלאים, UTM attribution, וסטטוס webhook.",
     color: "bg-purple-50 text-purple-700 border-purple-200",
     features: [
       {
         name: "רשימת לידים",
-        description: "כל הלידים מכל הדפים, עם שם, טלפון, אימייל, תוכנית, עמוד מקור, ומקור UTM.",
+        description: "טבלה מלאה של כל הלידים מכל הדפים. כוללת: שם מלא, טלפון, אימייל, תוכנית, תחום עניין, עמוד מקור, מקור UTM, סוג מכשיר, ותאריך. ניתן לסנן לפי עמוד, חיפוש חופשי, וטווח תאריכים.",
       },
       {
         name: "UTM Attribution",
-        description: "כל ליד מתועד עם utm_source, utm_medium, utm_campaign, utm_content, utm_term ו-referrer.",
+        description: "כל ליד מתועד עם 5 פרמטרי UTM: source, medium, campaign, content, term + referrer domain. אם המבקר הגיע בביקור ראשון עם UTM ומילא טופס בביקור חוזר ישיר — ה-UTM המקורי נשמר (cookie ל-90 יום).",
       },
       {
         name: "ייצוא CSV",
-        description: "לחצו 'ייצוא CSV' לקבלת קובץ Excel עם כל הלידים.",
+        description: "לחצו 'ייצוא CSV' לקבלת קובץ Excel/CSV עם כל הלידים שעוברים את הסינון הנוכחי. הקובץ כולל את כל השדות כולל UTM, device type, ותאריך.",
       },
       {
-        name: "Webhook ל-CRM",
-        description: "הגדירו webhook URL בהגדרות (גלובלי או לכל עמוד בנפרד), כל ליד נשלח ב-real-time ל-Make.com / Zapier.",
+        name: "Webhook ל-CRM (Make.com / Zapier)",
+        description: "כל ליד נשלח ב-real-time ל-webhook URL. ניתן להגדיר: (1) Webhook גלובלי — בהגדרות המערכת. (2) Webhook ייעודי לעמוד — בהגדרות העמוד ← 'אינטגרציות'. אם מוגדר webhook ייעודי — הוא בלבד ישלח.",
+        tip: "ב-Make.com: צרו Webhook Custom, הדביקו את ה-URL. ראו סקציית 'מבנה Payload' למטה.",
       },
       {
-        name: "עמוד תודה",
-        description: "לאחר שליחת הטופס המבקר מנותב לעמוד תודה מותאם אישית, הגדרות בבילדר תחת 'הגדרות עמוד'.",
+        name: "סטטוס Webhook",
+        description: "כל ליד מציג סטטוס webhook: sent (נשלח בהצלחה), failed (נכשל), pending (ממתין). בדף האנליטיקס מוצג סיכום של sent/failed/pending.",
       },
     ],
   },
@@ -173,12 +202,12 @@ const HELP_SECTIONS: HelpSection[] = [
     id: "webhook-payload",
     icon: Zap,
     title: "Webhook — מבנה ה-Payload",
-    description: "כל ליד שנשלח ל-Make.com / Zapier / n8n מכיל את השדות הבאים בפורמט JSON. כך תדעו בדיוק מה לצפות.",
+    description: "כל ליד שנשלח ל-Make.com / Zapier / n8n מכיל את השדות הבאים בפורמט JSON.",
     color: "bg-orange-50 text-orange-700 border-orange-200",
     features: [
       {
-        name: "שדות הליד",
-        description: "כל שדה תמיד נשלח — גם אם ריק (מחרוזת ריקה). כך ניתן לבנות מבנה קבוע ב-Make.com בלי הפתעות.",
+        name: "שדות הליד — רשימה מלאה",
+        description: "כל שדה תמיד נשלח — גם אם ריק (מחרוזת ריקה). כך ניתן לבנות מבנה קבוע בלי הפתעות. השדות: full_name, phone, email, interest_area, program_interest, page_slug, page_id, device_type, referrer_domain, utm_source, utm_medium, utm_campaign, utm_content, utm_term, created_at, gclid, fbclid, obclid, tblclid, twclid.",
         codeExample: `{
   "full_name":       "ישראל ישראלי",
   "phone":           "0521234567",
@@ -194,120 +223,86 @@ const HELP_SECTIONS: HelpSection[] = [
   "utm_campaign":    "mba-spring-2026",
   "utm_content":     "",
   "utm_term":        "",
+  "gclid":           "CjwKCAjw...",
+  "fbclid":          "",
+  "obclid":          "",
+  "tblclid":         "",
+  "twclid":          "",
   "created_at":      "2026-04-05T17:01:33.000Z"
 }`,
       },
       {
-        name: "דוגמה — עמוד עברי (MBA)",
-        description: "ליד שהגיע מקמפיין גוגל לעמוד MBA, בחר תחום עניין ומילא טופס:",
-        codeExample: `{
-  "full_name":       "נועה כהן",
-  "phone":           "0527654321",
-  "email":           "noa@gmail.com",
-  "interest_area":   "MBA",
-  "program_interest":"הפקולטה למנהל עסקים | MBA עם התמחות בפיננסים",
-  "page_slug":       "mba-finance",
-  "page_id":         "abc123...",
-  "device_type":     "desktop",
-  "referrer_domain": "google.com",
-  "utm_source":      "google",
-  "utm_medium":      "cpc",
-  "utm_campaign":    "mba-2026",
-  "utm_content":     "ad-variant-b",
-  "utm_term":        "mba תואר שני",
-  "created_at":      "2026-04-05T10:30:00.000Z"
-}`,
-      },
-      {
-        name: "דוגמה — עמוד אנגלי (Law)",
-        description: "Lead from an English-language page, direct traffic (no UTM):",
-        codeExample: `{
-  "full_name":       "John Smith",
-  "phone":           "0541111222",
-  "email":           "john@example.com",
-  "interest_area":   "Law",
-  "program_interest":"Faculty of Law — LL.B",
-  "page_slug":       "llb-english",
-  "page_id":         "xyz789...",
-  "device_type":     "mobile",
-  "referrer_domain": "direct",
-  "utm_source":      "",
-  "utm_medium":      "",
-  "utm_campaign":    "",
-  "utm_content":     "",
-  "utm_term":        "",
-  "created_at":      "2026-04-05T14:22:00.000Z"
-}`,
+        name: "Click IDs — זיהוי מערכות פרסום",
+        description: "כל ליד כולל את ה-click IDs של כל מערכות הפרסום — gclid (Google Ads), fbclid (Meta/Facebook), obclid (Outbrain), tblclid (Taboola), twclid (Twitter/X). רק אחד מהם יהיה מלא — בהתאם למקור התנועה.",
       },
       {
         name: "לוגיקת Webhook — גלובלי מול per-page",
-        description: "המערכת בודקת קודם אם לעמוד יש webhook ייעודי. אם כן — שולח רק אליו. אם לא — שולח לגלובלי. לעולם לא נשלח לשניהם.",
-        tip: "הגדרת Webhook ייעודי לעמוד: הגדרות העמוד ← כרטיסיית 'אינטגרציות' ← שדה 'Webhook URL'. ריק = נופל לגלובלי.",
+        description: "המערכת בודקת קודם אם לעמוד יש webhook ייעודי. אם כן — שולח רק אליו. אם לא — שולח לגלובלי. לעולם לא נשלח לשניהם. אם אף webhook לא מוגדר — הליד נשמר רק ב-Supabase.",
+        tip: "הגדרת webhook ייעודי לעמוד: הגדרות העמוד ← 'אינטגרציות' ← שדה 'Webhook URL'. ריק = נופל לגלובלי.",
       },
       {
         name: "UTM Cookie — attribution חכם",
         description: "אם גולש הגיע בביקורו הראשון עם UTM params (קמפיין), הערכים נשמרים ב-cookie ל-90 יום. בביקור חוזר — הליד יישא את ה-UTM המקורי גם אם הגיע ישיר.",
-        tip: "דוגמה: גולש הגיע מ-facebook ב-1 לינואר, חזר ישיר ב-5 לינואר ומילא טופס. utm_source יהיה 'facebook' — כי זו הייתה הנקודת המגע המקורית.",
-      },
-      {
-        name: "referrer_domain — מה המשמעות",
-        description: "מציין מאיפה הגיע הגולש: 'google.com' = חיפוש, 'facebook.com' = מדיה חברתית, 'direct' = הגיע ישיר / הקליד כתובת / חזר מ-bookmark.",
-        tip: "אם המפנה הוא האתר עצמו (onoleads.vercel.app), המערכת כותבת 'direct' ולא את כתובת האתר.",
-      },
-      {
-        name: "תחומי עניין — interest_area מול program_interest",
-        description: "interest_area הוא הקטגוריה שהגולש בחר (MBA, משפטים, פסיכולוגיה). program_interest הוא שם התוכנית המלא מהעמוד (כולל פקולטה). שניהם נשלחים.",
-        tip: "אם הגולש בחר 'אני לא יודע' — interest_area יכיל את שם הקטגוריה שהוגדרה בהגדרות העמוד (לא את הטקסט שהוצג לגולש).",
-      },
-    ],
-  },
-  {
-    id: "global-sections",
-    icon: Globe,
-    title: "סקציות גלובליות",
-    description: "בלוקים משותפים שמופיעים בכמה עמודים, ערוך פעם אחת ויתעדכן בכולם.",
-    color: "bg-teal-50 text-teal-700 border-teal-200",
-    features: [
-      {
-        name: "יצירת סקציה גלובלית",
-        description: "עברו לסקציות גלובליות > לחצו 'סקציה גלובלית חדשה' > בחרו סוג ותוכן.",
-      },
-      {
-        name: "שימוש בדף",
-        description: "כרגע ניתן לקשר סקציה גלובלית דרך הDB. עדכון עתידי יוסיף טאב 'גלובלי' לבילדר.",
-      },
-      {
-        name: "עריכה גלובלית",
-        description: "שינוי בסקציה גלובלית מתעדכן מיידית בכל הדפים שמשתמשים בה.",
-      },
-      {
-        name: "ניתוק",
-        description: "ניתן למחוק את הסקציה הגלובלית, הדפים שהשתמשו בה ישמרו עם התוכן האחרון שלה.",
+        tip: "דוגמה: גולש הגיע מ-facebook ב-1 לינואר, חזר ישיר ב-5 לינואר ומילא טופס. utm_source = 'facebook'.",
       },
     ],
   },
   {
     id: "analytics",
     icon: BarChart3,
-    title: "אנליטיקס",
-    description: "נתוני ביצועים ראשוניים (first-party), ללא תלות ב-Google Analytics.",
+    title: "אנליטיקס (First-Party)",
+    description: "נתוני ביצועים ראשוניים (first-party) שנאספים ישירות — ללא תלות ב-Google Analytics.",
     color: "bg-indigo-50 text-indigo-700 border-indigo-200",
     features: [
+      { name: "צפיות בעמוד (Page Views)", description: "מספר כניסות לכל עמוד. כולל השוואה לתקופה קודמת (אחוז שינוי). ניתן לסנן: 7 ימים, 14 ימים, 30 ימים, 90 ימים, או טווח מותאם." },
+      { name: "מבקרים ייחודיים", description: "מספר מבקרים שונים לפי cookie_id. מבקר שנכנס פעמיים ביום נספר פעם אחת. ה-cookie נשמר ל-90 יום." },
+      { name: "אחוז המרה", description: "שליחות טופס חלקי מבקרים ייחודיים, באחוזים. אחוז המרה טוב: 3-8%. מעל 10% מצוין. מתחת ל-2% — צריך לשפר.", tip: "המדד הכי חשוב — מראה כמה אחוז מהמבקרים הפכו ללידים." },
+      { name: "זמן ממוצע בדף", description: "כמה זמן בממוצע מבקרים שוהים בדף. מוצג בדקות ושניות." },
+      { name: "מפת חום — לחיצות (Click Heatmap)", description: "תצוגה ויזואלית של איפה מבקרים לוחצים. iframe + שכבת heatmap (מכחול > ירוק > צהוב > אדום). סינון לפי מכשיר, רשימת אלמנטים פופולריים.", tip: "אם אין לחיצות — יוצג 'אין נתונים'. לחיצות נאספות אוטומטית מכל מבקר." },
+      { name: "פילוח UTM", description: "פירוט תנועה לפי source, medium, campaign. כמה צפיות מכל מקור/קמפיין, עם גרף אחוזים." },
+      { name: "עומק גלילה (Scroll Depth)", description: "כמה מבקרים הגיעו ל-25%, 50%, 75%, 90% מהדף.", tip: "אם רוב המבקרים לא מגיעים ל-75% — שקלו לקצר את הדף או להעביר את ה-CTA למעלה." },
+      { name: "גרף יומי", description: "גרף קו שמציג צפיות ושליחות טופס לפי יום. מאפשר לזהות מגמות וימים חזקים." },
+    ],
+  },
+  {
+    id: "tracking-events",
+    icon: TrendingUp,
+    title: "מעקב ומדידה — אירועים לפי פלטפורמה",
+    description: "מפת האירועים המלאה: מה נשלח, לאן, ומתי. כולל צד לקוח וצד שרת.",
+    color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    features: [
       {
-        name: "צפיות בעמוד",
-        description: "מספר כניסות לכל עמוד נחיתה, לפי יום.",
+        name: "GA4 — Google Analytics 4",
+        description: "צד לקוח: page_view (אוטומטי), scroll (75% גלילה), engaged_session (60 שניות), form_start (פוקוס ראשון בטופס), lead_form_submit (שליחת טופס — אות מעורבות). צד שרת (Measurement Protocol): generate_lead — ההמרה הרשמית.",
+        tip: "GA4 נטען מיידית גם ללא הסכמת עוגיות (Consent Mode v2 שולח cookieless pings).",
       },
       {
-        name: "התחלות טופס",
-        description: "כמה מבקרים לחצו על כפתור CTA (פתחו את הטופס).",
+        name: "Meta (Facebook) Pixel + CAPI",
+        description: "צד לקוח: PageView (טעינת דף), Lead (בעמוד תודה, עם eventID לdedup). צד שרת (Conversions API): Lead — עם אותו eventID. כולל: email hash, phone hash, fbc, fbp.",
+        tip: "Meta מסיר כפילויות לפי eventID. חובה שהדפדפן והשרת ישלחו אותו ID.",
       },
       {
-        name: "שליחות טופס",
-        description: "כמה מבקרים השלימו שליחת ליד, שיעור המרה לפי עמוד.",
+        name: "Google Ads — Enhanced Conversions",
+        description: "צד לקוח: conversion (עם transaction_id). צד שרת: uploadClickConversions — רק כשיש gclid. כולל: hashed email, phone, name. זמן בשעון ישראל.",
+        tip: "Google Ads CAPI דורש gclid. אם המבקר לא הגיע מגוגל — רק אירוע הדפדפן יישלח.",
+      },
+      { name: "TikTok Pixel + Events API", description: "צד לקוח: page(), CompleteRegistration (עם event_id בארגומנט שלישי). צד שרת: CompleteRegistration — עם אותו event_id." },
+      { name: "LinkedIn Insight + CAPI", description: "צד לקוח: Insight Tag (צפיות אוטומטיות). צד שרת: Lead conversion — עם SHA256_EMAIL ו/או li_fat_id." },
+      { name: "Outbrain", description: "צד לקוח: PAGE_VIEW, CONVERSION. צד שרת: Lead — רק כשיש obclid." },
+      { name: "Taboola", description: "צד לקוח: page_view, complete_registration. צד שרת: lead — עם tblclid." },
+      { name: "Twitter / X", description: "צד לקוח: tw-lead (עם conversion_id). צד שרת: LEAD conversion — עם twclid." },
+      {
+        name: "תהליך שליחת ליד — שלב אחרי שלב",
+        description: "1) המבקר שולח טופס. 2) נוצר event_id דטרמיניסטי (hash). 3) POST /api/leads. 4) השרת שומר ליד + webhook + CAPI. 5) ניתוב לעמוד תודה. 6) עמוד התודה שולח Lead events בצד לקוח. 7) כל הפלטפורמות מסירות כפילויות לפי event_id.",
       },
       {
-        name: "Google Analytics + Facebook Pixel",
-        description: "הגדירו ID בהגדרות הכלליות, יופעל אוטומטית על כל עמוד. ניתן גם להגדיר per-page.",
+        name: "דריסת פיקסלים ברמת דף",
+        description: "בהגדרות כל עמוד ← 'מעקב ואנליטיקס': הזינו pixel ID חלופי, כבו פלטפורמה, או השאירו ריק לשימוש בגלובלי.",
+        tip: "שימושי כשיש כמה חשבונות פרסום (Meta Pixel שונה לכל קמפיין).",
+      },
+      {
+        name: "Consent Mode v2",
+        description: "ברירת מחדל: denied. GA4 שולח cookieless pings. שאר הפיקסלים רק אחרי הסכמה. שליחת טופס = הסכמה שיווקית.",
       },
     ],
   },
@@ -315,165 +310,51 @@ const HELP_SECTIONS: HelpSection[] = [
     id: "seo",
     icon: Search,
     title: "SEO ו-AI Visibility",
-    description: "כל דף נחיתה מגיע עם אופטימיזציה מובנית לגוגל ולמנועי AI.",
+    description: "אופטימיזציה מובנית לגוגל, למנועי AI, ולרשתות חברתיות.",
     color: "bg-rose-50 text-rose-700 border-rose-200",
     features: [
-      {
-        name: "JSON-LD Schemas",
-        description: "כל דף מייצר Course schema, FAQPage schema, ו-Organization schema אוטומטית.",
-      },
-      {
-        name: "Open Graph & Twitter Cards",
-        description: "תגי OG לשיתוף ב-social, כותרת, תיאור, ותמונה.",
-      },
-      {
-        name: "SEO Title & Description",
-        description: "הגדירו כותרת SEO ותיאור מותאמים בהגדרות הדף.",
-      },
-      {
-        name: "FAQ Section = AI Citations",
-        description: "סקציית FAQ מגדילה פי 3.2 את הסיכוי שמנועי AI (ChatGPT, Gemini) יציינו את הדף.",
-      },
-    ],
-  },
-  {
-    id: "dtr",
-    icon: Zap,
-    title: "טקסט דינמי (DTR)",
-    description: "הטמעת משתני UTM ישירות בתוכן הדף, לפרסונליזציה לפי מקור תנועה.",
-    color: "bg-orange-50 text-orange-700 border-orange-200",
-    features: [
-      {
-        name: "טקסט דינמי (DTR), מדריך מלא",
-        description: "התאמת תוכן אוטומטית לפי UTM parameters. השתמשו ב-{{utm_source}}, {{utm_campaign}} וכו' בכל שדה טקסט. הוסיפו fallback עם תו |, למשל: {{utm_source|Google}}. לחצו על 'מדריך מפורט' ליד כל שדה טקסט דינמי לקבלת הנחיות מפורטות.",
-        tip: "משתנים זמינים: utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer. דוגמה: כותרת 'קורס מ-{{utm_source|אונו}}' תוצג כ-'קורס מ-Facebook' למבקר עם utm_source=Facebook",
-      },
-      {
-        name: "שימוש",
-        description: "כתבו {{utm_source}} בכל שדה טקסט בבילדר, יוחלף אוטומטית.",
-      },
-      {
-        name: "Fallback",
-        description: "{{utm_source|Google}} → אם אין UTM, יוצג 'Google' כברירת מחדל.",
-      },
-      {
-        name: "משתנים נתמכים",
-        description: "utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer",
-      },
-      {
-        name: "דוגמה",
-        description: "כותרת: \"לימוד {{utm_campaign|מנהל עסקים}} באונו\" → לבקור מ-utm_campaign=MBA יוצג: \"לימוד MBA באונו\"",
-        tip: "DTR פועל בכל שדה טקסט, כותרות, תיאורים, טקסט כפתורים, bullets וכו'",
-      },
-    ],
-  },
-  {
-    id: "versions",
-    icon: Eye,
-    title: "גרסאות ו-Rollback",
-    description: "כל שמירה בבילדר נשמרת כגרסה, ניתן לשחזר כל גרסה מ-20 האחרונות.",
-    color: "bg-slate-50 text-slate-700 border-slate-200",
-    features: [
-      {
-        name: "שמירה אוטומטית",
-        description: "לפני כל לחיצה על שמור, הגרסה הנוכחית נשמרת אוטומטית. אין צורך בפעולה ידנית.",
-      },
-      {
-        name: "צפייה בהיסטוריה",
-        description: "לחצו על אייקון השעון בטופבר הבילדר, תראו רשימה של עד 20 גרסאות אחרונות.",
-      },
-      {
-        name: "שחזור גרסה",
-        description: "לחצו 'שחזר גרסה זו' ← הגרסה הנוכחית תישמר ← ואז התוכן ישוחזר לגרסה שנבחרה.",
-      },
+      { name: "JSON-LD Schemas", description: "כל דף מייצר אוטומטית: Course, FAQPage, Organization schemas. גוגל משתמש בהם להצגת Rich Results.", tip: "FAQPage schema מגדיל פי 2-3 את הסיכוי להופיע בתוצאות חיפוש מורחבות." },
+      { name: "Open Graph & Twitter Cards", description: "תגי OG אוטומטיים: og:title, og:description, og:image. שיתוף יפה בפייסבוק/לינקדאין." },
+      { name: "SEO Title & Description", description: "הגדירו seo_title ו-seo_description בהגדרות הדף. אם לא מוגדרים — המערכת משתמשת בכותרת העמוד." },
+      { name: "FAQ = AI Citations", description: "סקציית FAQ מגדילה פי 3.2 את הסיכוי שמנועי AI (ChatGPT, Gemini) יציינו את הדף.", tip: "כתבו תשובות מפורטות (2-3 משפטים) עם מידע ייחודי." },
     ],
   },
   {
     id: "settings",
     icon: Settings,
     title: "הגדרות מערכת",
-    description: "הגדרות גלובליות שמשפיעות על כל הדפים, אלא אם עמוד ספציפי מגדיר override.",
+    description: "הגדרות גלובליות שמשפיעות על כל הדפים.",
     color: "bg-gray-50 text-gray-700 border-gray-200",
     features: [
-      {
-        name: "Webhook כללי",
-        description: "URL לשליחת לידים ל-Make.com / Zapier / CRM, פועל על כל הדפים.",
-      },
-      {
-        name: "מספר WhatsApp & טלפון",
-        description: "מספרי ברירת מחדל לכפתורי WhatsApp ו-Sticky Header.",
-      },
-      {
-        name: "Google Analytics ID",
-        description: "מזהה GA4 שיוטען על כל הדפים. ניתן לדרוס per-page.",
-      },
-      {
-        name: "Facebook Pixel",
-        description: "Pixel ID שיוטען על כל הדפים. ניתן לדרוס per-page.",
-      },
+      { name: "Webhook כללי", description: "URL לשליחת לידים. פועל על כל הדפים שלא הגדירו webhook ייעודי." },
+      { name: "מספרי WhatsApp וטלפון", description: "ברירת מחדל לכפתורי WhatsApp ו-Sticky Header. ניתן לדרוס ברמת עמוד." },
+      { name: "צבעי מותג", description: "3 צבעים גלובליים: primary, dark, gray. כל הכפתורים, כותרות, ומרכיבים משתמשים בהם. ניתן לדרוס ברמת עמוד." },
+      { name: "פונט ולוגו", description: "פונט ברירת מחדל (Rubik) ולוגו שיוצג בכל הדפים. ניתן לדרוס ברמת עמוד." },
+    ],
+  },
+  {
+    id: "pixels",
+    icon: Monitor,
+    title: "ניהול פיקסלים",
+    description: "הגדרה ובקרה של מזהי מעקב ל-8 מערכות פרסום ומדידה.",
+    color: "bg-cyan-50 text-cyan-700 border-cyan-200",
+    features: [
+      { name: "8 פלטפורמות נתמכות", description: "GA4, Meta, Google Ads, TikTok, LinkedIn, Outbrain, Taboola, Twitter/X. כל פלטפורמה: מזהה פיקסל + הפעלה/כיבוי + access token לCAPI." },
+      { name: "הגדרת פיקסל", description: "בעמוד 'ניהול פיקסלים': לכל פלטפורמה הזינו Pixel ID. הפעילו/כבו. הגדירו CAPI token.", tip: "GA4: G-XXXXXXXXXX. Meta: 15-16 ספרות. Google Ads: AW-XXXXXXXXX." },
+      { name: "CAPI Access Tokens", description: "טוקנים לשליחת אירועים בצד שרת. מוצפנים ב-AES-256-GCM לפני שמירה. נדרשים עבור: Meta, TikTok, LinkedIn, Outbrain, Taboola.", tip: "טוקנים רגישים — המערכת מצפינה אותם אוטומטית." },
+      { name: "דריסת פיקסלים ברמת עמוד", description: "בהגדרות כל עמוד ← 'מעקב ואנליטיקס': pixel ID חלופי, כיבוי פלטפורמה, או שימוש בגלובלי." },
     ],
   },
   {
     id: "audit",
     icon: ShieldCheck,
-    title: "יומן ביקורת",
+    title: "יומן ביקורת (Audit Log)",
     description: "תיעוד מלא של כל פעולות המנהלים במערכת.",
     color: "bg-red-50 text-red-700 border-red-200",
     features: [
-      {
-        name: "תיעוד פעולות",
-        description: "כל פעולה, יצירת דף, מחיקה, עריכת תוכן, שינוי הגדרות, מתועדת עם תאריך ומשתמש.",
-      },
-      {
-        name: "סינון",
-        description: "ניתן לסנן לפי סוג פעולה, עמוד ספציפי, או טווח תאריכים.",
-      },
-    ],
-  },
-  {
-    id: "media",
-    icon: ImageIcon,
-    title: "ספריית מדיה",
-    description: "ניהול כל קבצי המדיה, תמונות, לוגואים, תמונות רקע.",
-    color: "bg-pink-50 text-pink-700 border-pink-200",
-    features: [
-      {
-        name: "העלאת תמונות",
-        description: "גרור ושחרר או לחץ להעלאה, שמירה ב-Supabase Storage.",
-      },
-      {
-        name: "שימוש בבילדר",
-        description: "בכל שדה תמונה בעורכי הסקציות, ניתן להשתמש ב-URL ישיר מהספרייה.",
-      },
-    ],
-  },
-  {
-    id: "cta-best-practices",
-    icon: Target,
-    title: "שיטות עבודה מומלצות, קריאה לפעולה",
-    description: "טיפים ליצירת כפתורי CTA אפקטיביים בעברית.",
-    color: "bg-yellow-50 text-yellow-700 border-yellow-200",
-    features: [
-      {
-        name: "כיוון חץ בעברית",
-        description: "בממשק עברי, חצים מצביעים שמאלה (← כיוון ההתקדמות). המערכת מטפלת בזה אוטומטית.",
-      },
-      {
-        name: "טקסט קצר וישיר",
-        description: "2-4 מילים מספיקות. השתמשו בפועל ציווי: 'השאירו פרטים', 'הצטרפו', 'גלו עוד'.",
-      },
-      {
-        name: "אייקון מתאים",
-        description: "בחרו אייקון שמתאים לפעולה: חץ ל'גלו עוד', טלפון ל'התקשרו', מנעול ל'הרשמה מאובטחת'. או השאירו ללא אייקון.",
-      },
-      {
-        name: "לא כל סקשן צריך כפתור",
-        description: "ניתן לכבות את כפתור ה-CTA בסקשנים מסוימים (כמו גלריה, סטטיסטיקות) כדי לא להעמיס. השתמשו במתג 'הצג כפתור קריאה לפעולה'.",
-      },
-      {
-        name: "בדיקה בנייד",
-        description: "כפתורי CTA צריכים להיות גדולים מספיק ללחיצה בנייד (מינימום 48x48px). המערכת מטפלת בזה אוטומטית.",
-      },
+      { name: "תיעוד פעולות", description: "כל פעולה מתועדת: יצירה, מחיקה, עריכה, שינוי הגדרות, שכפול, שחזור. כולל: תאריך, משתמש, סוג פעולה, פרטים." },
+      { name: "סינון", description: "ניתן לסנן לפי סוג פעולה, עמוד ספציפי, משתמש, או טווח תאריכים." },
+      { name: "שמירה", description: "יומן הביקורת נשמר ללא הגבלה. חיוני לעמידה ברגולציה." },
     ],
   },
   {
@@ -483,235 +364,292 @@ const HELP_SECTIONS: HelpSection[] = [
     description: "תמיכה בעברית (RTL), אנגלית (LTR) וערבית (RTL).",
     color: "bg-purple-50 text-purple-700 border-purple-200",
     features: [
-      {
-        name: "עברית וערבית, RTL",
-        description: "בשפות אלו כל הממשק והעמוד מוצגים מימין לשמאל. חצי CTA מצביעים שמאלה.",
-      },
-      {
-        name: "אנגלית, LTR",
-        description: "כשהעמוד מוגדר כאנגלית, כל הטקסטים מיושרים שמאלה וחצים מצביעים ימינה.",
-      },
-      {
-        name: "שדות כפולים",
-        description: "כל שדה טקסט (כותרת, תיאור, CTA) ניתן להזנה בעברית ובאנגלית. השפה שנבחרה בהגדרות העמוד קובעת מה מוצג.",
-      },
+      { name: "עברית וערבית — RTL", description: "כל הממשק והעמוד מוצגים מימין לשמאל. חצי CTA, לייאאוט, וטפסים מותאמים אוטומטית." },
+      { name: "אנגלית — LTR", description: "טקסטים מיושרים שמאלה, חצים ימינה, לייאאוט מתהפך." },
+      { name: "שדות כפולים", description: "כל שדה טקסט קיים בגרסת עברית (_he) ואנגלית (_en). שפת העמוד קובעת מה מוצג." },
     ],
   },
   {
-    id: "tracking-events",
-    icon: TrendingUp,
-    title: "מעקב ומדידה — אירועים לפי פלטפורמה",
-    description: "מפת האירועים המלאה: מה נשלח, לאן, ומתי. כולל אירועי מעורבות ואירועי לידים, בצד לקוח ובצד שרת.",
-    color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    id: "best-practices",
+    icon: Target,
+    title: "שיטות עבודה מומלצות",
+    description: "טיפים ליצירת דפי נחיתה אפקטיביים.",
+    color: "bg-yellow-50 text-yellow-700 border-yellow-200",
     features: [
-      {
-        name: "📊 GA4 — Google Analytics 4",
-        description: "צד לקוח: page_view (אוטומטי בטעינת דף), scroll (75% גלילה), engaged_session (60 שניות בדף), form_start (פוקוס ראשון בטופס), lead_form_submit (שליחת טופס — אות עזר, לא המרה). צד שרת (Measurement Protocol): generate_lead — אירוע ההמרה הרשמי, נשלח מהשרת אחרי שמירת הליד.",
-        tip: "GA4 לא תומך ב-dedup מובנה, לכן ההמרה (generate_lead) נשלחת רק מהשרת. הדפדפן שולח lead_form_submit כאות מעורבות בלבד.",
-      },
-      {
-        name: "📘 Meta (Facebook) Pixel + CAPI",
-        description: "צד לקוח (דפדפן): PageView (טעינת דף), Lead (בעמוד תודה, עם eventID לdedup). צד שרת (Conversions API): Lead — עם אותו eventID כדי ש-Meta לא יספור כפול. כולל: email hash, phone hash, first/last name hash, fbc, fbp, country, IP, user-agent.",
-        tip: "Meta מסיר כפילויות לפי eventID. חובה שהדפדפן והשרת ישלחו אותו ID — המערכת מטפלת בזה אוטומטית.",
-      },
-      {
-        name: "🎯 Google Ads — Enhanced Conversions",
-        description: "צד לקוח (דפדפן): conversion (בעמוד תודה, עם transaction_id). צד שרת: uploadClickConversions — רק כשיש gclid (click ID מגוגל). כולל: hashed email, phone, name.",
-        tip: "Google Ads CAPI דורש gclid. אם המבקר לא הגיע מגוגל — רק אירוע הדפדפן יישלח.",
-      },
-      {
-        name: "🎵 TikTok Pixel + Events API",
-        description: "צד לקוח (דפדפן): page() (טעינת דף), CompleteRegistration (בעמוד תודה, עם event_id). צד שרת (Events API): CompleteRegistration — עם אותו event_id. כולל: email hash, phone hash, ttclid, IP, user-agent.",
-        tip: "TikTok API: event_id חייב להישלח כארגומנט שלישי (options), לא כ-property. המערכת מטפלת בזה נכון.",
-      },
-      {
-        name: "💼 LinkedIn Insight + Conversions API",
-        description: "צד לקוח (דפדפן): לא נשלח אירוע Lead ספציפי — LinkedIn Insight Tag עוקב אוטומטית אחרי צפיות בדפים. צד שרת: Lead conversion — עם SHA256_EMAIL ו/או li_fat_id (LinkedIn click ID).",
-        tip: "LinkedIn CAPI תומך רק ב-2 סוגי מזהים: SHA256_EMAIL ו-LINKEDIN_FIRST_PARTY_ADS_TRACKING_UUID.",
-      },
-      {
-        name: "📰 Outbrain",
-        description: "צד לקוח: PAGE_VIEW (טעינת פיקסל), CONVERSION (בעמוד תודה). צד שרת: Lead — רק כשיש obclid (click ID מ-Outbrain). ללא click ID, רק אירוע הדפדפן נשלח.",
-      },
-      {
-        name: "📑 Taboola",
-        description: "צד לקוח: page_view (טעינת פיקסל), complete_registration (בעמוד תודה). צד שרת: lead — עם order-id ו-tblclid אם זמין.",
-      },
-      {
-        name: "🐦 Twitter / X",
-        description: "צד לקוח: tw-lead (בעמוד תודה, עם conversion_id). צד שרת: LEAD conversion — עם hashed email, phone, name, ו-twclid אם זמין.",
-      },
-      {
-        name: "מתי אירועי הליד נשלחים?",
-        description: "1) המבקר ממלא טופס ולוחץ 'שלח'. 2) הנתונים נשלחים ל-API (/api/leads). 3) השרת שומר ליד אנונימי + שולח webhook + שולח CAPI לכל הפלטפורמות (צד שרת). 4) הדפדפן מנותב לעמוד תודה. 5) עמוד התודה טוען את הפיקסלים ושולח אירועי Lead (צד לקוח). 6) כל הפלטפורמות מסירות כפילויות לפי event_id משותף.",
-        tip: "event_id נוצר בצד הלקוח, נשמר ב-sessionStorage, ומועבר גם לשרת וגם לעמוד התודה — כך כולם משתמשים באותו ID.",
-      },
-      {
-        name: "אירועי מעורבות — מתי נשלחים?",
-        description: "scroll (75% גלילה), engaged_visitor (60 שניות בדף), form_interact (פוקוס ראשון בשדה טופס). אלו נשלחים רק ל-GA4 בצד לקוח, ורק אחרי שהמבקר נתן הסכמה לעוגיות (או שלח טופס).",
-      },
-      {
-        name: "דריסת פיקסלים ברמת דף",
-        description: "בהגדרות כל עמוד → כרטיסיית 'מעקב ואנליטיקס' ניתן: 1) להזין מזהה פיקסל חלופי (למשל חשבון פרסום אחר) — ידרוס את הגלובלי. 2) לכבות פלטפורמה מסוימת רק בדף הזה. 3) להשאיר ריק — ישתמש בהגדרות הגלובליות מ'ניהול פיקסלים'.",
-        tip: "שימושי כשיש כמה חשבונות פרסום (למשל Meta Pixel שונה לקמפיין MBA ו-Pixel אחר לקמפיין משפטים).",
-      },
-      {
-        name: "Consent Mode v2",
-        description: "כל הפיקסלים מוגנים בהסכמת עוגיות (Consent Mode v2). כשהמבקר לא אישר — GA4 שולח אירועים אנונימיים בלבד (ללא עוגיות), שאר הפיקסלים לא נטענים. שליחת טופס = הסכמה שיווקית — כל הפיקסלים מופעלים אוטומטית.",
-        tip: "Consent Mode v2 חובה מאז מרץ 2024 באירופה. GA4 עם Consent Mode שולח cookieless pings גם ללא הסכמה.",
-      },
+      { name: "Hero — 3 שניות", description: "המבקר מחליט תוך 3 שניות. כותרת: 5-8 מילים, ברורה, רלוונטית.", tip: "כותרת טובה: 'MBA שמוביל לקריירה'. רעה: 'ברוכים הבאים לאתר הפקולטה'." },
+      { name: "CTA — טקסט קצר", description: "2-4 מילים. פועל ציווי: 'השאירו פרטים', 'הצטרפו', 'גלו עוד'." },
+      { name: "6-10 סקציות", description: "פחות מ-5 = לא מספיק. יותר מ-12 = ארוך מדי." },
+      { name: "בדיקה בנייד", description: "60-70% מהתנועה היא מנייד. בדקו כל דף בנייד לפני פרסום." },
+      { name: "A/B Testing", description: "שכפלו עמוד, שנו דבר אחד, שלחו תנועה לשניהם, השוו אחוזי המרה." },
     ],
   },
 ];
 
-// ---------------------------------------------------------------------------
-// JSON Guide section
-// ---------------------------------------------------------------------------
+// ============================================================================
+// IT Admin Help Sections
+// ============================================================================
+
+const IT_ADMIN_SECTIONS: HelpSection[] = [
+  {
+    id: "it-architecture",
+    icon: Server,
+    title: "ארכיטקטורת המערכת",
+    description: "סקירה טכנית מלאה של המערכת, הרכיבים, וזרימת הנתונים.",
+    color: "bg-blue-50 text-blue-700 border-blue-200",
+    features: [
+      { name: "Stack טכנולוגי", description: "Frontend: Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS. Backend: Next.js API Routes (serverless), Supabase (PostgreSQL + Auth + Storage). Hosting: Vercel (CDN + serverless). Domain: onoleads.vercel.app." },
+      { name: "שרתים וסביבות", description: "Production: Vercel (auto-deploy מ-main). Database: Supabase managed PostgreSQL. Storage: Supabase Storage + CDN. אין שרתים פיזיים — הכל serverless.", tip: "Vercel מספק SSL אוטומטי, CDN גלובלי, ו-auto-scaling." },
+      { name: "זרימת בקשות", description: "1) מבקר נכנס > Vercel CDN מגיש HTML. 2) React hydration. 3) שליחת טופס > POST /api/leads > Supabase + Webhook + CAPI. 4) אנליטיקס > POST /api/analytics > Supabase. הכל HTTPS." },
+      { name: "Database Schema", description: "טבלאות: pages, page_sections, leads, analytics_events, pixel_configurations, page_pixel_overrides, global_settings, shared_sections, page_versions, audit_log. כולן עם Row Level Security (RLS)." },
+      { name: "אינטגרציות", description: "Webhook (Make.com/Zapier): POST + JSON. פיקסלים (8 פלטפורמות): client-side + CAPI. Google Maps embed. YouTube embed. Supabase Auth." },
+    ],
+  },
+  {
+    id: "it-deployment",
+    icon: Zap,
+    title: "Deployment ותחזוקה",
+    description: "תהליך פריסה, עדכונים, וגיבויים.",
+    color: "bg-green-50 text-green-700 border-green-200",
+    features: [
+      { name: "תהליך פריסה", description: "Push ל-main ב-GitHub > Vercel builds > TypeScript check > deploy. Build time: ~2-3 דק'. Zero downtime." },
+      { name: "Rollback", description: "Vercel dashboard: חזרה לכל deployment קודם בלחיצה. DB: Supabase Point-in-Time backups." },
+      { name: "Environment Variables", description: "ב-Vercel Dashboard > Settings > Environment Variables. חיוניים: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, PIXEL_ENCRYPTION_KEY.", tip: "SERVICE_ROLE_KEY נותן גישה מלאה ל-DB — שמרו בסוד מוחלט." },
+      { name: "Domain", description: "ברירת מחדל: onoleads.vercel.app. Custom domain: Vercel > Domains > הוסף > עדכן DNS (CNAME/A). SSL אוטומטי." },
+      { name: "ניטור", description: "Vercel: Function logs, build logs, errors. Supabase: SQL editor, table viewer, API logs. GA4: real-time. אין שרתים לנטר." },
+      { name: "גיבויים", description: "DB: Supabase Point-in-Time Recovery (7 ימים, Pro plan). Code: GitHub (full history). Media: Supabase Storage (replicated). הכל אוטומטי." },
+    ],
+  },
+  {
+    id: "it-performance",
+    icon: BarChart3,
+    title: "ביצועים",
+    description: "מהירות טעינה, CDN, ואופטימיזציות.",
+    color: "bg-amber-50 text-amber-700 border-amber-200",
+    features: [
+      { name: "CDN ו-Caching", description: "Vercel CDN: 100+ edge locations. Static assets: cache ארוך. SSR + edge caching." },
+      { name: "Lazy Loading", description: "תמונות, סרטונים, מפות, iframes נטענים רק כשמגיעים לתצוגה." },
+      { name: "Code Splitting", description: "Next.js מפצל JS אוטומטית — כל דף טוען רק מה שצריך. Tree shaking מסיר קוד לא בשימוש." },
+      { name: "Core Web Vitals", description: "LCP < 2.5s, FID < 100ms, CLS < 0.1. פיקסלים async ולא חוסמים רנדור." },
+    ],
+  },
+  {
+    id: "it-troubleshooting",
+    icon: AlertTriangle,
+    title: "פתרון בעיות נפוצות",
+    description: "בעיות נפוצות ופתרונות.",
+    color: "bg-red-50 text-red-700 border-red-200",
+    features: [
+      { name: "500 Error", description: "1) בדקו Vercel Function logs. 2) בדקו Supabase online. 3) בדקו env vars. 4) redeploy." },
+      { name: "Webhook לא נשלח", description: "1) URL מוגדר? 2) סטטוס webhook באנליטיקס. 3) URL נגיש? (curl). 4) logs ב-Make.com." },
+      { name: "GA4 לא מציג נתונים", description: "1) DevTools > Console > '[pixel] Initializing GA4'. 2) Measurement ID נכון? 3) GA4 Realtime > Active Users. 4) בדקו ללא ad blocker.", tip: "GA4 + Consent Mode שולח cookieless pings גם ללא הסכמה." },
+      { name: "Build נכשל", description: "1) Vercel build logs. 2) סיבות: TypeScript errors, missing env vars, package conflicts. 3) 'npm run build' מקומית." },
+      { name: "מפת חום ריקה", description: "1) לעמוד יש slug ב-DB? 2) יש אירועי click (analytics_events)? 3) תקופה שנבחרה מכילה נתונים?" },
+    ],
+  },
+];
+
+// ============================================================================
+// Security Admin Help Sections
+// ============================================================================
+
+const SECURITY_ADMIN_SECTIONS: HelpSection[] = [
+  {
+    id: "sec-overview",
+    icon: Shield,
+    title: "סקירת אבטחה כללית",
+    description: "ארכיטקטורת אבטחה, שכבות הגנה, ומדיניות.",
+    color: "bg-red-50 text-red-700 border-red-200",
+    features: [
+      { name: "שכבות אבטחה", description: "1) Network: Vercel CDN + DDoS + SSL/TLS 1.3. 2) Application: Input validation, XSS prevention, CSRF. 3) Auth: Supabase Auth (JWT + Refresh). 4) Authorization: RLS on all tables. 5) Encryption: AES-256-GCM. 6) Audit: Full audit log." },
+      { name: "HTTPS בלבד", description: "TLS 1.3 על כל התקשורת. SSL certificates אוטומטיים מ-Vercel. HTTP > HTTPS redirect (301). HSTS מופעל." },
+      { name: "Authentication", description: "Supabase Auth: Email/Password, Magic Link. JWT עם תוקף מוגבל. Refresh token rotation. Session management server-side." },
+      { name: "Authorization (RLS)", description: "Row Level Security על כל הטבלאות. רק authenticated users לדשבורד. JWT validation בכל API request. אין גישה ישירה ל-DB מדפדפן." },
+    ],
+  },
+  {
+    id: "sec-data-protection",
+    icon: Lock,
+    title: "הגנה על נתונים",
+    description: "הצפנה, ניקוי קלט, ואבטחת מידע רגיש.",
+    color: "bg-amber-50 text-amber-700 border-amber-200",
+    features: [
+      { name: "הצפנת Tokens (AES-256-GCM)", description: "כל Access Tokens של פיקסלים מוצפנים ב-AES-256-GCM לפני שמירה. מפתח ההצפנה ב-env vars בלבד, לא ב-code.", tip: "AES-256-GCM מספק הצפנה + אימות — לא ניתן לשנות את הנתון המוצפן." },
+      { name: "Sanitization של קלט", description: "HTML tags מוסרים, SQL injection נחסם (parameterized queries), XSS נמנע (React escapes). טלפון: רק ספרות. אימייל: regex. שם: trim + max length." },
+      { name: "Hashing של PII ב-CAPI", description: "PII (email, phone, name) עובר SHA-256 hashing לפני שליחה לפלטפורמות פרסום. לעולם לא בטקסט גלוי." },
+      { name: "Service Role Key", description: "גישה מלאה ל-DB (bypass RLS). רק ב-server-side API routes. לעולם לא נחשף לדפדפן. ב-Vercel env vars בלבד.", tip: "חשד לדליפה? חדשו מיד ב-Supabase Dashboard > Settings > API." },
+      { name: "Cookie Security", description: "Session: HttpOnly, Secure, SameSite=Lax. UTM: SameSite=Lax, 90 days. Consent: persistent, user-controlled. אין cookies עם מידע רגיש." },
+    ],
+  },
+  {
+    id: "sec-threats",
+    icon: AlertTriangle,
+    title: "איומים ומניעה",
+    description: "איומי אבטחה רלוונטיים ואיך המערכת מתמודדת.",
+    color: "bg-orange-50 text-orange-700 border-orange-200",
+    features: [
+      { name: "XSS", description: "React escapes כל תוכן. Sanitization על user content. CSP headers. URL param injection נחסם." },
+      { name: "CSRF", description: "SameSite cookies. Origin header validation. POST requests דורשים JWT Bearer token." },
+      { name: "SQL Injection", description: "Supabase client = parameterized queries בלבד. אין SQL גולמי. אין string concatenation בqueries." },
+      { name: "DDoS", description: "Vercel CDN DDoS protection. Rate limiting ב-API routes. Supabase connection pooling." },
+      { name: "Bot Spam", description: "Client-side validation (טלפון ישראלי, email). Honeypot fields. Rate limiting. עתידי: reCAPTCHA v3." },
+      { name: "Token Theft", description: "AES-256-GCM encryption. Short-lived JWT + refresh rotation. HttpOnly cookies. HTTPS only." },
+    ],
+  },
+  {
+    id: "sec-compliance",
+    icon: ShieldCheck,
+    title: "עמידה ברגולציה",
+    description: "GDPR, חוק הגנת הפרטיות, Consent Mode.",
+    color: "bg-purple-50 text-purple-700 border-purple-200",
+    features: [
+      { name: "Consent Mode v2 (GDPR)", description: "ברירת מחדל: denied. Cookie banner עם 3 אפשרויות. GA4 cookieless pings ללא הסכמה. שאר הפיקסלים רק אחרי הסכמה. שליחת טופס = הסכמה שיווקית." },
+      { name: "מדיניות פרטיות", description: "עמוד /privacy פומבי. לינק בטופס הלידים ובfooter. מפרט: נתונים נאספים, מטרה, משך שמירה, מחיקה." },
+      { name: "Audit Log", description: "כל פעולות המנהלים מתועדות: מי, מה, מתי. נדרש ע\"י חוק הגנת הפרטיות ו-GDPR. שמור ללא הגבלה." },
+      { name: "Data Minimization", description: "רק שם, טלפון, אימייל. לא ת.ז., כתובת, מידע פיננסי. Click events: קואורדינטות באחוזים בלבד." },
+    ],
+  },
+  {
+    id: "sec-incident",
+    icon: AlertTriangle,
+    title: "תגובה לאירועי אבטחה",
+    description: "מה לעשות כשמזהים חשד לפריצה.",
+    color: "bg-red-50 text-red-700 border-red-200",
+    features: [
+      { name: "דליפת Service Role Key", description: "1) חדשו ב-Supabase Dashboard > API. 2) עדכנו ב-Vercel env vars. 3) Redeploy. 4) בדקו audit log." },
+      { name: "דליפת Pixel Token", description: "1) בטלו בפלטפורמת הפרסום. 2) צרו טוקן חדש. 3) עדכנו בניהול פיקסלים. ההצפנה מתחדשת אוטומטית." },
+      { name: "Spam Leads", description: "1) בדקו patterns בleads table. 2) בדקו referrer + IP. 3) הפעילו reCAPTCHA. 4) rate limiting מחמיר." },
+      { name: "שינוי תוכן לא מורשה", description: "1) Audit log — מי שינה, מתי. 2) שחזור גרסה. 3) החליפו סיסמאות. 4) בדקו sessions ב-Supabase Auth." },
+    ],
+  },
+];
+
+// ============================================================================
+// Privacy Officer Help Sections
+// ============================================================================
+
+const PRIVACY_ADMIN_SECTIONS: HelpSection[] = [
+  {
+    id: "priv-overview",
+    icon: UserCheck,
+    title: "סקירת פרטיות — מה אוספים ולמה",
+    description: "מידע מלא על הנתונים שנאספים, המטרה, והבסיס החוקי.",
+    color: "bg-teal-50 text-teal-700 border-teal-200",
+    features: [
+      { name: "נתונים מלידים", description: "שם, טלפון, אימייל (הסכמה מפורשת — שליחת טופס). תחום עניין (נבחר ע\"י המבקר). UTM parameters. Device type, referrer. Click IDs.", tip: "הבסיס החוקי: הסכמה מדעת — המבקר ממלא טופס ומסכים למדיניות." },
+      { name: "נתונים מביקורים (Analytics)", description: "Page views (cookie_id + timestamp + device). Scroll depth (אחוז). Time on page. Click coordinates (x%, y% — לא תוכן DOM). Form interactions (שם שדה בלבד). כל הנתונים אנונימיים — cookie_id = random UUID." },
+      { name: "נתונים שלא נאספים", description: "לא: כתובת, ת.ז., מידע בריאותי/פיננסי, סיסמאות, תוכן DOM, מידע שהוקלד (חוץ משליחת טופס). אין fingerprinting. אין cross-site tracking." },
+      { name: "מטרת האיסוף", description: "1) לידים: יצירת קשר עם מתעניינים. 2) Analytics: שיפור דפי נחיתה. 3) Pixels: מדידת אפקטיביות קמפיינים." },
+      { name: "משך שמירה", description: "לידים: עד מחיקה ידנית. Analytics: ללא הגבלה (אנונימיים). Cookies: UTM=90 יום, consent=365 יום. Audit log: ללא הגבלה." },
+    ],
+  },
+  {
+    id: "priv-consent",
+    icon: ShieldCheck,
+    title: "מנגנון הסכמה (Consent)",
+    description: "איך המערכת מנהלת הסכמת משתמשים.",
+    color: "bg-green-50 text-green-700 border-green-200",
+    features: [
+      { name: "Cookie Consent Banner", description: "כל מבקר חדש רואה באנר. 3 אפשרויות: אשר הכל, דחה (רק חיוניות), הגדרות. ברירת מחדל: denied. נשמר ל-365 יום." },
+      { name: "Consent Mode v2 — טכני", description: "ad_storage: denied/granted. analytics_storage: denied/granted. ב-denied: GA4 cookieless pings (conversion modeling), שאר הפיקסלים לא נטענים." },
+      { name: "הסכמה דרך טופס", description: "שליחת טופס = הסכמה שיווקית. כל הפיקסלים מופעלים אוטומטית. הטופס כולל טקסט הסכמה + לינק למדיניות.", tip: "טקסט ההסכמה: 'בשליחת הטופס אני מסכים/ה למדיניות הפרטיות ולקבלת חומרי שיווק.'" },
+      { name: "שקיפות", description: "עם הסכמה: 8 פיקסלים פעילים + cookies + אנליטיקס מלא. ללא הסכמה: רק GA4 cookieless + first-party analytics (cookie_id ללא PII)." },
+    ],
+  },
+  {
+    id: "priv-third-party",
+    icon: Network,
+    title: "העברת מידע לצדדים שלישיים",
+    description: "לאן ואיך נתונים מועברים.",
+    color: "bg-orange-50 text-orange-700 border-orange-200",
+    features: [
+      { name: "פלטפורמות פרסום (CAPI)", description: "Meta, Google, TikTok, LinkedIn, Outbrain, Taboola, Twitter מקבלים: hashed email, hashed phone, hashed name, click ID, event type, timestamp. לעולם לא טקסט גלוי.", tip: "כל פלטפורמה מקבלת רק את ה-hash ואת ה-click ID שלה." },
+      { name: "Webhook", description: "נתוני ליד (שם, טלפון, אימייל, UTM) נשלחים בטקסט גלוי ל-webhook URL. HTTPS. האחריות על אבטחה ב-Make.com/Zapier — של הלקוח.", tip: "וודאו URL HTTPS. ב-Make.com/Zapier הגדירו הרשאות מינימליות." },
+      { name: "Supabase", description: "כל הנתונים ב-PostgreSQL managed. SOC2 Type II + GDPR compliant. מוצפן at rest (AES-256) ו-in transit (TLS 1.3). Frankfurt region." },
+      { name: "Vercel", description: "מארחת את האפליקציה. Function logs (ללא PII). SOC2 Type II. CDN: נתונים לא נשמרים ב-edge." },
+    ],
+  },
+  {
+    id: "priv-rights",
+    icon: UserCheck,
+    title: "זכויות נושאי מידע",
+    description: "טיפול בבקשות גישה, מחיקה, ותיקון.",
+    color: "bg-blue-50 text-blue-700 border-blue-200",
+    features: [
+      { name: "זכות עיון (Access)", description: "1) חפשו בleads לפי אימייל/טלפון. 2) חפשו analytics_events לפי cookie_id (אם ידוע). 3) הכינו דו\"ח. 4) השיבו תוך 30 יום." },
+      { name: "זכות למחיקה (Erasure)", description: "1) מחקו מleads (Supabase Dashboard). 2) מחקו analytics_events קשורים. 3) אם נשלח ל-webhook/CRM — מחקו גם שם. 4) תעדו.", tip: "שמרו תיעוד של בקשות מחיקה — נדרש ע\"י הרגולטור." },
+      { name: "זכות לתיקון", description: "עדכנו ישירות ב-Supabase Dashboard (טבלת leads). שנו את השדה ושמרו." },
+      { name: "זכות להתנגד", description: "המבקר יכול: דחיית cookies, בקשת מחיקה, הסרה מרשימות שיווק (CRM). אין כרגע self-service." },
+      { name: "Data Portability", description: "ייצוא CSV מדף הלידים. ייצוא ישיר מ-Supabase (SQL/CSV export)." },
+    ],
+  },
+  {
+    id: "priv-checklist",
+    icon: FileText,
+    title: "צ'קליסט ציות — למנהל הפרטיות",
+    description: "רשימת בדיקות תקופתית.",
+    color: "bg-violet-50 text-violet-700 border-violet-200",
+    features: [
+      { name: "בדיקה חודשית", description: "1) Audit log — פעולות חריגות? 2) Cookie banner פועל? 3) מדיניות פרטיות מעודכנת? 4) Webhook URLs הם HTTPS?" },
+      { name: "בדיקה רבעונית", description: "1) רענון הרשאות — מי צריך גישה? הסירו לא-פעילים. 2) Access tokens בתוקף? 3) כל הפיקסלים נדרשים?" },
+      { name: "בדיקה שנתית", description: "1) עדכנו מדיניות פרטיות. 2) סקירת DPA עם ספקים. 3) Data minimization — לא אוספים מיותר?" },
+      { name: "מסמכי תיעוד", description: "1) מדיניות פרטיות (פומבית). 2) מסמך עיבודי מידע. 3) DPA עם ספקים. 4) נהלי תגובה לאירוע. 5) יומן בקשות נושאי מידע." },
+    ],
+  },
+];
+
+// ============================================================================
+// JSON Guide
+// ============================================================================
 
 const JSON_EXAMPLES = [
   {
-    id: "benefits",
-    title: "יתרונות (benefits)",
-    description: "כרטיסיות יתרון, כותרת + תיאור + אייקון",
-    prompt: `צור JSON של 5 יתרונות ללימודי משפטים באוניברסיטה.
-הפורמט הוא:
-[{"title_he": "כותרת", "description_he": "תיאור קצר של 1-2 משפטים", "icon": "⚖️"}, ...]`,
-    example: `[
-  {
-    "title_he": "מסלולים גמישים",
-    "description_he": "לימוד בימים ובשעות שמתאימים לך, גם בשעות הערב.",
-    "icon": "🕐"
+    id: "benefits", title: "יתרונות (benefits)", description: "כרטיסיות יתרון",
+    prompt: `צור JSON של 5 יתרונות ללימודי משפטים באוניברסיטה.\nהפורמט: [{"title_he": "כותרת", "description_he": "תיאור קצר", "icon": "⚖️"}, ...]`,
+    example: `[\n  {"title_he": "מסלולים גמישים", "description_he": "לימוד בימים ובשעות שמתאימים לך.", "icon": "🕐"},\n  {"title_he": "הכרה מהמשפחה המשפטית", "description_he": "בוגרי הפקולטה מובילים בבתי משפט.", "icon": "⚖️"}\n]`,
   },
   {
-    "title_he": "הכרה מהמשפחה המשפטית",
-    "description_he": "בוגרי הפקולטה מובילים בבתי משפט, חברות הייטק ומשרדי ממשלה.",
-    "icon": "⚖️"
-  }
-]`,
+    id: "stats", title: "סטטיסטיקות (stats)", description: "מספרים בולטים",
+    prompt: `צור JSON של 4 נתונים סטטיסטיים ללימודי [שם תוכנית].\nהפורמט: [{"value": "95%", "label_he": "שיעור תעסוקה", "icon": "📈"}, ...]`,
+    example: `[\n  {"value": "95%", "label_he": "שיעור תעסוקה בתוך שנה", "icon": "📈"},\n  {"value": "3,500+", "label_he": "בוגרים פעילים", "icon": "👩‍💼"}\n]`,
   },
   {
-    id: "stats",
-    title: "סטטיסטיקות (stats)",
-    description: "מספרים בולטים עם תווית",
-    prompt: `צור JSON של 4 נתונים סטטיסטיים מרשימים ללימודי [שם תוכנית].
-הפורמט: [{"value": "95%", "label_he": "שיעור תעסוקה", "icon": "📈"}, ...]`,
-    example: `[
-  {"value": "95%", "label_he": "שיעור תעסוקה בתוך שנה", "icon": "📈"},
-  {"value": "3,500+", "label_he": "בוגרים פעילים", "icon": "👩‍💼"},
-  {"value": "20+", "label_he": "שנות ניסיון", "icon": "🏆"},
-  {"value": "#1", "label_he": "מכללה מומלצת בישראל", "icon": "⭐"}
-]`,
+    id: "faq", title: "שאלות נפוצות (faq)", description: "שאלה + תשובה",
+    prompt: `צור JSON של 6 שאלות נפוצות ללימודי [שם תוכנית].\nהפורמט: [{"question_he": "שאלה?", "answer_he": "תשובה מפורטת."}, ...]`,
+    example: `[\n  {"question_he": "מהי משך הלימודים?", "answer_he": "4 שנים (8 סמסטרים). ניתן ללמוד בקצב מוגבר ולסיים ב-3.5 שנים."},\n  {"question_he": "האם ניתן ללמוד בערב?", "answer_he": "כן, כל הקורסים מתקיימים גם בשעות הערב."}\n]`,
   },
   {
-    id: "faq",
-    title: "שאלות נפוצות (faq)",
-    description: "FAQ, שאלה + תשובה",
-    prompt: `צור JSON של 6 שאלות נפוצות ללימודי [שם תוכנית].
-הפורמט: [{"question_he": "שאלה?", "answer_he": "תשובה מפורטת של 2-3 משפטים."}, ...]`,
-    example: `[
-  {
-    "question_he": "מהי משך הלימודים?",
-    "answer_he": "התוכנית נמשכת 4 שנים (8 סמסטרים). ניתן ללמוד בקצב מוגבר ולסיים ב-3.5 שנים."
+    id: "testimonials", title: "המלצות (testimonials)", description: "ציטוטים מסטודנטים",
+    prompt: `צור JSON של 3 המלצות מבוגרי [שם תוכנית].\nהפורמט: [{"name_he": "שם", "quote_he": "ציטוט", "title_he": "תפקיד", "image_url": ""}, ...]`,
+    example: `[\n  {"name_he": "מיכל כהן", "quote_he": "הלימודים פתחו לי דלתות שלא ידעתי שקיימות.", "title_he": "בוגרת 2022", "image_url": ""}\n]`,
   },
   {
-    "question_he": "האם ניתן ללמוד בערב?",
-    "answer_he": "כן, כל הקורסים מתקיימים גם בשעות הערב. ניתן לשלב עם עבודה מלאה."
-  }
-]`,
-  },
-  {
-    id: "testimonials",
-    title: "המלצות (testimonials)",
-    description: "ציטוטים מסטודנטים, שם + ציטוט + תפקיד + תמונה",
-    prompt: `צור JSON של 3 המלצות מסטודנטים בוגרי [שם תוכנית].
-הפורמט: [{"name_he": "שם", "quote_he": "ציטוט", "title_he": "תפקיד/תוכנית", "image_url": ""}, ...]`,
-    example: `[
-  {
-    "name_he": "מיכל כהן",
-    "quote_he": "הלימודים פתחו לי דלתות שלא ידעתי שקיימות. היום אני עורכת דין בחברה ציבורית.",
-    "title_he": "בוגרת המחלקה למשפטים, 2022",
-    "image_url": ""
-  }
-]`,
-  },
-  {
-    id: "curriculum",
-    title: "תוכנית לימודים (curriculum)",
-    description: "מבנה שנתי עם רשימת קורסים",
-    prompt: `צור JSON לתוכנית לימודים של 4 שנים בנושא [שם תוכנית].
-הפורמט הוא מערך של שנות לימוד:
-[{"year": "שנה א", "courses": ["קורס 1", "קורס 2", ...]}, ...]
-תכין 4 שנים, 8-10 קורסים לכל שנה. השתמש בשמות קורסים אקדמיים ריאליסטיים.`,
-    example: `[
-  {
-    "year": "שנה א",
-    "courses": ["מבוא למשפט", "משפט חוקתי", "משפט פלילי א", "חוזים א", "נזיקין א"]
-  },
-  {
-    "year": "שנה ב",
-    "courses": ["דיני קניין", "משפט מסחרי", "דיני עבודה", "משפט אזרחי", "דיני חוזים ב"]
-  }
-]`,
-  },
-  {
-    id: "career",
-    title: "קריירה / תפקידים (career)",
-    description: "תפקידים נפוצים של בוגרים עם שכר",
-    prompt: `צור JSON של 4 תפקידים נפוצים של בוגרי [שם תוכנית].
-הפורמט: [{"title_he": "תפקיד", "description_he": "תיאור", "salary_he": "15,000-25,000 ₪"}, ...]`,
-    example: `[
-  {
-    "title_he": "עורך/ת דין",
-    "description_he": "ייצוג לקוחות בבתי משפט, ניסוח חוזים, ייעוץ משפטי שוטף.",
-    "salary_he": "15,000–30,000 ₪"
-  },
-  {
-    "title_he": "יועץ/ת משפטי/ת בחברה",
-    "description_he": "עבודה פנים-ארגונית בחברות הייטק, בנקים וחברות ממשלתיות.",
-    "salary_he": "20,000–45,000 ₪"
-  }
-]`,
-  },
-  {
-    id: "faculty",
-    title: "סגל אקדמי (faculty)",
-    description: "חברי סגל, שם + תואר + תיאור + תמונה",
-    prompt: `צור JSON של 4 חברי סגל אקדמי בתחום [שם תוכנית].
-הפורמט: [{"name_he": "שם", "title_he": "תואר/מוסד", "bio_he": "תיאור קצר", "image_url": ""}, ...]`,
-    example: `[
-  {
-    "name_he": "פרופ' ישראל ישראלי",
-    "title_he": "ראש החוג, דוקטורט מהרווארד",
-    "bio_he": "מומחה בדיני חוזים בינלאומיים, בעל 20 שנות ניסיון בפסיקה ובמחקר.",
-    "image_url": "https://..."
-  }
-]`,
+    id: "curriculum", title: "תוכנית לימודים (curriculum)", description: "שנים + קורסים",
+    prompt: `צור JSON לתוכנית לימודים של 4 שנים ב[שם תוכנית].\nהפורמט: [{"year": "שנה א", "courses": ["קורס 1", "קורס 2"]}, ...]`,
+    example: `[\n  {"year": "שנה א", "courses": ["מבוא למשפט", "משפט חוקתי", "משפט פלילי א"]},\n  {"year": "שנה ב", "courses": ["דיני קניין", "משפט מסחרי", "דיני עבודה"]}\n]`,
   },
 ];
+
+// ============================================================================
+// Components
+// ============================================================================
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
-      onClick={() => {
-        navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }}
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
       className="flex items-center gap-1 text-[11px] font-semibold text-[#716C70] hover:text-[#B8D900] transition-colors"
     >
       {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-      {copied ? "הועתק!" : "העתק פרומפט"}
+      {copied ? "הועתק!" : "העתק"}
     </button>
   );
 }
 
 function JsonGuideSection() {
   const [activeId, setActiveId] = useState<string | null>(null);
-
   return (
     <div id="json-guide" className="rounded-2xl border border-[#E5E5E5] overflow-hidden">
-      {/* Header */}
       <div className="bg-[#2A2628] px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
@@ -719,66 +657,34 @@ function JsonGuideSection() {
           </div>
           <div>
             <h3 className="text-sm font-bold text-white">מדריך JSON, יצירה עם AI</h3>
-            <p className="text-xs text-white/50 mt-0.5">
-              לכל סוג סקציה, פרומפט מוכן ל-ChatGPT/Claude + דוגמה מלאה
-            </p>
+            <p className="text-xs text-white/50 mt-0.5">לכל סוג סקציה, פרומפט מוכן + דוגמה</p>
           </div>
         </div>
       </div>
-
-      {/* Intro */}
       <div className="bg-[#B8D900]/5 border-b border-[#E5E5E5] px-5 py-3">
         <p className="text-xs text-[#4A4648] leading-relaxed">
-          <strong>איך עובד:</strong> העתק את הפרומפט לתוך ChatGPT, Claude, או כל AI אחר. החלף את{" "}
-          <code className="font-mono bg-white px-1 rounded">[שם תוכנית]</code> בשם התוכנית שלך. הדבק את הJSON שתקבל בשדה הרלוונטי בעורך.
+          <strong>איך עובד:</strong> העתק פרומפט ל-ChatGPT/Claude, החלף <code className="font-mono bg-white px-1 rounded">[שם תוכנית]</code>, הדבק JSON בעורך.
         </p>
       </div>
-
-      {/* Section examples */}
       <div className="divide-y divide-[#F0F0F0]">
         {JSON_EXAMPLES.map((ex) => (
           <div key={ex.id} className="overflow-hidden">
-            <button
-              onClick={() => setActiveId(activeId === ex.id ? null : ex.id)}
-              className="w-full flex items-center justify-between px-5 py-3.5 text-right hover:bg-[#FAFAFA] transition-colors"
-            >
+            <button onClick={() => setActiveId(activeId === ex.id ? null : ex.id)} className="w-full flex items-center justify-between px-5 py-3.5 text-right hover:bg-[#FAFAFA] transition-colors">
               <div className="flex items-center gap-2.5">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#2A2628] text-[#B8D900] font-mono text-[10px] font-bold">
-                  {ex.id}
-                </span>
-                <div>
-                  <span className="text-sm font-semibold text-[#2A2628]">{ex.title}</span>
-                  <span className="text-xs text-[#9A969A] mr-2">{ex.description}</span>
-                </div>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-[#2A2628] text-[#B8D900] font-mono text-[10px] font-bold">{ex.id}</span>
+                <div><span className="text-sm font-semibold text-[#2A2628]">{ex.title}</span><span className="text-xs text-[#9A969A] mr-2">{ex.description}</span></div>
               </div>
-              {activeId === ex.id ? (
-                <ChevronUp className="w-4 h-4 text-[#9A969A] shrink-0" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-[#9A969A] shrink-0" />
-              )}
+              {activeId === ex.id ? <ChevronUp className="w-4 h-4 text-[#9A969A] shrink-0" /> : <ChevronDown className="w-4 h-4 text-[#9A969A] shrink-0" />}
             </button>
-
             {activeId === ex.id && (
               <div className="px-5 pb-4 space-y-4 bg-[#FAFAFA]">
-                {/* Prompt */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[11px] font-semibold text-[#9A969A] uppercase tracking-wider">פרומפט לAI</span>
-                    <CopyButton text={ex.prompt} />
-                  </div>
-                  <pre className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-900 font-mono whitespace-pre-wrap leading-relaxed">
-                    {ex.prompt}
-                  </pre>
+                  <div className="flex items-center justify-between mb-1.5"><span className="text-[11px] font-semibold text-[#9A969A] uppercase tracking-wider">פרומפט</span><CopyButton text={ex.prompt} /></div>
+                  <pre className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-900 font-mono whitespace-pre-wrap leading-relaxed">{ex.prompt}</pre>
                 </div>
-                {/* Example output */}
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[11px] font-semibold text-[#9A969A] uppercase tracking-wider">דוגמה לפלט</span>
-                    <CopyButton text={ex.example} />
-                  </div>
-                  <pre className="bg-[#2A2628] rounded-xl p-3 text-[11px] text-[#B8D900] font-mono overflow-x-auto whitespace-pre leading-relaxed">
-                    {ex.example}
-                  </pre>
+                  <div className="flex items-center justify-between mb-1.5"><span className="text-[11px] font-semibold text-[#9A969A] uppercase tracking-wider">דוגמה</span><CopyButton text={ex.example} /></div>
+                  <pre className="bg-[#2A2628] rounded-xl p-3 text-[11px] text-[#B8D900] font-mono overflow-x-auto whitespace-pre leading-relaxed">{ex.example}</pre>
                 </div>
               </div>
             )}
@@ -792,29 +698,15 @@ function JsonGuideSection() {
 function HelpCard({ section }: { section: HelpSection }) {
   const [open, setOpen] = useState(false);
   const Icon = section.icon;
-
   return (
     <div className={`rounded-2xl border ${section.color} overflow-hidden`}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 text-right hover:opacity-90 transition-opacity"
-      >
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-5 py-4 text-right hover:opacity-90 transition-opacity">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/50 flex items-center justify-center shrink-0">
-            <Icon className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold leading-tight">{section.title}</h3>
-            <p className="text-xs opacity-70 mt-0.5 font-normal">{section.description}</p>
-          </div>
+          <div className="w-9 h-9 rounded-xl bg-white/50 flex items-center justify-center shrink-0"><Icon className="w-5 h-5" /></div>
+          <div><h3 className="text-sm font-bold leading-tight">{section.title}</h3><p className="text-xs opacity-70 mt-0.5 font-normal">{section.description}</p></div>
         </div>
-        {open ? (
-          <ChevronUp className="w-4 h-4 shrink-0 opacity-50" />
-        ) : (
-          <ChevronDown className="w-4 h-4 shrink-0 opacity-50" />
-        )}
+        {open ? <ChevronUp className="w-4 h-4 shrink-0 opacity-50" /> : <ChevronDown className="w-4 h-4 shrink-0 opacity-50" />}
       </button>
-
       {open && (
         <div className="bg-white/60 border-t border-current/10 px-5 py-4 space-y-3">
           {section.features.map((feature, i) => (
@@ -823,20 +715,11 @@ function HelpCard({ section }: { section: HelpSection }) {
               <div>
                 <p className="text-sm font-semibold">{feature.name}</p>
                 <p className="text-xs opacity-70 mt-0.5 leading-relaxed">{feature.description}</p>
-                {feature.tip && (
-                  <p className="text-xs mt-1.5 px-2.5 py-1.5 rounded-lg bg-white/70 border border-current/10 opacity-80 font-mono">
-                    💡 {feature.tip}
-                  </p>
-                )}
+                {feature.tip && <p className="text-xs mt-1.5 px-2.5 py-1.5 rounded-lg bg-white/70 border border-current/10 opacity-80 font-mono">💡 {feature.tip}</p>}
                 {feature.codeExample && (
                   <div className="mt-2">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] font-semibold opacity-50 uppercase tracking-wider">דוגמה</span>
-                      <CopyButton text={feature.codeExample} />
-                    </div>
-                    <pre className="bg-[#2A2628] rounded-xl p-3 text-[10px] text-[#B8D900] font-mono overflow-x-auto whitespace-pre leading-relaxed">
-                      {feature.codeExample}
-                    </pre>
+                    <div className="flex items-center justify-between mb-1"><span className="text-[10px] font-semibold opacity-50 uppercase tracking-wider">דוגמה</span><CopyButton text={feature.codeExample} /></div>
+                    <pre className="bg-[#2A2628] rounded-xl p-3 text-[10px] text-[#B8D900] font-mono overflow-x-auto whitespace-pre leading-relaxed">{feature.codeExample}</pre>
                   </div>
                 )}
               </div>
@@ -848,68 +731,124 @@ function HelpCard({ section }: { section: HelpSection }) {
   );
 }
 
+// ============================================================================
+// Tabs
+// ============================================================================
+
+const TABS: { key: HelpTab; label: string; icon: React.ElementType; desc: string }[] = [
+  { key: "general", label: "מרכז עזרה כללי", icon: BookOpen, desc: "כל היכולות והטיפים" },
+  { key: "it-admin", label: "מנהל מערכות מידע", icon: Server, desc: "ארכיטקטורה, deployment, תחזוקה" },
+  { key: "security", label: "מנהל אבטחת מידע", icon: Shield, desc: "אבטחה, איומים, compliance" },
+  { key: "privacy", label: "מנהל הפרטיות", icon: UserCheck, desc: "פרטיות, הסכמה, זכויות" },
+];
+
+// ============================================================================
+// Main Page
+// ============================================================================
+
 export default function HelpPage() {
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<HelpTab>("general");
 
-  const filtered = HELP_SECTIONS.filter(
-    (s) =>
-      !search ||
-      s.title.includes(search) ||
-      s.description.includes(search) ||
-      s.features.some((f) => f.name.includes(search) || f.description.includes(search))
+  const getSections = (): HelpSection[] => {
+    switch (activeTab) {
+      case "it-admin": return IT_ADMIN_SECTIONS;
+      case "security": return SECURITY_ADMIN_SECTIONS;
+      case "privacy": return PRIVACY_ADMIN_SECTIONS;
+      default: return HELP_SECTIONS;
+    }
+  };
+
+  const sections = getSections();
+  const filtered = sections.filter((s) =>
+    !search || s.title.includes(search) || s.description.includes(search) ||
+    s.features.some((f) => f.name.includes(search) || f.description.includes(search))
   );
 
   return (
     <div className="p-8 max-w-4xl mx-auto" dir="rtl">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-[#B8D900]/15 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-[#8aac00]" />
+            <BookOpen className="w-5 h-5 text-[#8aac00]" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-[#2A2628]">מרכז העזרה</h1>
-            <p className="text-sm text-[#9A969A]">כל יכולות המערכת במקום אחד</p>
+            <p className="text-sm text-[#9A969A]">מדריך מלא למערכת OnoLeads — לכל תפקיד</p>
           </div>
-        </div>
-
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9A969A]" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="חיפוש..."
-            className="w-full h-10 pr-10 pl-4 rounded-xl border border-[#E5E5E5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#B8D900]/50"
-          />
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        {[
-          { label: "סוגי סקציות", value: "18+", icon: Layers },
-          { label: "כלי המרות", value: "6", icon: Target },
-          { label: "גרסאות שמורות", value: "20", icon: Eye },
-          { label: "משתני DTR", value: "6", icon: Zap },
-        ].map((stat) => {
-          const StatIcon = stat.icon;
+      {/* Tabs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
+        {TABS.map((tab) => {
+          const TabIcon = tab.icon;
+          const isActive = activeTab === tab.key;
           return (
-            <div key={stat.label} className="bg-white rounded-xl border border-[#E5E5E5] p-4 text-center">
-              <StatIcon className="w-5 h-5 mx-auto mb-1.5 text-[#B8D900]" />
-              <div className="text-xl font-bold text-[#2A2628]">{stat.value}</div>
-              <div className="text-xs text-[#9A969A]">{stat.label}</div>
-            </div>
+            <button key={tab.key} onClick={() => { setActiveTab(tab.key); setSearch(""); }}
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all text-center ${
+                isActive ? "bg-[#2A2628] text-white border-[#2A2628] shadow-md" : "bg-white text-[#716C70] border-[#E5E5E5] hover:border-[#B8D900] hover:text-[#2A2628]"
+              }`}>
+              <TabIcon className={`w-5 h-5 ${isActive ? "text-[#B8D900]" : ""}`} />
+              <span className="text-xs font-bold leading-tight">{tab.label}</span>
+              <span className={`text-[10px] leading-tight ${isActive ? "text-white/60" : "text-[#9A969A]"}`}>{tab.desc}</span>
+            </button>
           );
         })}
       </div>
 
-      {/* Help Cards */}
+      {/* Search */}
+      <div className="relative mb-6">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9A969A]" />
+        <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="חיפוש..."
+          className="w-full h-10 pr-10 pl-4 rounded-xl border border-[#E5E5E5] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#B8D900]/50" />
+      </div>
+
+      {/* Quick stats (general only) */}
+      {activeTab === "general" && !search && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {[
+            { label: "סוגי סקציות", value: "18+", icon: Layers },
+            { label: "פלטפורמות מעקב", value: "8", icon: TrendingUp },
+            { label: "כלי המרות", value: "6", icon: Target },
+            { label: "שפות", value: "3", icon: Globe },
+          ].map((stat) => {
+            const StatIcon = stat.icon;
+            return (
+              <div key={stat.label} className="bg-white rounded-xl border border-[#E5E5E5] p-4 text-center">
+                <StatIcon className="w-5 h-5 mx-auto mb-1.5 text-[#B8D900]" />
+                <div className="text-xl font-bold text-[#2A2628]">{stat.value}</div>
+                <div className="text-xs text-[#9A969A]">{stat.label}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Role intro banners */}
+      {activeTab === "it-admin" && !search && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-2"><Server className="w-5 h-5 text-blue-600" /><h2 className="text-sm font-bold text-blue-800">עזרה למנהל מערכות מידע</h2></div>
+          <p className="text-xs text-blue-700 leading-relaxed">מדריך טכני מלא: ארכיטקטורה (Next.js 14 + Supabase + Vercel), deployment, ניטור, גיבויים, ביצועים, ופתרון בעיות. אין שרתים פיזיים — הכל serverless.</p>
+        </div>
+      )}
+      {activeTab === "security" && !search && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-2"><Shield className="w-5 h-5 text-red-600" /><h2 className="text-sm font-bold text-red-800">עזרה למנהל אבטחת מידע</h2></div>
+          <p className="text-xs text-red-700 leading-relaxed">סקירת אבטחה: שכבות הגנה, הצפנה (AES-256-GCM, TLS 1.3), איומים ומניעה, Consent Mode v2, audit log, ונהלי תגובה לאירועים.</p>
+        </div>
+      )}
+      {activeTab === "privacy" && !search && (
+        <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-2"><UserCheck className="w-5 h-5 text-teal-600" /><h2 className="text-sm font-bold text-teal-800">עזרה למנהל הפרטיות</h2></div>
+          <p className="text-xs text-teal-700 leading-relaxed">מדריך פרטיות: מה נאסף ולמה, מנגנון הסכמה (Consent Mode v2), העברה לצדדים שלישיים, זכויות נושאי מידע, וצ&apos;קליסט ציות תקופתי.</p>
+        </div>
+      )}
+
+      {/* Help cards */}
       <div className="space-y-3">
-        {filtered.map((section) => (
-          <HelpCard key={section.id} section={section} />
-        ))}
+        {filtered.map((section) => <HelpCard key={section.id} section={section} />)}
         {filtered.length === 0 && (
           <div className="text-center py-16 text-[#9A969A]">
             <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -918,10 +857,8 @@ export default function HelpPage() {
         )}
       </div>
 
-      {/* JSON Guide */}
-      <div className="mt-8">
-        <JsonGuideSection />
-      </div>
+      {/* JSON Guide (general only) */}
+      {activeTab === "general" && <div className="mt-8"><JsonGuideSection /></div>}
     </div>
   );
 }

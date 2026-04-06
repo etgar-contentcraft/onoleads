@@ -140,7 +140,10 @@ let ga4Initialized = false;
 export function initializeGA4Early(config: PixelConfig): void {
   if (typeof window === "undefined") return;
   if (ga4Initialized) return;
-  if (!config.ga4Id) return;
+  if (!config.ga4Id) {
+    console.debug("[pixel] initializeGA4Early: no ga4Id in config, skipping");
+    return;
+  }
   ga4Initialized = true;
   initGA4(config.ga4Id);
 }
@@ -192,7 +195,11 @@ function injectInlineScript(code: string, id: string): void {
 }
 
 function initGA4(measurementId: string): void {
-  if (document.getElementById("gtag-js")) return; // already loaded
+  if (document.getElementById("gtag-js")) {
+    console.debug("[pixel] GA4 already loaded, skipping init");
+    return;
+  }
+  console.debug("[pixel] Initializing GA4 with measurement ID:", measurementId);
   injectScript(`https://www.googletagmanager.com/gtag/js?id=${measurementId}`, "gtag-js");
 
   window.dataLayer = window.dataLayer || [];
