@@ -130,7 +130,23 @@ export function isMarketingConsentGranted(): boolean {
 // ============================================================================
 
 /**
- * Initializes all configured pixels.
+ * Initializes GA4 immediately (regardless of consent).
+ * Google Consent Mode v2 handles data restrictions — GA4 sends
+ * cookieless pings when consent is denied, which still register
+ * as active users and pageviews in GA4 Realtime.
+ * Safe to call multiple times — only initializes once.
+ */
+let ga4Initialized = false;
+export function initializeGA4Early(config: PixelConfig): void {
+  if (typeof window === "undefined") return;
+  if (ga4Initialized) return;
+  if (!config.ga4Id) return;
+  ga4Initialized = true;
+  initGA4(config.ga4Id);
+}
+
+/**
+ * Initializes all configured marketing pixels.
  * Safe to call multiple times — only initializes once.
  * Must only be called when consent is granted.
  * @param config - Pixel IDs and page context
@@ -143,6 +159,7 @@ export function initializePixels(config: PixelConfig): void {
 
   updateConsentGranted();
 
+  // GA4 may already be loaded via initializeGA4Early; initGA4 is idempotent
   if (config.ga4Id) initGA4(config.ga4Id);
   if (config.metaPixelId) initMetaPixel(config.metaPixelId);
   if (config.tikTokPixelId) initTikTokPixel(config.tikTokPixelId);
@@ -175,6 +192,7 @@ function injectInlineScript(code: string, id: string): void {
 }
 
 function initGA4(measurementId: string): void {
+  if (document.getElementById("gtag-js")) return; // already loaded
   injectScript(`https://www.googletagmanager.com/gtag/js?id=${measurementId}`, "gtag-js");
 
   window.dataLayer = window.dataLayer || [];

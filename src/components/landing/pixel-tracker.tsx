@@ -16,6 +16,7 @@ import { useEffect, useRef } from "react";
 import Script from "next/script";
 import {
   initializePixels,
+  initializeGA4Early,
   isMarketingConsentGranted,
   firePixelEvent,
   updateConsentGranted,
@@ -86,7 +87,12 @@ export function PixelTracker({ config }: PixelTrackerProps) {
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    // Initialize pixels if consent already granted (returning visitor who accepted)
+    // GA4 loads immediately — Consent Mode v2 handles data restrictions.
+    // This ensures active users + pageviews appear in GA4 Realtime even
+    // before the visitor interacts with the cookie consent banner.
+    initializeGA4Early(config);
+
+    // Initialize remaining marketing pixels if consent already granted
     if (isMarketingConsentGranted()) {
       initializePixels(config);
     }
