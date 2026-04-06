@@ -49,6 +49,7 @@ import {
   MousePointerClick,
   BarChart3,
 } from "lucide-react";
+import { ClickHeatmap } from "@/components/admin/click-heatmap";
 
 /* ─── Constants ─── */
 
@@ -250,6 +251,7 @@ export default function PageAnalyticsPage() {
   const [dateTo, setDateTo] = useState("");
   const [mounted, setMounted] = useState(false);
   const [pageName, setPageName] = useState<string>("");
+  const [pageSlug, setPageSlug] = useState<string>("");
   const [campaignsExpanded, setCampaignsExpanded] = useState(false);
 
   const supabase = createClient();
@@ -267,7 +269,10 @@ export default function PageAnalyticsPage() {
         .select("title_he, slug")
         .eq("id", pageId)
         .single();
-      if (page) setPageName(page.title_he || page.slug);
+      if (page) {
+        setPageName(page.title_he || page.slug);
+        setPageSlug(page.slug);
+      }
     }
     fetchPageName();
   }, [pageId]);
@@ -627,14 +632,6 @@ export default function PageAnalyticsPage() {
       color: "bg-purple-500/10 text-purple-600",
       formatFn: (v: number) => v > 0 ? (v < 60 ? `${v}ש׳` : `${Math.floor(v/60)}:${String(v%60).padStart(2,"0")} דק׳`) : "—",
     },
-    {
-      label: "שיעור נטישה",
-      value: data.current.bounceRate,
-      prev: data.previous.bounceRate,
-      icon: Activity,
-      color: "bg-red-500/10 text-red-500",
-      isPercentage: true,
-    },
   ];
 
   /** Campaigns to display (collapsed or expanded) */
@@ -710,7 +707,7 @@ export default function PageAnalyticsPage() {
       </div>
 
       {/* ── Key Metric Cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {metricCards.map((card) => {
           const change = card.isPercentage
             ? Math.round(card.value - card.prev)
@@ -931,6 +928,16 @@ export default function PageAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Click Heatmap ── */}
+      {pageSlug && (
+        <ClickHeatmap
+          pageId={pageId}
+          pageSlug={pageSlug}
+          startDate={getPeriodBounds().currentStart}
+          endDate={getPeriodBounds().currentEnd}
+        />
+      )}
 
       {/* ── UTM Breakdown Section ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

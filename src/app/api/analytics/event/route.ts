@@ -13,7 +13,7 @@ import { sanitizeGeneral } from "@/lib/security/sanitize";
 const MAX_EVENTS_PER_MINUTE = 30;
 
 /** Valid event types for this endpoint (form_submit is handled by /api/leads) */
-const ALLOWED_EVENT_TYPES = ["page_view", "cta_click", "popup_view", "popup_dismiss", "scroll_depth"] as const;
+const ALLOWED_EVENT_TYPES = ["page_view", "cta_click", "popup_view", "popup_dismiss", "scroll_depth", "click"] as const;
 
 /** Zod schema for analytics event payloads */
 const eventSchema = z.object({
@@ -33,6 +33,8 @@ const eventSchema = z.object({
   time_on_page: z.number().int().min(0).optional().nullable(),
   /** Section identifier for section-level click events */
   section_id: z.string().max(100).optional().nullable(),
+  /** Arbitrary event data (click coordinates, element info, etc.) */
+  event_data: z.record(z.string(), z.unknown()).optional().nullable(),
 });
 
 /**
@@ -96,6 +98,7 @@ export async function POST(request: NextRequest) {
     scroll_depth: data.scroll_depth ?? null,
     time_on_page: data.time_on_page ?? null,
     section_id: data.section_id ? sanitizeGeneral(data.section_id.slice(0, 100)) : null,
+    event_data: data.event_data || null,
   });
 
   if (error) {

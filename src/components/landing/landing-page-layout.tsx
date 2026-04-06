@@ -10,6 +10,7 @@ import { CookieConsent } from "../compliance/cookie-consent";
 import { AccessibilityWidget } from "../compliance/accessibility-widget";
 import { usePageTracking, getOrCreateCookieId } from "@/hooks/use-page-tracking";
 import { ScrollTracker } from "./scroll-tracker";
+import { ClickTracker } from "./click-tracker";
 
 // Above-fold sections — loaded eagerly for fast first paint
 import { HeroSection } from "./sections/hero-section";
@@ -607,10 +608,16 @@ function InnerLayout({
 
       {/* Scroll depth + time-on-page tracking (invisible, renders nothing) */}
       {pageId && (
-        <ScrollTracker
-          pageId={pageId}
-          cookieId={getOrCreateCookieId()}
-        />
+        <>
+          <ScrollTracker
+            pageId={pageId}
+            cookieId={getOrCreateCookieId()}
+          />
+          <ClickTracker
+            pageId={pageId}
+            cookieId={getOrCreateCookieId()}
+          />
+        </>
       )}
     </div>
   );
