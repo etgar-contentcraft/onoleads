@@ -235,6 +235,15 @@ export const SECTION_REGISTRY: SectionTypeMeta[] = [
     badgeColor: "bg-violet-100 text-violet-700",
   },
   {
+    type: "single_image",
+    labelHe: "תמונה בודדת",
+    labelEn: "Single Image",
+    icon: ImageIcon,
+    description: "One full-width image with optional caption — no heading, no CTA",
+    category: "media",
+    badgeColor: "bg-violet-100 text-violet-700",
+  },
+  {
     type: "map",
     labelHe: "מפה",
     labelEn: "Map",

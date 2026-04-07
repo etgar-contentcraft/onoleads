@@ -16,7 +16,8 @@
 import { useEffect, useState } from "react";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 
-const ONO_LOGO = "https://www.ono.ac.il/wp-content/uploads/2025/12/לוגו-אונו.png";
+/** Hardcoded fallback used when no logo URL is configured in settings or page overrides. */
+const ONO_LOGO_FALLBACK = "https://www.ono.ac.il/wp-content/uploads/2025/12/לוגו-אונו.png";
 
 /** Extract first name from full name */
 function firstName(fullName: string): string {
@@ -141,10 +142,13 @@ interface ThankYouPageProps {
   settings: ThankYouPageSettings;
   pageSlug?: string;
   language?: string;
+  /** Optional brand logo URL — falls back to the hardcoded ONO logo. */
+  logoUrl?: string;
 }
 
-export function ThankYouPage({ programName, settings, pageSlug, language = "he" }: ThankYouPageProps) {
+export function ThankYouPage({ programName, settings, pageSlug, language = "he", logoUrl }: ThankYouPageProps) {
   const isRtl = language === "he" || language === "ar";
+  const ONO_LOGO = logoUrl || ONO_LOGO_FALLBACK;
   const [visible, setVisible] = useState(false);
   const [shared, setShared] = useState(false);
   const [displayName, setDisplayName] = useState("");

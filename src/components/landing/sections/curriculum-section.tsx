@@ -56,7 +56,10 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
   const { open } = useCtaModal();
   const isRtl = language === "he" || language === "ar";
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "תוכנית הלימודים" : "Curriculum");
-  const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || "";
+  const ctaText =
+    (content[`cta_text_${language}`] as string) ||
+    (content.cta_text_he as string) ||
+    (isRtl ? "רוצה לדעת עוד על תוכנית הלימודים?" : "Want to learn more about the curriculum?");
   const ctaEnabled = content.cta_enabled !== false;
 
   const years = normalizeYears(content, language);
@@ -200,7 +203,7 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
               onClick={() => open("section_curriculum")}
               className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_8px_30px_rgba(184,217,0,0.25)] hover:scale-[1.02] active:scale-[0.98]"
             >
-              {ctaText || (isRtl ? "רוצה לדעת עוד על תוכנית הלימודים?" : "Want to learn more about the curriculum?")}
+              {ctaText}
               <svg className={`w-4 h-4 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d={isRtl ? "M14 18l-6-6 6-6" : "M10 6l6 6-6 6"} />
               </svg>

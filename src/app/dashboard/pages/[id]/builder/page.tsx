@@ -206,6 +206,13 @@ const SECTION_LIBRARY: SectionLibraryItem[] = [
     iconPath: "M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2 1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z",
   },
   {
+    type: "single_image",
+    nameHe: "תמונה בודדת",
+    descriptionHe: "תמונה אחת ברוחב מלא עם כיתוב אופציונאלי",
+    color: "bg-violet-100 text-violet-600",
+    iconPath: "M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2 1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z",
+  },
+  {
     type: "admission",
     nameHe: "תנאי קבלה",
     descriptionHe: "דרישות ותנאי קבלה לתוכנית",
@@ -360,6 +367,18 @@ function getDefaultContent(type: string): Record<string, unknown> {
         cta_text_he: "",
         cta_enabled: false,
       };
+    case "single_image":
+      return {
+        image_url: "",
+        alt_text: "",
+        caption_he: "",
+        caption_en: "",
+        caption_ar: "",
+        max_width: 1100,
+        rounded: true,
+        shadow: true,
+        padding_y: 48,
+      };
     case "admission":
       return {
         heading_he: "תנאי קבלה",
@@ -423,6 +442,49 @@ function getDefaultContent(type: string): Record<string, unknown> {
         speakers: [],
         faq: [],
       };
+    case "program_outcomes":
+      return {
+        heading_he: "מה תוכלו לעשות בסיום התוכנית",
+        heading_en: "What You'll Be Able to Do",
+        subheading_he: "",
+        items: [
+          { title_he: "ידע אקדמי עמוק בתחום", description_he: "תרכשו ידע מקיף ועדכני מהמובילים בתעשייה ובאקדמיה." },
+          { title_he: "כלים מעשיים לעולם העבודה", description_he: "סדנאות, פרויקטים ולמידה מבוססת מקרה." },
+          { title_he: "רשת קשרים מקצועית", description_he: "תוכלו להתחבר אל בוגרים, מרצים ומעסיקים." },
+        ],
+        cta_text_he: "",
+        cta_enabled: true,
+      };
+    case "accordion":
+      return {
+        heading_he: "מידע נוסף",
+        heading_en: "More Information",
+        items: [
+          { title_he: "סעיף ראשון", body_he: "תוכן הסעיף..." },
+          { title_he: "סעיף שני", body_he: "תוכן הסעיף..." },
+        ],
+        cta_text_he: "",
+        cta_enabled: true,
+      };
+    case "contact_info":
+      return {
+        heading_he: "צרו איתנו קשר",
+        heading_en: "Contact Us",
+        subheading_he: "",
+        phone: "",
+        email: "",
+        address_he: "",
+        hours_he: "ימים א'-ה' 9:00-17:00",
+        map_url: "",
+        cta_text_he: "",
+        cta_enabled: true,
+      };
+    case "custom_html":
+      return {
+        html_he: "<div class=\"text-center\"><h2 class=\"text-3xl font-bold\">תוכן מותאם אישית</h2><p class=\"mt-4\">ערכו את ה-HTML כאן.</p></div>",
+        html_en: "",
+        padding_y: 48,
+      };
     default:
       return {};
   }
@@ -442,11 +504,17 @@ const SECTION_LABELS: Record<string, string> = {
   faq: "שאלות נפוצות",
   video: "סרטונים",
   gallery: "גלריה",
+  single_image: "תמונה בודדת",
   admission: "תנאי קבלה",
   map: "מפה ומיקום",
   cta: "קריאה לפעולה",
   whatsapp: "וואטסאפ",
   event: "אירוע / יום פתוח",
+  countdown: "ספירה לאחור",
+  program_outcomes: "תוצאות התוכנית",
+  accordion: "אקורדיון",
+  contact_info: "פרטי יצירת קשר",
+  custom_html: "HTML מותאם",
 };
 
 // ---------------------------------------------------------------------------
@@ -702,6 +770,48 @@ function TextareaField({ label, fieldKey, placeholder = "", rows = 3, dir = "rtl
         className="text-sm resize-none"
       />
       {dtrHint && <DtrHint />}
+    </div>
+  );
+}
+
+/**
+ * Per-section CTA button text override.
+ * When left empty, the renderer falls back to a sensible default
+ * (the value passed in `placeholder` mirrors that default so editors
+ * see exactly what will be shown).
+ *
+ * Visually distinct from regular text fields with a lime accent strip
+ * + hint text — signals "this is the call-to-action button label".
+ */
+interface CtaTextFieldProps {
+  fieldKey: string;
+  draft: Record<string, unknown>;
+  set: (key: string, value: unknown) => void;
+  isEn: boolean;
+  /** Default text the renderer will use when this field is empty */
+  placeholder: string;
+}
+function CtaTextField({ fieldKey, draft, set, isEn, placeholder }: CtaTextFieldProps) {
+  return (
+    <div className="space-y-1.5 mt-4 pt-4 border-t border-dashed border-[#E5E5E5]">
+      <div className="flex items-center gap-2">
+        <div className="w-1 h-3.5 rounded-full bg-[#B8D900]" />
+        <Label className="text-xs font-semibold text-[#716C70]">
+          {isEn ? "CTA Button Text (override)" : "טקסט כפתור קריאה לפעולה (עוקף ברירת מחדל)"}
+        </Label>
+      </div>
+      <Input
+        value={(draft[fieldKey] as string) || ""}
+        onChange={(e) => set(fieldKey, e.target.value)}
+        placeholder={placeholder}
+        dir={isEn ? "ltr" : "rtl"}
+        className="h-9 text-sm border-[#B8D900]/30 focus-visible:ring-[#B8D900]/30"
+      />
+      <p className="text-[10px] text-[#9A969A] leading-relaxed">
+        {isEn
+          ? `Leave empty to use the default: "${placeholder}"`
+          : `השאירו ריק כדי להשתמש בברירת המחדל: "${placeholder}"`}
+      </p>
     </div>
   );
 }
@@ -1651,6 +1761,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
             <TextareaField label={isEn ? "Description" : "תיאור"} fieldKey={lk("description")} rows={4} placeholder={isEn ? "Program description..." : "פסקת תיאור..."} draft={draft} set={set} />
             <ImageField label={isEn ? "Image" : "תמונה"} fieldKey="image_url" recommendedSize="800×600px" draft={draft} set={set} />
             <StringListField label={isEn ? "Key Points" : "נקודות מפתח"} fieldKey="bullets" placeholder={isEn ? "Key point..." : "נקודה מפתח..."} draft={draft} set={set} />
+            <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "Learn More" : "לפרטים נוספים"} />
           </div>
         );
 
@@ -1668,6 +1779,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               draft={draft}
               set={set}
             />
+            <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "I Want to Learn More" : "אני רוצה לדעת עוד"} />
           </div>
         );
 
@@ -1685,6 +1797,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               draft={draft}
               set={set}
             />
+            <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "Want to learn more about the curriculum?" : "רוצה לדעת עוד על תוכנית הלימודים?"} />
           </div>
         );
 
@@ -1701,6 +1814,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               draft={draft}
               set={set}
             />
+            <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "Want to learn more?" : "רוצים לשמוע עוד?"} />
           </div>
         );
 
@@ -1720,6 +1834,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               draft={draft}
               set={set}
             />
+            <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "Join Our Students" : "הצטרפו אל הסטודנטים שלנו"} />
           </div>
         );
 
@@ -1762,6 +1877,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               draft={draft}
               set={set}
             />
+            <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "Have More Questions? Contact Us" : "יש לכם עוד שאלה? דברו איתנו"} />
           </div>
         );
 
@@ -1803,6 +1919,81 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               draft={draft}
               set={set}
             />
+          </div>
+        );
+
+      case "single_image":
+        /* Minimal editor: one image URL, an alt text, optional per-language
+           caption, and three layout knobs. No heading/CTA by design. */
+        return (
+          <div className="space-y-4">
+            <ImageField
+              label={isEn ? "Image" : "תמונה"}
+              fieldKey="image_url"
+              recommendedSize={isEn ? "Recommended: 1600×900 or larger" : "מומלץ: 1600×900 ומעלה"}
+              draft={draft}
+              set={set}
+            />
+            <Field
+              label={isEn ? "Alt text (accessibility)" : "טקסט חלופי (נגישות)"}
+              fieldKey="alt_text"
+              placeholder={isEn ? "Describe the image for screen readers" : "תיאור התמונה לקוראי מסך"}
+              draft={draft}
+              set={set}
+            />
+            <Field
+              label={isEn ? "Caption (optional)" : "כיתוב (אופציונלי)"}
+              fieldKey={lk("caption")}
+              placeholder={isEn ? "A short caption below the image" : "כיתוב קצר מתחת לתמונה"}
+              draft={draft}
+              set={set}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Max width (px)" : "רוחב מקסימלי (פיקסלים)"}</Label>
+                <Input
+                  type="number"
+                  min={400}
+                  max={2000}
+                  step={50}
+                  value={(draft.max_width as number) ?? 1100}
+                  onChange={(e) => set("max_width", Number(e.target.value) || 1100)}
+                  className="h-8 text-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Vertical padding (px)" : "מרווח אנכי (פיקסלים)"}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={200}
+                  step={4}
+                  value={(draft.padding_y as number) ?? 48}
+                  onChange={(e) => set("padding_y", Number(e.target.value) || 48)}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-4 pt-1">
+              <label className="flex items-center gap-2 text-xs font-medium text-[#4A4648] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={draft.rounded !== false}
+                  onChange={(e) => set("rounded", e.target.checked)}
+                  className="h-4 w-4 rounded border-[#E5E5E5] text-[#B8D900] focus:ring-[#B8D900]"
+                />
+                {isEn ? "Rounded corners" : "פינות מעוגלות"}
+              </label>
+              <label className="flex items-center gap-2 text-xs font-medium text-[#4A4648] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={draft.shadow !== false}
+                  onChange={(e) => set("shadow", e.target.checked)}
+                  className="h-4 w-4 rounded border-[#E5E5E5] text-[#B8D900] focus:ring-[#B8D900]"
+                />
+                {isEn ? "Drop shadow" : "צל"}
+              </label>
+            </div>
           </div>
         );
 
@@ -1900,6 +2091,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               /* Single-track: flat requirements list */
               <StringListField label="דרישות קבלה" fieldKey="requirements" placeholder="תעודת בגרות..." draft={draft} set={set} />
             )}
+            <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "Check Eligibility" : "בדקו זכאות"} />
           </div>
         );
       }
@@ -2033,6 +2225,103 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               draft={draft}
               set={set}
             />
+          </div>
+        );
+
+      case "program_outcomes":
+        return (
+          <div className="space-y-4">
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "What You'll Be Able to Do" : "מה תוכלו לעשות בסיום התוכנית"} draft={draft} set={set} />
+            <TextareaField label={isEn ? "Subheading (optional)" : "כותרת משנה (אופציונלי)"} fieldKey={lk("subheading")} rows={2} placeholder={isEn ? "Short paragraph..." : "פסקה קצרה..."} draft={draft} set={set} />
+            <ObjectListField
+              label={isEn ? "Outcomes" : "תוצרי למידה"}
+              fieldKey="items"
+              fields={[
+                { key: lk("title"), label: isEn ? "Title" : "כותרת" },
+                { key: lk("description"), label: isEn ? "Description (optional)" : "תיאור (אופציונלי)", type: "textarea" },
+              ]}
+              draft={draft}
+              set={set}
+            />
+            <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "I'm Ready to Start" : "אני מוכן להתחיל"} />
+          </div>
+        );
+
+      case "accordion":
+        return (
+          <div className="space-y-4">
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "More Information" : "מידע נוסף"} draft={draft} set={set} />
+            <ObjectListField
+              label={isEn ? "Accordion Items" : "פריטי האקורדיון"}
+              fieldKey="items"
+              fields={[
+                { key: lk("title"), label: isEn ? "Title" : "כותרת הפריט" },
+                { key: lk("body"), label: isEn ? "Body Text" : "תוכן", type: "textarea" },
+              ]}
+              draft={draft}
+              set={set}
+            />
+            <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "Get Info" : "השאירו פרטים"} />
+          </div>
+        );
+
+      case "contact_info":
+        return (
+          <div className="space-y-4">
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "Contact Us" : "צרו איתנו קשר"} draft={draft} set={set} />
+            <TextareaField label={isEn ? "Subheading (optional)" : "כותרת משנה (אופציונלי)"} fieldKey={lk("subheading")} rows={2} placeholder={isEn ? "Short paragraph..." : "פסקה קצרה..."} draft={draft} set={set} />
+            <Field label={isEn ? "Phone" : "טלפון"} fieldKey="phone" placeholder="03-123-4567" dir="ltr" draft={draft} set={set} />
+            <Field label={isEn ? "Email" : "אימייל"} fieldKey="email" placeholder="info@example.com" dir="ltr" draft={draft} set={set} />
+            <Field label={isEn ? "Address" : "כתובת"} fieldKey={lk("address")} placeholder={isEn ? "123 Street, City" : "רחוב הראשי 1, קריית אונו"} draft={draft} set={set} />
+            <Field label={isEn ? "Hours" : "שעות פעילות"} fieldKey={lk("hours")} placeholder={isEn ? "Sun-Thu 9:00-17:00" : "ימים א'-ה' 9:00-17:00"} draft={draft} set={set} />
+            <Field label={isEn ? "Google Maps URL (optional)" : "קישור Google Maps (אופציונלי)"} fieldKey="map_url" placeholder="https://maps.google.com/..." dir="ltr" draft={draft} set={set} />
+            <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "Leave Details — We'll Call You Back" : "השאירו פרטים ונחזור אליכם"} />
+          </div>
+        );
+
+      case "custom_html":
+        return (
+          <div className="space-y-4">
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <span className="text-amber-600 text-lg leading-none">⚠️</span>
+              <p className="text-[11px] text-amber-800 leading-relaxed">
+                {isEn
+                  ? "HTML is rendered directly. <script> tags are stripped automatically for safety. Use this only for trusted markup."
+                  : "ה-HTML מוצג ישירות בעמוד. תגיות <script> מוסרות אוטומטית מטעמי אבטחה. השתמשו בכלי זה רק לתוכן בטוח."}
+              </p>
+            </div>
+            <TextareaField
+              label={isEn ? "HTML Content (Hebrew)" : "תוכן HTML (עברית)"}
+              fieldKey="html_he"
+              rows={10}
+              placeholder='<div class="text-center">...</div>'
+              dir="ltr"
+              draft={draft}
+              set={set}
+            />
+            <TextareaField
+              label={isEn ? "HTML Content (English, optional)" : "תוכן HTML (אנגלית, אופציונלי)"}
+              fieldKey="html_en"
+              rows={6}
+              placeholder='<div class="text-center">...</div>'
+              dir="ltr"
+              draft={draft}
+              set={set}
+            />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">
+                {isEn ? `Vertical Padding: ${(draft.padding_y as number) ?? 48}px` : `ריווח אנכי: ${(draft.padding_y as number) ?? 48}px`}
+              </Label>
+              <input
+                type="range"
+                min={0}
+                max={160}
+                step={4}
+                value={(draft.padding_y as number) ?? 48}
+                onChange={(e) => set("padding_y", parseInt(e.target.value, 10))}
+                className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#B8D900]"
+              />
+            </div>
           </div>
         );
 

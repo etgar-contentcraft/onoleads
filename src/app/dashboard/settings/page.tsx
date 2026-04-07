@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { LogoPicker } from "@/components/admin/logo-picker";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 
@@ -373,26 +374,13 @@ export default function SettingsPage() {
             <CardDescription>לוגו וטקסט ברירת מחדל לכפתורי CTA</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label className="text-sm font-medium text-[#2a2628]">כתובת URL ללוגו</Label>
-              <Input
-                value={settings.logo_url}
-                onChange={(e) => updateSetting("logo_url", e.target.value)}
-                placeholder="https://..."
-                className="mt-1.5 h-9"
-                dir="ltr"
-              />
-              {settings.logo_url && (
-                <div className="mt-2 p-3 bg-[#f3f4f6] rounded-xl flex items-center justify-center">
-                  <img
-                    src={settings.logo_url}
-                    alt="Logo preview"
-                    className="max-h-12 object-contain"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                  />
-                </div>
-              )}
-            </div>
+            <LogoPicker
+              label="לוגו ראשי"
+              value={settings.logo_url}
+              onChange={(url) => updateSetting("logo_url", url)}
+              allowClear={false}
+              hint='בחרו לוגו מהספרייה. לניהול הלוגואים — עברו ל"ניהול לוגואים".'
+            />
 
             <div>
               <Label className="text-sm font-medium text-[#2a2628]">טקסט CTA ברירת מחדל</Label>

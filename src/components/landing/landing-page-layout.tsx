@@ -31,10 +31,15 @@ const CtaSection = dynamic(() => import("./sections/cta-section").then(mod => ({
 const WhatsappSection = dynamic(() => import("./sections/whatsapp-section").then(mod => ({ default: mod.WhatsappSection })));
 const AdmissionSection = dynamic(() => import("./sections/admission-section").then(mod => ({ default: mod.AdmissionSection })));
 const GallerySection = dynamic(() => import("./sections/gallery-section").then(mod => ({ default: mod.GallerySection })));
+const SingleImageSection = dynamic(() => import("./sections/single-image-section").then(mod => ({ default: mod.SingleImageSection })));
 const MapSection = dynamic(() => import("./sections/map-section").then(mod => ({ default: mod.MapSection })));
 const CountdownSection = dynamic(() => import("./sections/countdown-section").then(mod => ({ default: mod.CountdownSection })));
 const EventSection = dynamic(() => import("./sections/event-section"));
 const FormSection = dynamic(() => import("./sections/form-section").then(mod => ({ default: mod.FormSection })));
+const ProgramOutcomesSection = dynamic(() => import("./sections/program-outcomes-section").then(mod => ({ default: mod.ProgramOutcomesSection })));
+const AccordionSection = dynamic(() => import("./sections/accordion-section").then(mod => ({ default: mod.AccordionSection })));
+const ContactInfoSection = dynamic(() => import("./sections/contact-info-section").then(mod => ({ default: mod.ContactInfoSection })));
+const CustomHtmlSection = dynamic(() => import("./sections/custom-html-section").then(mod => ({ default: mod.CustomHtmlSection })));
 
 import { SectionErrorBoundary } from "./section-error-boundary";
 import { SocialProofToast } from "./social-proof-toast";
@@ -47,6 +52,7 @@ import type { PixelConfig } from "@/lib/analytics/pixel-manager";
 // Constants
 // ============================================================================
 
+/** Hardcoded fallback used when no logo URL is configured in settings or page overrides. */
 const ONO_LOGO = "https://www.ono.ac.il/wp-content/uploads/2025/12/לוגו-אונו.png";
 
 // ============================================================================
@@ -223,16 +229,20 @@ function StickyHeader({
   stickyTitle,
   language,
   phone,
+  logoUrl,
 }: {
   programName?: string;
   stickyTitle?: string;
   language: Language;
   phone?: string;
+  /** Resolved logo URL — falls back to ONO_LOGO if undefined */
+  logoUrl?: string;
 }) {
   const displayName = stickyTitle || programName;
   const { open } = useCtaModal();
   const isRtl = language === "he" || language === "ar";
   const displayPhone = phone || "*2899";
+  const resolvedLogo = logoUrl || ONO_LOGO;
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -255,7 +265,7 @@ function StickyHeader({
           <div className="flex items-center gap-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={ONO_LOGO}
+              src={resolvedLogo}
               alt={isRtl ? "אונו" : "Ono"}
               className="h-8 object-contain"
               loading="lazy"
@@ -337,6 +347,8 @@ function renderSection(
       return <AdmissionSection content={content} language={language} />;
     case "gallery":
       return <GallerySection content={content} language={language} />;
+    case "single_image":
+      return <SingleImageSection content={content} language={language} />;
     case "map":
       return <MapSection content={content} language={language} />;
     case "countdown":
@@ -345,6 +357,14 @@ function renderSection(
       return <EventSection content={content} language={language} />;
     case "form":
       return <FormSection content={content} language={language} pageId={pageId} programId={programId} pageSlug={pageSlug} />;
+    case "program_outcomes":
+      return <ProgramOutcomesSection content={content} language={language} />;
+    case "accordion":
+      return <AccordionSection content={content} language={language} />;
+    case "contact_info":
+      return <ContactInfoSection content={content} language={language} />;
+    case "custom_html":
+      return <CustomHtmlSection content={content} language={language} />;
     default:
       return null;
   }
@@ -354,12 +374,30 @@ function renderSection(
 // Build auto-sections from program data
 // ============================================================================
 
+/**
+ * Builds auto-injected sections from program metadata.
+ *
+ * Rules (kept conservative on purpose — auto-injection used to surprise editors
+ * with sections that weren't in the page's section list):
+ *   • info bar — only when 2+ fields are filled. A single-field bar looks like
+ *     a stray card and confuses editors who can't find it in the section list.
+ *   • about — only when a description exists.
+ *   • benefits — only when meta.benefits has explicit items. We never fall back
+ *     to default Hebrew copy because it leaks Hebrew content onto English pages.
+ *   • career — only when career_outcomes are defined.
+ *   • faculty — only when meta.faculty_members has entries.
+ *
+ * Anything that fails these checks is omitted entirely. Editors who want the
+ * section can add it explicitly via the section palette.
+ */
 function buildProgramSections(program: Program, language: Language): JSX.Element[] {
   const isRtl = language === "he" || language === "ar";
   const elements: JSX.Element[] = [];
   const meta = (program.meta || {}) as Record<string, unknown>;
 
-  // Program info bar (always if we have data)
+  // Program info bar — only auto-inject when at least 2 fields are filled.
+  // A single-field bar looks like an orphan card and is the #1 source of
+  // "where is this coming from?" support tickets.
   const infoParts: Record<string, string> = {};
   if (program.duration_semesters) {
     const years = Math.ceil(program.duration_semesters / 2);
@@ -375,7 +413,7 @@ function buildProgramSections(program: Program, language: Language): JSX.Element
     infoParts.degree = program.degree_type;
   }
 
-  if (Object.keys(infoParts).length > 0) {
+  if (Object.keys(infoParts).length >= 2) {
     elements.push(
       <ProgramInfoBar
         key="auto-info-bar"
@@ -385,7 +423,7 @@ function buildProgramSections(program: Program, language: Language): JSX.Element
     );
   }
 
-  // About section (if description exists)
+  // About section — only when there's an actual description in the program data
   if (program.description_he || program.description_en) {
     const aboutContent: Record<string, unknown> = {
       heading_he: `אודות לימודי ${program.name_he}`,
@@ -400,17 +438,21 @@ function buildProgramSections(program: Program, language: Language): JSX.Element
     );
   }
 
-  // Benefits section (always show with defaults)
-  const benefitsContent: Record<string, unknown> = {
-    heading_he: "למה ללמוד באונו?",
-    heading_en: "Why Ono?",
-    items: (meta.benefits as unknown[]) || undefined,
-  };
-  elements.push(
-    <BenefitsSection key="auto-benefits" content={benefitsContent} language={language} />
-  );
+  // Benefits — ONLY when meta.benefits has explicit items. Previously we
+  // unconditionally rendered this with Hebrew defaults, which appeared on
+  // English pages as untranslated content the editor couldn't find or remove.
+  if (Array.isArray(meta.benefits) && (meta.benefits as unknown[]).length > 0) {
+    const benefitsContent: Record<string, unknown> = {
+      heading_he: "למה ללמוד באונו?",
+      heading_en: "Why Ono?",
+      items: meta.benefits as unknown[],
+    };
+    elements.push(
+      <BenefitsSection key="auto-benefits" content={benefitsContent} language={language} />
+    );
+  }
 
-  // Career outcomes (if available)
+  // Career outcomes (only when explicit data exists)
   if (program.career_outcomes && program.career_outcomes.length > 0) {
     const careerContent: Record<string, unknown> = {
       heading_he: "לאן תגיעו אחרי התואר?",
@@ -422,7 +464,7 @@ function buildProgramSections(program: Program, language: Language): JSX.Element
     );
   }
 
-  // Faculty members (from meta)
+  // Faculty members (only when explicit data exists in meta)
   if (meta.faculty_members && Array.isArray(meta.faculty_members) && (meta.faculty_members as unknown[]).length > 0) {
     const facultyContent: Record<string, unknown> = {
       heading_he: "הסגל האקדמי",
@@ -572,6 +614,7 @@ function InnerLayout({
         stickyTitle={settings?.sticky_header_title}
         language={language}
         phone={settings?.phone_number}
+        logoUrl={settings?.logo_url}
       />
 
       {/* Main Content */}
@@ -643,7 +686,7 @@ function InnerLayout({
             <div className="flex items-center gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={ONO_LOGO}
+                src={settings?.logo_url || ONO_LOGO}
                 alt="הקריה האקדמית אונו"
                 className="h-10 object-contain brightness-0 invert opacity-70"
                 loading="lazy"

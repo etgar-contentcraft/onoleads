@@ -65,20 +65,27 @@ const BENEFIT_ICONS: Record<string, JSX.Element> = {
 /** Fallback icon order for items without explicit icon key */
 const ICON_CYCLE = ["star", "faculty", "practical", "placement", "campuses", "scholarship", "career"];
 
-/** Default benefits when no data is provided */
+/**
+ * Bilingual default benefits used as a last-resort fallback.
+ * Only triggered when an editor explicitly drops a Benefits section but
+ * forgets to fill in items — never auto-injected.
+ */
 const DEFAULT_BENEFITS: BenefitItem[] = [
-  { icon: "faculty", title_he: "סגל אקדמי מוביל", description_he: "מרצים מהשורה הראשונה בתעשייה ובאקדמיה" },
-  { icon: "practical", title_he: "הכשרה מעשית", description_he: "שילוב תיאוריה ופרקטיקה מהיום הראשון" },
-  { icon: "placement", title_he: "שיעור השמה 92%", description_he: "הבוגרים שלנו מועסקים בחברות המובילות" },
-  { icon: "campuses", title_he: "קמפוסים ברחבי הארץ", description_he: "קריית אונו, ירושלים וחיפה" },
-  { icon: "scholarship", title_he: "מלגות והנחות", description_he: "מגוון מסלולי מימון ומלגות הצטיינות" },
-  { icon: "career", title_he: "ליווי קריירה אישי", description_he: "מרכז קריירה וסדנאות הכנה לעולם העבודה" },
+  { icon: "faculty", title_he: "סגל אקדמי מוביל", title_en: "Leading Faculty", description_he: "מרצים מהשורה הראשונה בתעשייה ובאקדמיה", description_en: "Top instructors from industry and academia" },
+  { icon: "practical", title_he: "הכשרה מעשית", title_en: "Hands-On Training", description_he: "שילוב תיאוריה ופרקטיקה מהיום הראשון", description_en: "Theory and practice from day one" },
+  { icon: "placement", title_he: "שיעור השמה 92%", title_en: "92% Placement Rate", description_he: "הבוגרים שלנו מועסקים בחברות המובילות", description_en: "Our graduates work at leading companies" },
+  { icon: "campuses", title_he: "קמפוסים ברחבי הארץ", title_en: "Nationwide Campuses", description_he: "קריית אונו, ירושלים וחיפה", description_en: "Kiryat Ono, Jerusalem & Haifa" },
+  { icon: "scholarship", title_he: "מלגות והנחות", title_en: "Scholarships & Discounts", description_he: "מגוון מסלולי מימון ומלגות הצטיינות", description_en: "Many funding paths and merit scholarships" },
+  { icon: "career", title_he: "ליווי קריירה אישי", title_en: "Personal Career Support", description_he: "מרכז קריירה וסדנאות הכנה לעולם העבודה", description_en: "Career center and job-ready workshops" },
 ];
 
 /**
  * Normalizes items from various data shapes:
  * - Array of BenefitItem objects (structured)
  * - Array of strings (from scraped data)
+ *
+ * Returns DEFAULT_BENEFITS only when the section was placed but no items
+ * were configured — this is the editor's safety net, not a content fallback.
  */
 function normalizeItems(raw: unknown): BenefitItem[] {
   if (!Array.isArray(raw)) return DEFAULT_BENEFITS;
@@ -99,7 +106,10 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
   const { open } = useCtaModal();
   const isRtl = language === "he" || language === "ar";
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "למה ללמוד באונו?" : "Why choose Ono?");
-  const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || "";
+  const ctaText =
+    (content[`cta_text_${language}`] as string) ||
+    (content.cta_text_he as string) ||
+    (isRtl ? "אני רוצה לדעת עוד" : "I Want to Learn More");
   const ctaEnabled = content.cta_enabled !== false;
   const items = normalizeItems(content.items);
 

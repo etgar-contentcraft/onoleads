@@ -67,6 +67,36 @@ function cleanDomain(url: string | null | undefined): string | null {
 }
 
 /**
+ * Reads visitor geo info from Vercel edge headers.
+ * Vercel injects these headers automatically when the request hits the edge —
+ * see https://vercel.com/docs/edge-network/headers#x-vercel-ip-country.
+ * Falls back to NULL when running locally or when geo can't be determined.
+ *
+ * @param headers - Incoming request headers
+ * @returns Object with `country` (ISO-2), `region`, `city` — any may be null
+ */
+function readVercelGeo(headers: Headers): {
+  country: string | null;
+  region: string | null;
+  city: string | null;
+} {
+  /** Decode URL-encoded values (Vercel encodes city names with non-ASCII chars) */
+  const decode = (raw: string | null): string | null => {
+    if (!raw) return null;
+    try {
+      return decodeURIComponent(raw).slice(0, 100);
+    } catch {
+      return raw.slice(0, 100);
+    }
+  };
+  return {
+    country: decode(headers.get("x-vercel-ip-country")),
+    region: decode(headers.get("x-vercel-ip-country-region")),
+    city: decode(headers.get("x-vercel-ip-city")),
+  };
+}
+
+/**
  * POST /api/analytics/event
  * Records an anonymous analytics event.
  */
@@ -97,6 +127,9 @@ export async function POST(request: NextRequest) {
 
   const data = parseResult.data;
 
+  /* --- Read visitor geo from Vercel headers --- */
+  const geo = readVercelGeo(request.headers);
+
   /* --- Insert anonymous event --- */
   const supabase = createAdminClient();
   const { error } = await supabase.from("analytics_events").insert({
@@ -114,6 +147,9 @@ export async function POST(request: NextRequest) {
     time_on_page: data.time_on_page ?? null,
     section_id: data.section_id ? sanitizeGeneral(data.section_id.slice(0, 100)) : null,
     event_data: data.event_data || null,
+    country: geo.country,
+    region: geo.region,
+    city: geo.city,
   });
 
   if (error) {

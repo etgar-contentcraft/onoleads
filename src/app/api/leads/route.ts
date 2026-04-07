@@ -365,6 +365,20 @@ export async function POST(request: NextRequest) {
       webhookStatus = "failed";
     }
 
+    /* --- Read visitor geo from Vercel headers (anonymous, no PII) ---
+     * Vercel injects these on every request hitting the edge network. */
+    const decodeHeader = (raw: string | null): string | null => {
+      if (!raw) return null;
+      try {
+        return decodeURIComponent(raw).slice(0, 100);
+      } catch {
+        return raw.slice(0, 100);
+      }
+    };
+    const country = decodeHeader(request.headers.get("x-vercel-ip-country"));
+    const region = decodeHeader(request.headers.get("x-vercel-ip-country-region"));
+    const city = decodeHeader(request.headers.get("x-vercel-ip-city"));
+
     /* --- Insert anonymous analytics event (NO PII stored) --- */
     const { error: insertError } = await supabase
       .from("analytics_events")
@@ -381,6 +395,9 @@ export async function POST(request: NextRequest) {
         device_type: data.device_type || null,
         webhook_status: webhookStatus,
         lead_source: data.lead_source ? sanitizeGeneral(data.lead_source) : null,
+        country,
+        region,
+        city,
       });
 
     if (insertError) {

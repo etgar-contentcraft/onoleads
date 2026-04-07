@@ -32,6 +32,9 @@ export type LeadSource =
   | "section_faq"
   | "section_career"
   | "section_about"
+  | "section_program_outcomes"
+  | "section_accordion"
+  | "section_contact_info"
   | "unknown";
 
 interface CtaModalContextType {

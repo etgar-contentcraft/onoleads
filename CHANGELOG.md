@@ -9,6 +9,75 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.8.0] - 2026-04-07
+
+### Added
+
+- **New `single_image` section type** (תמונה בודדת): a deliberately minimal media section that renders one full-width image with an optional caption — no heading, no CTA, no lightbox. Editors can drop multiple instances onto a page to break up long copy with visuals. Layout knobs include `max_width`, `padding_y`, `rounded` corners toggle, and `shadow` toggle. Uses `next/image` with `unoptimized` so any image URL is accepted without touching `next.config.js`.
+  - New renderer: `src/components/landing/sections/single-image-section.tsx`
+  - Registry entry in `src/lib/sections/registry.ts` (category: media, icon: ImageIcon)
+  - Wired into `landing-page-layout.tsx` switch with lazy dynamic import
+  - Builder integration: palette card, `getDefaultContent()`, `SECTION_LABELS` map, and dedicated form editor (image upload via `ImageField`, alt text, caption per language, max width, padding, rounded/shadow toggles)
+- **Geo analytics (country / region / city):** new `country`, `region`, `city` columns on `analytics_events` with partial indexes, populated from Vercel edge headers (`x-vercel-ip-country`, `x-vercel-ip-country-region`, `x-vercel-ip-city`) in `/api/analytics/event` and `/api/leads`.
+- **Geo breakdown cards:**
+  - Global dashboard (`/dashboard/analytics`): three-column "Countries / Regions / Cities" card with flag emojis, Hebrew country names for 32 common locales, and conversion rate per row. Only rendered when at least one geo-tagged event exists.
+  - Per-page dashboard (`/dashboard/pages/[id]/analytics`): single "פילוח גאוגרפי" card with 3 sub-columns showing top 8 countries/regions/cities for the selected time range.
+- **Cross-dimension filter bar on the global dashboard:** multi-select filters for UTM source, medium, campaign, device type, country, and referrer domain. Raw events are held in state and re-aggregated in-memory on filter change, so toggling filters is instant with no refetch. Filter dropdowns auto-populate with the actual values present in the current time range.
+- **Attribution model selector restored** on the global dashboard (first touch / last touch / linear / U-shaped), with weight distribution computed client-side from per-cookie touchpoint chains.
+- **New types:** `GeoEntry` (compute module), `GeoRow` (per-page analytics), `AnalyticsFilters` + `EMPTY_FILTERS` (filter state), `applyFilters()` + `getUniqueValues()` helpers in `compute.ts`.
+
+### Changed
+
+- **Auto-injection rules tightened in `buildProgramSections()`:** the program info bar only auto-injects when **2 or more** fields are populated (previously fired on a single field, producing orphan "M.A."-only cards before the main info bar). The benefits section is no longer auto-injected at all when `meta.benefits` is empty or missing — previously a Hebrew default list leaked onto English landing pages.
+- **`DEFAULT_BENEFITS` in `benefits-section.tsx` is now fully bilingual** (Hebrew + English titles/descriptions for all 6 items), providing a belt-and-suspenders guard against Hebrew content leaking onto English pages.
+- **Analytics ingestion routes** (`/api/analytics/event`, `/api/leads`) read and URL-decode Vercel geo headers with a 100-character cap per value to prevent header-injection abuse.
+
+### Fixed
+
+- Hebrew benefits section appearing on English landing pages (root cause: unconditional auto-injection + Hebrew-only default fallback).
+- Stray single-field info bar card appearing before the real info bar on program landing pages (root cause: auto-injection threshold of 1 field).
+
+### Database
+
+- New migration `supabase/migrations/20260407_analytics_geo.sql` adds `country`, `region`, `city` columns to `analytics_events` plus four partial indexes (`idx_analytics_events_country`, `idx_analytics_events_region`, `idx_analytics_events_city`, `idx_analytics_events_country_page_date`) optimised for "NOT NULL" filtering since most historical events have no geo data.
+
+---
+
+## [0.7.0] - 2026-04-07
+
+### Added
+
+- **Form-based editors for 4 previously JSON-only section types:** `program_outcomes`, `accordion`, `contact_info`, `custom_html`. Editors now expose all fields with proper inputs (no more raw JSON editing required).
+- **`CtaTextField` reusable component:** every section that has a CTA button now exposes a "CTA Button Text (override)" field in its editor. Leaving the field blank uses the renderer's default; filling it overrides per-section in all 3 languages.
+- **Per-section CTA overrides wired into 7 editor cases:** `about`, `benefits`, `curriculum`, `career`, `testimonials`, `faq`, `admission`. Each shows the default text as a placeholder so editors see exactly what will appear.
+- **4 new section renderer files:** `program-outcomes-section.tsx` (numbered cards grid), `accordion-section.tsx` (generic expand/collapse list), `contact-info-section.tsx` (4-column phone/email/address/hours grid), `custom-html-section.tsx` (raw HTML with `<script>` stripping guardrail).
+- **3 new `LeadSource` union members:** `section_program_outcomes`, `section_accordion`, `section_contact_info` — wired through to the CTA modal so analytics can attribute leads back to these new sections.
+
+### Changed
+
+- `faq-section.tsx`, `testimonials-section.tsx`, `benefits-section.tsx`, `career-section.tsx`, `curriculum-section.tsx` — CTA fallback text consolidated into the `ctaText` variable declaration so the button always renders when `cta_enabled` is true (previously some renderers required the editor to have explicitly filled in `cta_text_he`).
+- Builder default content templates extended with `cta_text_he: ""` + `cta_enabled: true` for all CTA-bearing section types so new sections immediately show the default button.
+- `SECTION_LABELS` map in builder updated with Hebrew labels for `countdown`, `program_outcomes`, `accordion`, `contact_info`, `custom_html`.
+
+---
+
+## [0.6.0] - 2026-04-07
+
+### Added
+
+- **Logo management (ניהול לוגואים):** new admin page at `/dashboard/logos` for uploading multiple brand logos. One logo is the site-wide default; the rest can be assigned per page.
+- **`logos` table:** dedicated Postgres table with partial unique index `logos_one_default` ensuring exactly one default logo at any time. RLS allows anon SELECT (so landing pages can render) and authenticated full CRUD.
+- **`LogoPicker` reusable component:** grid picker with previews used in both global Settings and per-page Settings; allows clearing back to the default.
+- **Cascading logo resolution:** every public surface (homepage, landing page header & footer, event pages, thank-you page) now resolves logo as: per-page override → global default from `logos` table → hardcoded ONO_LOGO fallback.
+- **Sidebar nav entry:** "ניהול לוגואים" added to the Content group with `ImagePlus` icon and translations for HE/EN/AR.
+
+### Changed
+
+- Hardcoded `ONO_LOGO` constants in `landing-page-layout.tsx`, `event-page-layout.tsx`, `thank-you-page.tsx`, and `homepage-client.tsx` are now overridable via prop and renamed to `ONO_LOGO_FALLBACK` (preserving backward compatibility).
+- `event-page-layout.tsx` adopts a `EventLogoContext` (React Context) so its 5 sub-components share the resolved logo without prop drilling.
+
+---
+
 ## [0.5.0] - 2026-04-07
 
 ### Added

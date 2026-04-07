@@ -27,11 +27,14 @@ export type { EventMeta };
 // ============================================================================
 
 /**
- * Fetches a published event page and its meta from Supabase.
+ * Fetches a published event page, its meta, and the resolved brand logo URL.
+ * The logo cascades: page override → global default → undefined (component falls back).
  * @param slug - URL slug identifying the event page
- * @returns page data or null if not found
+ * @returns page data + resolved logo URL, or null if not found
  */
-async function getEventPageData(slug: string): Promise<{ page: Page; eventMeta: EventMeta } | null> {
+async function getEventPageData(
+  slug: string
+): Promise<{ page: Page; eventMeta: EventMeta; logoUrl?: string } | null> {
   const supabase = await createClient();
 
   const { data: page } = await supabase
@@ -45,11 +48,25 @@ async function getEventPageData(slug: string): Promise<{ page: Page; eventMeta: 
   if (!page) return null;
 
   // Event configuration is stored in custom_styles JSON field
-  const eventMeta = (page.custom_styles || {}) as EventMeta;
+  const customStyles = (page.custom_styles || {}) as Record<string, unknown>;
+  const eventMeta = customStyles as unknown as EventMeta;
+
+  // Resolve the brand logo: per-page override > default logo from logos table
+  const pageSettings = (customStyles.page_settings ?? {}) as { logo_url?: string };
+  let logoUrl: string | undefined = pageSettings.logo_url;
+  if (!logoUrl) {
+    const { data: defaultLogo } = await supabase
+      .from("logos")
+      .select("url")
+      .eq("is_default", true)
+      .maybeSingle();
+    logoUrl = defaultLogo?.url;
+  }
 
   return {
     page: page as Page,
     eventMeta,
+    logoUrl,
   };
 }
 
@@ -108,7 +125,7 @@ export default async function EventLandingPage({ params }: PageProps) {
 
   if (!data) notFound();
 
-  const { page, eventMeta } = data;
+  const { page, eventMeta, logoUrl } = data;
 
   // JSON-LD Event schema for SEO
   const eventSchema: Record<string, unknown> = {
@@ -155,6 +172,7 @@ export default async function EventLandingPage({ params }: PageProps) {
       <EventPageLayout
         page={page}
         eventMeta={eventMeta}
+        logoUrl={logoUrl}
       />
     </>
   );

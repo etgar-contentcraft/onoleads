@@ -8,7 +8,7 @@
 
 "use client";
 
-import { Suspense, useEffect, useState, useCallback, useRef } from "react";
+import { Suspense, useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -37,6 +37,7 @@ import {
   ArrowDownRight,
   Minus,
   Globe,
+  MapPin,
   Send,
   AlertTriangle,
   Calendar,
@@ -61,12 +62,16 @@ import type {
   AttributionModel,
   ViewMode,
   PeriodPreset,
+  AnalyticsFilters,
 } from "@/lib/analytics/types";
+import { EMPTY_FILTERS } from "@/lib/analytics/types";
 import {
   computeAllAnalytics,
   getDateRange,
   formatDuration,
   pctChange,
+  applyFilters,
+  getUniqueValues,
 } from "@/lib/analytics/compute";
 
 /* ============================================================================ */
@@ -111,6 +116,50 @@ const DEVICE_COLORS: Record<string, string> = {
 
 /** Color palette for bar charts */
 const BAR_COLORS = ["#B8D900", "#3B82F6", "#F59E0B", "#8B5CF6", "#EF4444", "#06B6D4", "#EC4899", "#10B981"];
+
+/** ISO-2 country code → Hebrew display name (the most common visitor locales) */
+const COUNTRY_NAMES_HE: Record<string, string> = {
+  IL: "ישראל",
+  US: "ארצות הברית",
+  GB: "בריטניה",
+  DE: "גרמניה",
+  FR: "צרפת",
+  RU: "רוסיה",
+  CA: "קנדה",
+  AU: "אוסטרליה",
+  IT: "איטליה",
+  ES: "ספרד",
+  NL: "הולנד",
+  BE: "בלגיה",
+  CH: "שווייץ",
+  AT: "אוסטריה",
+  SE: "שוודיה",
+  NO: "נורווגיה",
+  DK: "דנמרק",
+  FI: "פינלנד",
+  PL: "פולין",
+  BR: "ברזיל",
+  AR: "ארגנטינה",
+  MX: "מקסיקו",
+  IN: "הודו",
+  CN: "סין",
+  JP: "יפן",
+  KR: "דרום קוריאה",
+  TR: "טורקיה",
+  AE: "איחוד האמירויות",
+  SA: "ערב הסעודית",
+  EG: "מצרים",
+  ZA: "דרום אפריקה",
+};
+
+/** Country code → flag emoji helper for the geo breakdown card */
+function countryFlag(code: string): string {
+  if (!code || code.length !== 2) return "🌐";
+  /* Convert ISO-2 → regional indicator symbols (flag emoji) */
+  const A = 0x1f1e6;
+  const a = "A".charCodeAt(0);
+  return String.fromCodePoint(A + (code.charCodeAt(0) - a)) + String.fromCodePoint(A + (code.charCodeAt(1) - a));
+}
 
 /* ============================================================================ */
 /*  UI Helper Components                                                        */
@@ -315,6 +364,156 @@ function PageFilterDropdown({
 }
 
 /* ============================================================================ */
+/*  Generic Multi-Select Filter Dropdown                                        */
+/* ============================================================================ */
+
+/**
+ * Generic multi-select filter dropdown — used for source/medium/campaign/device/country.
+ * Same UX as PageFilterDropdown but accepts an arbitrary string list of options.
+ *
+ * @param label - Hebrew label shown when nothing is selected (e.g. "מקורות")
+ * @param icon - Lucide icon shown in the trigger button
+ * @param options - Array of available values to choose from
+ * @param selected - Currently selected values
+ * @param onChange - Called when selection changes
+ * @param displayName - Optional transformer for display labels (e.g. country code → name)
+ */
+function MultiSelectFilter({
+  label,
+  icon,
+  options,
+  selected,
+  onChange,
+  displayName,
+  width = 160,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  options: string[];
+  selected: string[];
+  onChange: (values: string[]) => void;
+  displayName?: (raw: string) => string;
+  width?: number;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  /* Close on click outside */
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const display = displayName || ((s: string) => s);
+  const filtered = options.filter((o) =>
+    o.toLowerCase().includes(search.toLowerCase()) ||
+    display(o).toLowerCase().includes(search.toLowerCase())
+  );
+
+  const toggle = (val: string) => {
+    if (selected.includes(val)) onChange(selected.filter((v) => v !== val));
+    else onChange([...selected, val]);
+  };
+
+  const buttonLabel =
+    selected.length === 0
+      ? label
+      : selected.length === 1
+        ? display(selected[0])
+        : `${selected.length} ${label}`;
+
+  /* Hide entirely when no options exist (keeps the bar tidy on small datasets) */
+  if (options.length === 0) return null;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ minWidth: width }}
+        className="flex items-center gap-2 h-9 px-3 rounded-lg border border-gray-200 bg-white text-sm hover:bg-gray-50 transition-colors"
+      >
+        <span className="text-[#9A969A] shrink-0">{icon}</span>
+        <span className="truncate text-[#2a2628]">{buttonLabel}</span>
+        <ChevronDown size={14} className={`text-[#9A969A] shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {selected.length > 0 && (
+        <button
+          onClick={() => onChange([])}
+          className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+          aria-label="נקה"
+        >
+          <X size={10} />
+        </button>
+      )}
+
+      {isOpen && (
+        <div className="absolute top-full mt-1 right-0 w-72 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <Search size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9A969A]" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="חיפוש..."
+                className="w-full h-8 pr-8 pl-2 text-sm rounded-lg border border-gray-200 focus:border-[#B8D900] focus:outline-none"
+                dir="rtl"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-gray-100">
+            <button onClick={() => onChange(options)} className="text-xs text-[#3B82F6] hover:underline">
+              בחר הכל
+            </button>
+            <span className="text-[#9A969A]">·</span>
+            <button onClick={() => onChange([])} className="text-xs text-[#3B82F6] hover:underline">
+              נקה הכל
+            </button>
+            <span className="text-xs text-[#9A969A] mr-auto">
+              {selected.length}/{options.length}
+            </span>
+          </div>
+
+          <div className="max-h-60 overflow-y-auto py-1">
+            {filtered.length === 0 ? (
+              <p className="text-center text-sm text-[#9A969A] py-4">לא נמצאו תוצאות</p>
+            ) : (
+              filtered.map((opt) => {
+                const isSelected = selected.includes(opt);
+                return (
+                  <button
+                    key={opt}
+                    onClick={() => toggle(opt)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                      isSelected ? "bg-[#B8D900]/5" : ""
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                      isSelected ? "bg-[#B8D900] border-[#B8D900]" : "border-gray-300"
+                    }`}>
+                      {isSelected && <Check size={10} className="text-white" />}
+                    </div>
+                    <span className="truncate text-[#2a2628] text-right flex-1">{display(opt)}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================================ */
 /*  Main Page Component                                                         */
 /* ============================================================================ */
 
@@ -348,6 +547,12 @@ function AnalyticsDashboardPage() {
   );
   const [viewMode, setViewMode] = useState<ViewMode>("users");
   const [attributionModel, setAttributionModel] = useState<AttributionModel>("last_touch");
+  /** Cross-dimension filters (UTM, device, geo, referrer) */
+  const [filters, setFilters] = useState<AnalyticsFilters>(EMPTY_FILTERS);
+  /** Raw events kept in memory so filter changes don't refetch */
+  const [rawCurrent, setRawCurrent] = useState<AnalyticsEvent[]>([]);
+  const [rawPrev, setRawPrev] = useState<AnalyticsEvent[]>([]);
+  const [rawPageInfoMap, setRawPageInfoMap] = useState<Map<string, PageInfo>>(new Map());
 
   /* Page list for filter */
   const [allPages, setAllPages] = useState<PageInfo[]>([]);
@@ -377,23 +582,34 @@ function AnalyticsDashboardPage() {
   }, []);
 
   /* ─── Fetch analytics data ─── */
+  /**
+   * Fetches raw events from Supabase. Note: filters (UTM/device/geo/referrer)
+   * are applied client-side AFTER the fetch — this lets the user toggle
+   * filters without re-querying the database, and keeps the filter dropdowns
+   * populated with the full list of available values for the date range.
+   */
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     setFetchError(null);
     try {
       const range = getDateRange(period, dateFrom, dateTo);
 
+      /** Columns selected from analytics_events. Includes geo + section. */
+      const cols =
+        "id, event_type, page_id, cookie_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term, " +
+        "referrer_domain, device_type, webhook_status, scroll_depth, time_on_page, country, region, city, created_at";
+
       /* Build query — filter by selected pages if any */
       let currentQuery = supabase
         .from("analytics_events")
-        .select("id, event_type, page_id, cookie_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer_domain, device_type, webhook_status, created_at")
+        .select(cols)
         .gte("created_at", range.startISO)
         .lte("created_at", range.endISO)
         .limit(MAX_ROWS);
 
       let prevQuery = supabase
         .from("analytics_events")
-        .select("id, event_type, page_id, cookie_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer_domain, device_type, webhook_status, created_at")
+        .select(cols)
         .gte("created_at", range.prevStartISO)
         .lte("created_at", range.prevEndISO)
         .limit(MAX_ROWS);
@@ -409,8 +625,8 @@ function AnalyticsDashboardPage() {
       if (currentRes.error) console.warn("[analytics] current query error:", currentRes.error.message);
       if (prevRes.error) console.warn("[analytics] prev query error:", prevRes.error.message);
 
-      const currentEvents = (currentRes.data ?? []) as AnalyticsEvent[];
-      const prevEvents = (prevRes.data ?? []) as AnalyticsEvent[];
+      const currentEvents = (currentRes.data ?? []) as unknown as AnalyticsEvent[];
+      const prevEvents = (prevRes.data ?? []) as unknown as AnalyticsEvent[];
 
       /* Build page info map */
       const pageIds = new Set<string>();
@@ -430,16 +646,54 @@ function AnalyticsDashboardPage() {
         }
       }
 
-      /* Compute all analytics */
-      const analytics = computeAllAnalytics(currentEvents, prevEvents, pageInfoMap, attributionModel);
-      setData(analytics);
+      /* Stash raw events so we can re-compute when filters change */
+      setRawCurrent(currentEvents);
+      setRawPrev(prevEvents);
+      setRawPageInfoMap(pageInfoMap);
     } catch (err) {
       console.error("[analytics] fetchAnalytics error:", err);
       setFetchError("שגיאה בטעינת נתוני האנליטיקס. נסו לרענן את הדף.");
     } finally {
       setLoading(false);
     }
-  }, [period, dateFrom, dateTo, selectedPageIds, attributionModel]);
+  }, [period, dateFrom, dateTo, selectedPageIds]);
+
+  /* ─── Re-compute when filters / attribution change ───
+   * This is fast (no network) — purely in-memory aggregation. */
+  useEffect(() => {
+    if (rawCurrent.length === 0 && rawPrev.length === 0) {
+      setData(null);
+      return;
+    }
+    const filteredCurrent = applyFilters(rawCurrent, filters);
+    const filteredPrev = applyFilters(rawPrev, filters);
+    const analytics = computeAllAnalytics(filteredCurrent, filteredPrev, rawPageInfoMap, attributionModel);
+    setData(analytics);
+  }, [rawCurrent, rawPrev, rawPageInfoMap, filters, attributionModel]);
+
+  /* ─── Derived: filter dropdown options from current dataset ───
+   * Recomputed only when raw data changes; the dropdowns stay populated even
+   * after the user filters the dataset. */
+  const availableFilterOptions = useMemo(
+    () => ({
+      sources: getUniqueValues(rawCurrent, "utm_source"),
+      mediums: getUniqueValues(rawCurrent, "utm_medium"),
+      campaigns: getUniqueValues(rawCurrent, "utm_campaign"),
+      devices: getUniqueValues(rawCurrent, "device_type"),
+      countries: getUniqueValues(rawCurrent, "country"),
+      referrers: getUniqueValues(rawCurrent, "referrer_domain"),
+    }),
+    [rawCurrent]
+  );
+
+  /** True if any cross-dimension filter is active */
+  const hasActiveFilters =
+    filters.sources.length > 0 ||
+    filters.mediums.length > 0 ||
+    filters.campaigns.length > 0 ||
+    filters.devices.length > 0 ||
+    filters.countries.length > 0 ||
+    filters.referrers.length > 0;
 
   /* Fetch on mount and when filters change */
   useEffect(() => {
@@ -627,6 +881,69 @@ function AnalyticsDashboardPage() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Cross-dimension filters bar (UTM / device / geo / referrer) */}
+        <div className="flex flex-wrap items-center gap-2 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+          <span className="text-xs font-semibold text-[#716C70] flex items-center gap-1.5 ml-1">
+            <Filter size={12} /> סינון מתקדם:
+          </span>
+          <MultiSelectFilter
+            label="מקור (source)"
+            icon={<Globe size={13} />}
+            options={availableFilterOptions.sources}
+            selected={filters.sources}
+            onChange={(v) => setFilters({ ...filters, sources: v })}
+          />
+          <MultiSelectFilter
+            label="ערוץ (medium)"
+            icon={<Send size={13} />}
+            options={availableFilterOptions.mediums}
+            selected={filters.mediums}
+            onChange={(v) => setFilters({ ...filters, mediums: v })}
+          />
+          <MultiSelectFilter
+            label="קמפיין"
+            icon={<MousePointerClick size={13} />}
+            options={availableFilterOptions.campaigns}
+            selected={filters.campaigns}
+            onChange={(v) => setFilters({ ...filters, campaigns: v })}
+            width={180}
+          />
+          <MultiSelectFilter
+            label="מכשיר"
+            icon={<Layers size={13} />}
+            options={availableFilterOptions.devices}
+            selected={filters.devices}
+            onChange={(v) => setFilters({ ...filters, devices: v })}
+            displayName={(d) => DEVICE_LABELS[d] || d}
+            width={120}
+          />
+          <MultiSelectFilter
+            label="מדינה"
+            icon={<Globe size={13} />}
+            options={availableFilterOptions.countries}
+            selected={filters.countries}
+            onChange={(v) => setFilters({ ...filters, countries: v })}
+            displayName={(c) => COUNTRY_NAMES_HE[c.toUpperCase()] || c}
+            width={140}
+          />
+          <MultiSelectFilter
+            label="הפניה"
+            icon={<Activity size={13} />}
+            options={availableFilterOptions.referrers}
+            selected={filters.referrers}
+            onChange={(v) => setFilters({ ...filters, referrers: v })}
+            width={150}
+          />
+          {hasActiveFilters && (
+            <button
+              onClick={() => setFilters(EMPTY_FILTERS)}
+              className="text-xs text-red-500 hover:text-red-600 hover:underline mr-auto"
+            >
+              נקה סינון מתקדם
+            </button>
+          )}
         </div>
 
         {/* Active filter badges */}
@@ -1218,6 +1535,165 @@ function AnalyticsDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ================================================================== */}
+      {/* Geo breakdown — countries / regions / cities                       */}
+      {/* Only rendered when there is at least one country-tagged event so   */}
+      {/* pre-geo-migration data doesn't show empty cards.                   */}
+      {/* ================================================================== */}
+      {data.geoCountries.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Countries */}
+          <Card className="border-0 shadow-sm rounded-2xl">
+            <CardHeader>
+              <CardTitle className="text-base font-bold text-[#2a2628] flex items-center gap-2">
+                <Globe size={16} className="text-blue-500" />
+                מדינות
+              </CardTitle>
+              <CardDescription className="text-xs">פילוח גאוגרפי לפי מדינת המבקר</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.geoCountries.length === 0 ? (
+                <p className="text-center text-[#9A969A] py-4 text-sm">אין נתונים</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {data.geoCountries.slice(0, 8).map((entry, idx) => {
+                    const maxCount = Math.max(...data.geoCountries.map((c) => c.count), 1);
+                    const pct = Math.round((entry.count / maxCount) * 100);
+                    const displayName =
+                      COUNTRY_NAMES_HE[entry.code.toUpperCase()] || entry.name;
+                    return (
+                      <div key={entry.code} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-[#4A4648] flex items-center gap-2">
+                            <span className="text-base leading-none">{countryFlag(entry.code)}</span>
+                            {displayName}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-[#9A969A]">
+                              {entry.submissions} לידים · {entry.conversion}%
+                            </span>
+                            <span className="font-bold text-[#2a2628] tabular-nums">
+                              {entry.count.toLocaleString("he-IL")}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-blue-400 transition-all duration-500"
+                            style={{
+                              width: mounted ? `${pct}%` : "0%",
+                              transitionDelay: `${idx * 60}ms`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Regions / states */}
+          <Card className="border-0 shadow-sm rounded-2xl">
+            <CardHeader>
+              <CardTitle className="text-base font-bold text-[#2a2628] flex items-center gap-2">
+                <MapPin size={16} className="text-purple-500" />
+                מחוזות / מדינות-משנה
+              </CardTitle>
+              <CardDescription className="text-xs">פילוח לפי אזור (ארה&quot;ב, אירופה וכו&apos;)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.geoRegions.length === 0 ? (
+                <p className="text-center text-[#9A969A] py-4 text-sm">אין נתונים</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {data.geoRegions.slice(0, 8).map((entry, idx) => {
+                    const maxCount = Math.max(...data.geoRegions.map((r) => r.count), 1);
+                    const pct = Math.round((entry.count / maxCount) * 100);
+                    return (
+                      <div key={entry.code} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-[#4A4648] truncate" title={entry.name}>
+                            {entry.name}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-[#9A969A]">
+                              {entry.submissions} לידים
+                            </span>
+                            <span className="font-bold text-[#2a2628] tabular-nums">
+                              {entry.count.toLocaleString("he-IL")}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-purple-400 transition-all duration-500"
+                            style={{
+                              width: mounted ? `${pct}%` : "0%",
+                              transitionDelay: `${idx * 60}ms`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Cities */}
+          <Card className="border-0 shadow-sm rounded-2xl">
+            <CardHeader>
+              <CardTitle className="text-base font-bold text-[#2a2628] flex items-center gap-2">
+                <MapPin size={16} className="text-emerald-500" />
+                ערים
+              </CardTitle>
+              <CardDescription className="text-xs">8 הערים המובילות בתקופה הנבחרת</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.geoCities.length === 0 ? (
+                <p className="text-center text-[#9A969A] py-4 text-sm">אין נתונים</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {data.geoCities.slice(0, 8).map((entry, idx) => {
+                    const maxCount = Math.max(...data.geoCities.map((c) => c.count), 1);
+                    const pct = Math.round((entry.count / maxCount) * 100);
+                    return (
+                      <div key={entry.code} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-[#4A4648] truncate" title={entry.name}>
+                            {entry.name}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-[#9A969A]">
+                              {entry.submissions} לידים
+                            </span>
+                            <span className="font-bold text-[#2a2628] tabular-nums">
+                              {entry.count.toLocaleString("he-IL")}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+                            style={{
+                              width: mounted ? `${pct}%` : "0%",
+                              transitionDelay: `${idx * 60}ms`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* ================================================================== */}
       {/* Pages per session + Session stats (shown in session view)          */}

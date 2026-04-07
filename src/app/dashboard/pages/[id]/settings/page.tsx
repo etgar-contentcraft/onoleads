@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Loader2, Save, ExternalLink, Tag, Search, X, ChevronUp, ChevronDown, Link2 } from "lucide-react";
+import { LogoPicker } from "@/components/admin/logo-picker";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 import type { InterestArea } from "@/lib/types/database";
@@ -864,13 +865,13 @@ export default function PageSettingsPage() {
             <CardDescription>לוגו מותאם וטקסט כפתור ייעודי לעמוד זה</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <OverrideField label="לוגו מותאם (URL)" fieldKey="logo_url" globalValue={globalSettings.logo_url} overrides={overrides} onChange={set} />
-            {overrides.logo_url && (
-              <div className="p-3 bg-[#f3f4f6] rounded-xl flex items-center justify-center">
-                <img src={overrides.logo_url} alt="Logo preview" className="max-h-10 object-contain"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-              </div>
-            )}
+            <LogoPicker
+              label="לוגו לעמוד זה"
+              value={overrides.logo_url || ""}
+              onChange={(url) => set("logo_url", url)}
+              allowClear={true}
+              hint='בחרו לוגו ספציפי לעמוד זה. "ברירת מחדל" מחזיר את הלוגו הראשי של האתר.'
+            />
             <OverrideField label="טקסט CTA" fieldKey="default_cta_text" globalValue={globalSettings.default_cta_text} dir="rtl" hint="טקסט על כפתורי ההרשמה בעמוד זה. תומך בטקסט דינמי: {{utm_source}}, {{utm_campaign}}, {{utm_source|Google}}" overrides={overrides} onChange={set} />
           </CardContent>
         </Card>

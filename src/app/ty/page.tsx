@@ -80,6 +80,7 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
   // ── Fetch page-specific settings ──────────────────────────────────────────
   let pageTySettings: Partial<ThankYouPageSettings> = {};
   let pageWhatsapp = "";
+  let pageLogoUrl = "";
   let programName = "";
   let language = "he";
 
@@ -93,10 +94,23 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
     if (page) {
       const cs = (page.custom_styles || {}) as Record<string, unknown>;
       pageTySettings = (cs.thank_you_settings || {}) as Partial<ThankYouPageSettings>;
-      pageWhatsapp = ((cs.page_settings as Record<string, string>) || {}).whatsapp_number || "";
+      const pageSettingsObj = (cs.page_settings as Record<string, string>) || {};
+      pageWhatsapp = pageSettingsObj.whatsapp_number || "";
+      pageLogoUrl = pageSettingsObj.logo_url || "";
       programName = page.title_he || "";
       language = page.language || "he";
     }
+  }
+
+  // ── Resolve logo: page override > default logo from logos table ───────────
+  let resolvedLogoUrl: string | undefined = pageLogoUrl || undefined;
+  if (!resolvedLogoUrl) {
+    const { data: defaultLogoRow } = await supabase
+      .from("logos")
+      .select("url")
+      .eq("is_default", true)
+      .maybeSingle();
+    resolvedLogoUrl = defaultLogoRow?.url;
   }
 
   // ── Merge settings: page overrides global ─────────────────────────────────
@@ -158,6 +172,7 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
           settings={settings}
           pageSlug={slug}
           language={language}
+          logoUrl={resolvedLogoUrl}
         />
       </body>
     </html>

@@ -27,7 +27,10 @@ export function FaqSection({ content, language }: FaqSectionProps) {
   const { open } = useCtaModal();
   const isRtl = language === "he" || language === "ar";
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "שאלות נפוצות" : "FAQ");
-  const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || "";
+  const ctaText =
+    (content[`cta_text_${language}`] as string) ||
+    (content.cta_text_he as string) ||
+    (isRtl ? "יש לכם עוד שאלה? דברו איתנו" : "Have More Questions? Contact Us");
   const ctaEnabled = content.cta_enabled !== false;
   const items: FaqItem[] = Array.isArray(content.items) ? (content.items as FaqItem[]) : [];
   const [openIndex, setOpenIndex] = useState<number | null>(0);
@@ -157,8 +160,8 @@ export function FaqSection({ content, language }: FaqSectionProps) {
           })}
         </div>
 
-        {/* CTA Button */}
-        {ctaEnabled && ctaText && (
+        {/* CTA Button — always shown when ctaEnabled (falls back to a default if not overridden) */}
+        {ctaEnabled && (
           <div
             className="text-center mt-14 opacity-0"
             style={{ animation: inView ? `fade-in-up 0.6s ease-out ${0.2 + items.length * 0.06}s forwards` : "none" }}

@@ -80,5 +80,18 @@ export default async function HomePage() {
   const safePrograms: ProgramWithFaculty[] = (programs as ProgramWithFaculty[]) || [];
   const safeEvents: HomepageEventPage[] = (eventPages as HomepageEventPage[]) || [];
 
-  return <HomepageClient programs={safePrograms} events={safeEvents} />;
+  // Resolve the brand default logo from the logos library (falls back inside the component)
+  const { data: defaultLogo } = await supabase
+    .from("logos")
+    .select("url")
+    .eq("is_default", true)
+    .maybeSingle();
+
+  return (
+    <HomepageClient
+      programs={safePrograms}
+      events={safeEvents}
+      logoUrl={defaultLogo?.url}
+    />
+  );
 }

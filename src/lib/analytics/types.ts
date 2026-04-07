@@ -23,6 +23,12 @@ export interface AnalyticsEvent {
   scroll_depth: number | null;
   /** Time spent on the page in seconds */
   time_on_page: number | null;
+  /** ISO 3166-1 alpha-2 country code from Vercel edge headers */
+  country: string | null;
+  /** State / region / district from Vercel edge headers */
+  region: string | null;
+  /** City name from Vercel edge headers */
+  city: string | null;
   created_at: string;
 }
 
@@ -128,6 +134,18 @@ export interface HourlyEntry {
   submissions: number;
 }
 
+/** Geo breakdown entry (country / region / city → event count) */
+export interface GeoEntry {
+  /** Display name (country name, region name, or city name) */
+  name: string;
+  /** ISO code or raw key (used as React key) */
+  code: string;
+  count: number;
+  uniqueVisitors: number;
+  submissions: number;
+  conversion: number;
+}
+
 /** Full computed analytics data passed to the dashboard */
 export interface AnalyticsData {
   /* Key metrics — current period */
@@ -147,6 +165,10 @@ export interface AnalyticsData {
   webhookFailed: number;
   /* Attribution */
   attribution: AttributionResult[];
+  /* Geo breakdowns */
+  geoCountries: GeoEntry[];
+  geoRegions: GeoEntry[];
+  geoCities: GeoEntry[];
 }
 
 /* ─── View Mode ─── */
@@ -166,3 +188,36 @@ export interface DateRange {
   prevStartISO: string;
   prevEndISO: string;
 }
+
+/* ─── Cross-Dimension Filters ─── */
+
+/**
+ * Filter selections that narrow the analytics dataset along any dimension.
+ * Empty array on a key = no filter on that dimension.
+ * The dashboard applies these AFTER fetching events from the DB so the date
+ * range remains the only DB-side filter (avoids cache misses + index thrashing).
+ */
+export interface AnalyticsFilters {
+  /** UTM source values to keep (e.g. ["google", "facebook"]) */
+  sources: string[];
+  /** UTM medium values to keep (e.g. ["cpc", "email"]) */
+  mediums: string[];
+  /** UTM campaign values to keep */
+  campaigns: string[];
+  /** Device types to keep (mobile / desktop / tablet) */
+  devices: string[];
+  /** ISO country codes to keep (e.g. ["IL", "US"]) */
+  countries: string[];
+  /** Referrer domains to keep */
+  referrers: string[];
+}
+
+/** Empty filter object (no filters active) */
+export const EMPTY_FILTERS: AnalyticsFilters = {
+  sources: [],
+  mediums: [],
+  campaigns: [],
+  devices: [],
+  countries: [],
+  referrers: [],
+};

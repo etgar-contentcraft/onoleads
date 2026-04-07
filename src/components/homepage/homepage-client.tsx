@@ -12,6 +12,8 @@ interface HomepageClientProps {
   programs: ProgramWithFaculty[];
   /** Upcoming published event pages to show in the events section */
   events: HomepageEventPage[];
+  /** Optional brand logo URL — falls back to the hardcoded ONO logo */
+  logoUrl?: string;
 }
 
 interface QuizCategory {
@@ -27,7 +29,8 @@ interface QuizCategory {
 // Constants
 // ============================================================================
 
-const ONO_LOGO = "https://www.ono.ac.il/wp-content/uploads/2025/12/לוגו-אונו.png";
+/** Hardcoded fallback used when no logo URL is configured. */
+const ONO_LOGO_FALLBACK = "https://www.ono.ac.il/wp-content/uploads/2025/12/לוגו-אונו.png";
 const CAMPUS_IMAGE = "https://www.ono.ac.il/wp-content/uploads/2023/04/Ono_009-min-1-scaled-e1649600345705-2-2.jpg";
 const STUDENTS_IMAGE = "https://www.ono.ac.il/wp-content/uploads/2022/08/MG_0528-min-scaled.jpg";
 const STUDENTS2_IMAGE = "https://www.ono.ac.il/wp-content/uploads/2022/08/MG_9689-min-scaled.jpg";
@@ -370,7 +373,8 @@ function EventCard({ event, index }: { event: HomepageEventPage; index: number }
  * @param programs - Active programs with faculty data
  * @param events - Published event pages to show in the upcoming events section
  */
-export function HomepageClient({ programs, events }: HomepageClientProps) {
+export function HomepageClient({ programs, events, logoUrl }: HomepageClientProps) {
+  const ONO_LOGO = logoUrl || ONO_LOGO_FALLBACK;
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [formData, setFormData] = useState({ full_name: "", phone: "", email: "", program_interest: "" });

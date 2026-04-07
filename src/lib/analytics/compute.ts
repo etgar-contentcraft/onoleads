@@ -14,8 +14,10 @@ import type {
   PageStats,
   UtmCampaignRow,
   HourlyEntry,
+  GeoEntry,
   PageInfo,
   AnalyticsData,
+  AnalyticsFilters,
 } from "./types";
 
 /* ─── Constants ─── */
@@ -505,6 +507,180 @@ export function computeWebhookStats(events: AnalyticsEvent[]): { sent: number; f
 }
 
 /* ============================================================================ */
+/*  Geo Breakdowns                                                              */
+/* ============================================================================ */
+
+/** Friendly country names for the most common visitor locales */
+const COUNTRY_NAMES_HE: Record<string, string> = {
+  IL: "ישראל",
+  US: "ארצות הברית",
+  GB: "בריטניה",
+  DE: "גרמניה",
+  FR: "צרפת",
+  RU: "רוסיה",
+  CA: "קנדה",
+  AU: "אוסטרליה",
+  IT: "איטליה",
+  ES: "ספרד",
+  NL: "הולנד",
+  BE: "בלגיה",
+  CH: "שווייץ",
+  AT: "אוסטריה",
+  SE: "שוודיה",
+  NO: "נורווגיה",
+  DK: "דנמרק",
+  FI: "פינלנד",
+  PL: "פולין",
+  BR: "ברזיל",
+  AR: "ארגנטינה",
+  MX: "מקסיקו",
+  IN: "הודו",
+  CN: "סין",
+  JP: "יפן",
+  KR: "דרום קוריאה",
+  TR: "טורקיה",
+  AE: "איחוד האמירויות",
+  SA: "ערב הסעודית",
+  EG: "מצרים",
+  ZA: "דרום אפריקה",
+};
+
+/**
+ * Resolves an ISO-2 country code into a Hebrew display name.
+ * Falls back to the raw code when no translation is available.
+ */
+function countryDisplayName(code: string): string {
+  return COUNTRY_NAMES_HE[code.toUpperCase()] || code;
+}
+
+/**
+ * Generic geo breakdown helper.
+ * Aggregates events by a geo dimension and returns top N entries with
+ * counts, unique visitors, submissions and conversion rate.
+ *
+ * @param events - All events to analyse
+ * @param key - Which geo column to group by ("country" | "region" | "city")
+ * @param displayName - Optional transformer for the display name
+ * @returns Sorted array of GeoEntry items, top N by count
+ */
+function computeGeoDimension(
+  events: AnalyticsEvent[],
+  key: "country" | "region" | "city",
+  displayName: (raw: string) => string = (s) => s
+): GeoEntry[] {
+  /** Map of bucket key → aggregated stats */
+  const buckets = new Map<string, { count: number; subs: number; visitors: Set<string> }>();
+
+  for (const e of events) {
+    if (e.event_type !== "page_view" && e.event_type !== "form_submit") continue;
+    const raw = e[key];
+    if (!raw) continue;
+    const bucket = buckets.get(raw) || { count: 0, subs: 0, visitors: new Set<string>() };
+    if (e.event_type === "page_view") {
+      bucket.count++;
+      if (e.cookie_id) bucket.visitors.add(e.cookie_id);
+    }
+    if (e.event_type === "form_submit") bucket.subs++;
+    buckets.set(raw, bucket);
+  }
+
+  return Array.from(buckets.entries())
+    .map(([code, b]) => ({
+      code,
+      name: displayName(code),
+      count: b.count,
+      uniqueVisitors: b.visitors.size,
+      submissions: b.subs,
+      conversion: b.count > 0 ? Math.round((b.subs / b.count) * 1000) / 10 : 0,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, TOP_N);
+}
+
+/**
+ * Computes top countries by page views with conversion stats.
+ */
+export function computeGeoCountries(events: AnalyticsEvent[]): GeoEntry[] {
+  return computeGeoDimension(events, "country", countryDisplayName);
+}
+
+/**
+ * Computes top regions/states by page views with conversion stats.
+ */
+export function computeGeoRegions(events: AnalyticsEvent[]): GeoEntry[] {
+  return computeGeoDimension(events, "region");
+}
+
+/**
+ * Computes top cities by page views with conversion stats.
+ */
+export function computeGeoCities(events: AnalyticsEvent[]): GeoEntry[] {
+  return computeGeoDimension(events, "city");
+}
+
+/* ============================================================================ */
+/*  Filter Application                                                          */
+/* ============================================================================ */
+
+/**
+ * Applies a set of cross-dimension filters to an event array.
+ * Empty filter arrays are treated as "no filter" — they pass everything.
+ *
+ * Important: form_submit events are kept whenever ANY of their UTM/device/geo
+ * fields match the filter, so attribution chains aren't broken when only the
+ * earliest touch point matches a campaign filter. (Strict matching is applied
+ * per dimension; we just don't filter form_submits more aggressively than
+ * page_views.)
+ *
+ * @param events - Raw events to filter
+ * @param filters - Filter selections (any empty array means "all")
+ * @returns Filtered events
+ */
+export function applyFilters(events: AnalyticsEvent[], filters: AnalyticsFilters): AnalyticsEvent[] {
+  const hasSources = filters.sources.length > 0;
+  const hasMediums = filters.mediums.length > 0;
+  const hasCampaigns = filters.campaigns.length > 0;
+  const hasDevices = filters.devices.length > 0;
+  const hasCountries = filters.countries.length > 0;
+  const hasReferrers = filters.referrers.length > 0;
+
+  /* Short-circuit: nothing to filter */
+  if (!hasSources && !hasMediums && !hasCampaigns && !hasDevices && !hasCountries && !hasReferrers) {
+    return events;
+  }
+
+  return events.filter((e) => {
+    if (hasSources && !filters.sources.includes(e.utm_source || "")) return false;
+    if (hasMediums && !filters.mediums.includes(e.utm_medium || "")) return false;
+    if (hasCampaigns && !filters.campaigns.includes(e.utm_campaign || "")) return false;
+    if (hasDevices && !filters.devices.includes(e.device_type || "")) return false;
+    if (hasCountries && !filters.countries.includes(e.country || "")) return false;
+    if (hasReferrers && !filters.referrers.includes(e.referrer_domain || "")) return false;
+    return true;
+  });
+}
+
+/**
+ * Extracts the list of unique non-empty values for a given dimension.
+ * Used to populate filter dropdowns dynamically from the current dataset.
+ *
+ * @param events - Events to scan
+ * @param key - Field name to collect values for
+ * @returns Sorted, deduplicated values
+ */
+export function getUniqueValues<K extends keyof AnalyticsEvent>(
+  events: AnalyticsEvent[],
+  key: K
+): string[] {
+  const set = new Set<string>();
+  for (const e of events) {
+    const v = e[key];
+    if (v && typeof v === "string") set.add(v);
+  }
+  return Array.from(set).sort();
+}
+
+/* ============================================================================ */
 /*  Full Analytics Computation                                                  */
 /* ============================================================================ */
 
@@ -539,6 +715,9 @@ export function computeAllAnalytics(
   const hourlyHeatmap = computeHourlyHeatmap(currentEvents);
   const webhookStats = computeWebhookStats(currentEvents);
   const attribution = computeAttribution(currentEvents, attributionModel);
+  const geoCountries = computeGeoCountries(currentEvents);
+  const geoRegions = computeGeoRegions(currentEvents);
+  const geoCities = computeGeoCities(currentEvents);
 
   return {
     metrics,
@@ -554,6 +733,9 @@ export function computeAllAnalytics(
     webhookSent: webhookStats.sent,
     webhookFailed: webhookStats.failed,
     attribution,
+    geoCountries,
+    geoRegions,
+    geoCities,
   };
 }
 

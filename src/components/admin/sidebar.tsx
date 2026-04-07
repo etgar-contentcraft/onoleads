@@ -33,6 +33,7 @@ import {
   Tag,
   Antenna,
   History,
+  ImagePlus,
 } from "lucide-react";
 import { useAdminLanguage } from "@/contexts/admin-language-context";
 import type { TranslationKey } from "@/lib/i18n/admin-translations";
@@ -77,6 +78,7 @@ const navGroups: NavGroup[] = [
     labelHe: "תוכן",
     items: [
       { labelKey: "nav_media",            href: "/dashboard/media",           icon: ImageIcon },
+      { labelKey: "nav_logos",            href: "/dashboard/logos",           icon: ImagePlus },
       { labelKey: "nav_faculty",          href: "/dashboard/faculty",         icon: GraduationCap },
       { labelKey: "nav_templates",        href: "/dashboard/templates",       icon: LayoutTemplate },
       { labelKey: "nav_interest_areas",   href: "/dashboard/interest-areas",  icon: Tag },

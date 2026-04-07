@@ -7,10 +7,25 @@
  */
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, createContext, useContext } from "react";
 import type { Page } from "@/lib/types/database";
 import { CookieConsent } from "../compliance/cookie-consent";
 import { AccessibilityWidget } from "../compliance/accessibility-widget";
+
+/**
+ * Provides the resolved brand-logo URL to all sub-components in this file
+ * without requiring prop drilling through StickyHeader, Hero, Footer, etc.
+ * The default value is the hardcoded ONO logo so sub-components rendered in
+ * isolation (e.g. tests) still work.
+ */
+const EventLogoContext = createContext<string>(
+  "https://www.ono.ac.il/wp-content/uploads/2025/12/לוגו-אונו.png"
+);
+
+/** Hook used by sub-components to read the resolved logo URL. */
+function useEventLogo(): string {
+  return useContext(EventLogoContext);
+}
 
 // ============================================================================
 // EventMeta Type (exported so route page and seed script can import it)
@@ -46,7 +61,9 @@ export interface EventMeta {
 // Constants
 // ============================================================================
 
-const ONO_LOGO = "https://www.ono.ac.il/wp-content/uploads/2025/12/לוגו-אונו.png";
+/** Hardcoded fallback used when no logo URL is configured in settings or page overrides. */
+const ONO_LOGO_FALLBACK =
+  "https://www.ono.ac.il/wp-content/uploads/2025/12/לוגו-אונו.png";
 const CAMPUS_IMAGE = "https://www.ono.ac.il/wp-content/uploads/2023/04/Ono_009-min-1-scaled-e1649600345705-2-2.jpg";
 
 // Countdown refresh interval in ms
@@ -59,6 +76,8 @@ const COUNTDOWN_INTERVAL_MS = 1000;
 interface EventPageLayoutProps {
   page: Page;
   eventMeta: EventMeta;
+  /** Resolved logo URL — falls back to the hardcoded ONO logo if undefined */
+  logoUrl?: string;
 }
 
 interface TimeLeft {
@@ -467,6 +486,7 @@ function EventFaqAccordion({ items }: { items: { question: string; answer: strin
  * Includes Ono logo, event title (truncated), and scroll-to-form CTA.
  */
 function EventStickyHeader({ title, onRegisterClick }: { title: string; onRegisterClick: () => void }) {
+  const ONO_LOGO = useEventLogo();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -510,6 +530,7 @@ function EventStickyHeader({ title, onRegisterClick }: { title: string; onRegist
  * Sections: hero + countdown, what to expect, schedule, map, programs, speakers, form, FAQ.
  */
 function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
+  const ONO_LOGO = useEventLogo();
   const formRef = useRef<HTMLDivElement>(null);
   const [heroVisible, setHeroVisible] = useState(false);
 
@@ -931,6 +952,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
  *           programs, registration form, calendar buttons, FAQ.
  */
 function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
+  const ONO_LOGO = useEventLogo();
   const formRef = useRef<HTMLDivElement>(null);
   const [heroVisible, setHeroVisible] = useState(false);
 
@@ -1342,10 +1364,19 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
  * @param page - Supabase page record
  * @param eventMeta - Event configuration extracted from custom_styles
  */
-export function EventPageLayout({ page, eventMeta }: EventPageLayoutProps) {
-  if (eventMeta.event_type === "event_zoom") {
-    return <ZoomOpenDayPage page={page} eventMeta={eventMeta} />;
-  }
-  // Default to physical layout for "event_physical" or any other value
-  return <PhysicalOpenDayPage page={page} eventMeta={eventMeta} />;
+export function EventPageLayout({ page, eventMeta, logoUrl }: EventPageLayoutProps) {
+  /** Resolved logo URL — derives from prop or falls back to the hardcoded ONO logo. */
+  const resolvedLogoUrl = logoUrl || ONO_LOGO_FALLBACK;
+  const inner =
+    eventMeta.event_type === "event_zoom" ? (
+      <ZoomOpenDayPage page={page} eventMeta={eventMeta} />
+    ) : (
+      // Default to physical layout for "event_physical" or any other value
+      <PhysicalOpenDayPage page={page} eventMeta={eventMeta} />
+    );
+  return (
+    <EventLogoContext.Provider value={resolvedLogoUrl}>
+      {inner}
+    </EventLogoContext.Provider>
+  );
 }

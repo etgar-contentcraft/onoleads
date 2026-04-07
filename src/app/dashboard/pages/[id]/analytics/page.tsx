@@ -153,6 +153,16 @@ interface ReferrerRow {
   count: number;
 }
 
+/** Geo row — country / region / city aggregated breakdown */
+interface GeoRow {
+  /** ISO-2 country code, region name, or city name */
+  code: string;
+  /** Display label (usually same as code for regions/cities) */
+  label: string;
+  count: number;
+  submissions: number;
+}
+
 /** Webhook status counts (form_submit events only) */
 interface WebhookStats {
   sent: number;
@@ -194,6 +204,11 @@ interface PageAnalytics {
   scrollDepthBands: ScrollDepthBand[];
   recentEvents: AnalyticsEvent[];
   recentSessions: VisitorSession[];
+  /* Geo breakdowns (country / region / city) — populated when events carry
+     geolocation headers from the /api/analytics/event ingest pipeline */
+  countries: GeoRow[];
+  regions: GeoRow[];
+  cities: GeoRow[];
 }
 
 /* ─── Helpers ─── */
@@ -434,7 +449,7 @@ export default function PageAnalyticsPage() {
         const { data: batch, error } = await supabase
           .from("analytics_events")
           /* Fetch only the columns used by computeMetrics / buildUtmBreakdown / session grouping */
-          .select("id, event_type, cookie_id, utm_source, utm_medium, utm_campaign, referrer_domain, device_type, webhook_status, scroll_depth, time_on_page, created_at")
+          .select("id, event_type, cookie_id, utm_source, utm_medium, utm_campaign, referrer_domain, device_type, webhook_status, scroll_depth, time_on_page, country, region, city, created_at")
           .eq("page_id", pageId)
           .gte("created_at", start)
           .lte("created_at", end)
@@ -442,7 +457,9 @@ export default function PageAnalyticsPage() {
           .range(offset, offset + PAGE_SIZE - 1);
 
         if (error || !batch) break;
-        allEvents = allEvents.concat(batch as AnalyticsEvent[]);
+        /* Supabase generated types can lag behind new columns (country/region/city),
+           so we go through `unknown` to stay compatible with either shape. */
+        allEvents = allEvents.concat(batch as unknown as AnalyticsEvent[]);
         hasMore = batch.length === PAGE_SIZE;
         offset += PAGE_SIZE;
       }
@@ -623,6 +640,33 @@ export default function PageAnalyticsPage() {
       .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())
       .slice(0, 20);
 
+    /* --- Geo breakdowns ---
+     * Group page views and form submissions by country / region / city.
+     * Events without a value for the given dimension are skipped (pre-geo
+     * data and local-dev traffic behave this way). */
+    const buildGeoBreakdown = (
+      field: "country" | "region" | "city"
+    ): GeoRow[] => {
+      const map = new Map<string, { count: number; submissions: number }>();
+      for (const evt of currentEvents) {
+        const raw = evt[field];
+        if (!raw) continue;
+        /* Count page views for volume, track submissions for conversion */
+        if (evt.event_type !== "page_view" && evt.event_type !== "form_submit") continue;
+        const entry = map.get(raw) || { count: 0, submissions: 0 };
+        if (evt.event_type === "page_view") entry.count++;
+        if (evt.event_type === "form_submit") entry.submissions++;
+        map.set(raw, entry);
+      }
+      return Array.from(map.entries())
+        .map(([code, stats]) => ({ code, label: code, ...stats }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+    };
+    const countries = buildGeoBreakdown("country");
+    const regions = buildGeoBreakdown("region");
+    const cities = buildGeoBreakdown("city");
+
     setData({
       current,
       previous,
@@ -636,6 +680,9 @@ export default function PageAnalyticsPage() {
       scrollDepthBands,
       recentEvents,
       recentSessions,
+      countries,
+      regions,
+      cities,
     });
     setLoading(false);
   }, [getPeriodBounds, fetchEvents, computeMetrics]);
@@ -1397,6 +1444,140 @@ export default function PageAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Geo breakdown (countries / regions / cities) ──
+          Hidden when there is no geo data yet (pre-migration or events with
+          no x-vercel-ip-* headers). */}
+      {(data.countries.length > 0 || data.regions.length > 0 || data.cities.length > 0) && (
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-bold text-[#2a2628] flex items-center gap-2">
+              <Globe size={16} className="text-blue-500" />
+              פילוח גאוגרפי
+            </CardTitle>
+            <CardDescription className="text-xs">
+              מדינות, מחוזות וערים של המבקרים בעמוד הזה
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Countries column */}
+              <div>
+                <p className="text-[10px] font-semibold text-[#9A969A] uppercase tracking-wide mb-2">
+                  מדינות
+                </p>
+                {data.countries.length === 0 ? (
+                  <p className="text-xs text-[#9A969A] py-2">אין נתונים</p>
+                ) : (
+                  <div className="space-y-2">
+                    {data.countries.slice(0, 8).map((row, idx) => {
+                      const maxCount = Math.max(...data.countries.map((c) => c.count), 1);
+                      const pct = Math.round((row.count / maxCount) * 100);
+                      return (
+                        <div key={row.code} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-[#4A4648] truncate" title={row.label}>
+                              {row.label}
+                            </span>
+                            <span className="font-bold text-[#2a2628] tabular-nums">
+                              {formatNum(row.count)}
+                            </span>
+                          </div>
+                          <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-blue-400 transition-all duration-500"
+                              style={{
+                                width: mounted ? `${pct}%` : "0%",
+                                transitionDelay: `${idx * 50}ms`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Regions column */}
+              <div>
+                <p className="text-[10px] font-semibold text-[#9A969A] uppercase tracking-wide mb-2">
+                  מחוזות
+                </p>
+                {data.regions.length === 0 ? (
+                  <p className="text-xs text-[#9A969A] py-2">אין נתונים</p>
+                ) : (
+                  <div className="space-y-2">
+                    {data.regions.slice(0, 8).map((row, idx) => {
+                      const maxCount = Math.max(...data.regions.map((r) => r.count), 1);
+                      const pct = Math.round((row.count / maxCount) * 100);
+                      return (
+                        <div key={row.code} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-[#4A4648] truncate" title={row.label}>
+                              {row.label}
+                            </span>
+                            <span className="font-bold text-[#2a2628] tabular-nums">
+                              {formatNum(row.count)}
+                            </span>
+                          </div>
+                          <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-purple-400 transition-all duration-500"
+                              style={{
+                                width: mounted ? `${pct}%` : "0%",
+                                transitionDelay: `${idx * 50}ms`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Cities column */}
+              <div>
+                <p className="text-[10px] font-semibold text-[#9A969A] uppercase tracking-wide mb-2">
+                  ערים
+                </p>
+                {data.cities.length === 0 ? (
+                  <p className="text-xs text-[#9A969A] py-2">אין נתונים</p>
+                ) : (
+                  <div className="space-y-2">
+                    {data.cities.slice(0, 8).map((row, idx) => {
+                      const maxCount = Math.max(...data.cities.map((c) => c.count), 1);
+                      const pct = Math.round((row.count / maxCount) * 100);
+                      return (
+                        <div key={row.code} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-[#4A4648] truncate" title={row.label}>
+                              {row.label}
+                            </span>
+                            <span className="font-bold text-[#2a2628] tabular-nums">
+                              {formatNum(row.count)}
+                            </span>
+                          </div>
+                          <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+                              style={{
+                                width: mounted ? `${pct}%` : "0%",
+                                transitionDelay: `${idx * 50}ms`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Visitor Sessions Feed ── */}
       <Card className="border-0 shadow-sm rounded-2xl">
