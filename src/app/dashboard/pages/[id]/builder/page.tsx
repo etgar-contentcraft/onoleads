@@ -2136,18 +2136,20 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
       case "map":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="מיקום האירוע" draft={draft} set={set} />
+            <Field label="כותרת" fieldKey={lk("heading")} placeholder="מיקום האירוע" draft={draft} set={set} />
             <Field label="כתובת" fieldKey="address" placeholder="רחוב האוניברסיטה 1, קריית אונו" draft={draft} set={set} />
             <Field label="קישור Google Maps" fieldKey="map_url" placeholder="https://maps.google.com/..." dir="ltr" draft={draft} set={set} />
           </div>
         );
 
       case "cta":
+      case "footer_cta":
         return (
           <div className="space-y-4">
-            <Field label="כותרת" fieldKey="heading_he" placeholder="מוכנים להתחיל?" draft={draft} set={set} />
-            <TextareaField label="תיאור" fieldKey="description_he" rows={2} placeholder="הצטרפו לאלפי סטודנטים..." draft={draft} set={set} />
-            <Field label="טקסט כפתור" fieldKey="button_text_he" placeholder="להרשמה" draft={draft} set={set} />
+            {/* lk() saves to the correct language field (_en / _he / _ar) */}
+            <Field label="כותרת" fieldKey={lk("heading")} placeholder="מוכנים להתחיל?" draft={draft} set={set} />
+            <TextareaField label="תיאור" fieldKey={lk("description")} rows={2} placeholder="הצטרפו לאלפי סטודנטים..." draft={draft} set={set} />
+            <Field label="טקסט כפתור" fieldKey={lk("button_text")} placeholder="להרשמה" draft={draft} set={set} />
             <Field label="מספר טלפון" fieldKey="phone" placeholder="03-123-4567" dir="ltr" draft={draft} set={set} />
           </div>
         );
@@ -2165,8 +2167,9 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
            but exposed here when the section_type is "event". */
         return (
           <div className="space-y-4">
-            <Field label="כותרת האירוע" fieldKey="heading_he" placeholder="יום פתוח" draft={draft} set={set} />
-            <TextareaField label="תיאור" fieldKey="description_he" placeholder="פרטים על האירוע..." draft={draft} set={set} />
+            {/* lk() saves to the correct language field (_en / _he / _ar) */}
+            <Field label="כותרת האירוע" fieldKey={lk("heading")} placeholder="יום פתוח" draft={draft} set={set} />
+            <TextareaField label="תיאור" fieldKey={lk("description")} placeholder="פרטים על האירוע..." draft={draft} set={set} />
             <div className="grid grid-cols-2 gap-3">
               <Field label="תאריך (ISO)" fieldKey="event_date" placeholder="2026-04-15T17:00:00" dir="ltr" draft={draft} set={set} />
               <Field label="שעה לתצוגה" fieldKey="event_time" placeholder="17:00" dir="ltr" draft={draft} set={set} />

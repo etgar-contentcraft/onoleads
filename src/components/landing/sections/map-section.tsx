@@ -84,9 +84,11 @@ export function MapSection({ content, language }: MapSectionProps) {
     (content[`heading_${language}`] as string) ||
     (content.heading_he as string) ||
     (isRtl ? "מיקום האירוע" : "Event Location");
-  const address = (content.address_he as string) || "";
+  // Editor saves to `address` (plain key); legacy/event sections may use `address_he`.
+  const address = (content.address_he as string) || (content.address as string) || "";
   const venueName = (content.venue_name_he as string) || "";
-  const googleMapsUrl = (content.google_maps_url as string) || "";
+  // Editor saves to `map_url`; legacy sections may use `google_maps_url`.
+  const googleMapsUrl = (content.google_maps_url as string) || (content.map_url as string) || "";
   const embedUrl = (content.embed_url as string) || "";
   const parkingInfo = (content.parking_he as string) || "";
   const transportInfo = (content.transport_he as string) || "";

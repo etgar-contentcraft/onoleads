@@ -36,15 +36,15 @@ export function CtaSection({ content, language }: CtaSectionProps) {
 
   const heading =
     (content[`heading_${lang}`] as string) ||
-    (lang === "he" ? (content.heading_he as string) : "") ||
+    (content.heading_he as string) ||
     headingDefault;
   const description =
     (content[`description_${lang}`] as string) ||
-    (lang === "he" ? (content.description_he as string) : "") ||
+    (content.description_he as string) ||
     descriptionDefault;
   const buttonText =
     (content[`button_text_${lang}`] as string) ||
-    (lang === "he" ? (content.button_text_he as string) : "") ||
+    (content.button_text_he as string) ||
     buttonDefault;
   const phone = (content.phone as string) || "*2899";
   const ctaEnabled = content.cta_enabled !== false;

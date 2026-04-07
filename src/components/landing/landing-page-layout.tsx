@@ -342,7 +342,12 @@ function renderSection(
     case "faq":
       return <FaqSection content={content} language={language} />;
     case "cta":
+    case "footer_cta":
+      // footer_cta is an alias used by some legacy DB templates — both render via CtaSection
       return <CtaSection content={content} language={language} />;
+    case "program_info":
+      // program_info is a legacy template type (title+description+highlights) — renders via AboutSection
+      return <AboutSection content={content} language={language} />;
     case "admission":
       return <AdmissionSection content={content} language={language} />;
     case "gallery":
