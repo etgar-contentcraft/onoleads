@@ -7,7 +7,7 @@
 
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -274,7 +274,8 @@ function countDistinct(values: (string | null)[]): number {
 
 export default function PageAnalyticsPage() {
   const params = useParams();
-  const pageId = params.id as string;
+  /* Guard: params.id may be string | string[] | undefined */
+  const pageId = (Array.isArray(params.id) ? params.id[0] : params.id) ?? "";
 
   const [data, setData] = useState<PageAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -286,7 +287,10 @@ export default function PageAnalyticsPage() {
   const [pageSlug, setPageSlug] = useState<string>("");
   const [campaignsExpanded, setCampaignsExpanded] = useState(false);
 
-  const supabase = createClient();
+  /* Stable Supabase client — createClient() must NOT be called on every render
+   * as it creates a new WebSocket/realtime connection each time. */
+  const supabaseRef = useRef(createClient());
+  const supabase = supabaseRef.current;
 
   /** Set mounted flag for CSS transitions */
   useEffect(() => {
@@ -437,14 +441,18 @@ export default function PageAnalyticsPage() {
   const fetchEvents = useCallback(
     async (start: string, end: string): Promise<AnalyticsEvent[]> => {
       const PAGE_SIZE = 1000;
+      /** Hard cap — prevents OOM on pages with very high event volumes.
+       * Beyond 20k events, aggregate queries (via RPC) should be used instead. */
+      const MAX_EVENTS = 20_000;
       let allEvents: AnalyticsEvent[] = [];
       let offset = 0;
       let hasMore = true;
 
-      while (hasMore) {
+      while (hasMore && allEvents.length < MAX_EVENTS) {
         const { data: batch, error } = await supabase
           .from("analytics_events")
-          .select("*")
+          /* Fetch only the columns used by computeMetrics / buildUtmBreakdown / session grouping */
+          .select("id, event_type, cookie_id, utm_source, utm_medium, utm_campaign, referrer_domain, device_type, webhook_status, scroll_depth, time_on_page, created_at")
           .eq("page_id", pageId)
           .gte("created_at", start)
           .lte("created_at", end)
@@ -692,8 +700,12 @@ export default function PageAnalyticsPage() {
     fetchAnalytics();
   }, [fetchAnalytics]);
 
-  /** Realtime subscription: auto-refresh on new analytics_events for this page */
+  /** Realtime subscription: auto-refresh on new analytics_events for this page.
+   * Debounced 30s — prevents full paginated re-fetch on every individual INSERT.
+   * (On a live page, each click event would otherwise trigger a complete data reload.) */
   useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout>;
+
     const channel = supabase
       .channel(`analytics-page-${pageId}`)
       .on(
@@ -705,12 +717,14 @@ export default function PageAnalyticsPage() {
           filter: `page_id=eq.${pageId}`,
         },
         () => {
-          fetchAnalytics();
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => fetchAnalytics(), 30_000);
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [pageId, fetchAnalytics]);

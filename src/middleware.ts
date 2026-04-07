@@ -152,8 +152,15 @@ export async function middleware(request: NextRequest) {
       path: '/',
       httpOnly: false, /* Must be readable by JavaScript for double-submit pattern */
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60, /* 1 hour */
+      /*
+       * SameSite=Lax (not Strict): allows the cookie to be sent on the first
+       * navigation from an external link (Google/Facebook ads). Strict blocks
+       * the cookie on cross-site GET navigations, causing form submissions to
+       * fail for visitors arriving from ad clicks.
+       * SameSite=Lax still blocks cross-site POST attacks — CSRF protection remains intact.
+       */
+      sameSite: 'lax',
+      maxAge: 30 * 60, /* 30 minutes — matches SESSION_TIMEOUT_SECONDS */
     });
   }
 

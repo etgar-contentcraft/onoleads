@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import type { Language, PageSection, Program } from "@/lib/types/database";
 import { useUrlParams } from "@/hooks/use-url-params";
@@ -465,6 +465,13 @@ function InnerLayout({
   /* Track anonymous page view (skip in heatmap mode) */
   usePageTracking(isHeatmapPreview ? null : (pageId || null));
 
+  /* Compute cookie ID once per mount — getOrCreateCookieId() reads+writes document.cookie
+   * and must not be called on every render (it was previously called 3x per render) */
+  const cookieId = useMemo(() => {
+    if (typeof window === "undefined" || isHeatmapPreview) return "";
+    return getOrCreateCookieId();
+  }, [isHeatmapPreview]);
+
   /* Only pass CTA text override when it matches the page language.
      Global settings may store Hebrew text — don't show it on English pages. */
   const rawCtaText = settings?.default_cta_text;
@@ -734,15 +741,15 @@ function InnerLayout({
         <>
           <ScrollTracker
             pageId={pageId}
-            cookieId={getOrCreateCookieId()}
+            cookieId={cookieId}
           />
           <ClickTracker
             pageId={pageId}
-            cookieId={getOrCreateCookieId()}
+            cookieId={cookieId}
           />
           <ViewportTracker
             pageId={pageId}
-            cookieId={getOrCreateCookieId()}
+            cookieId={cookieId}
           />
         </>
       )}

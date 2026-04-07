@@ -13,7 +13,9 @@ export async function GET(request: NextRequest) {
   const pageId = searchParams.get("page_id");
   const days = Math.min(Math.max(parseInt(searchParams.get("days") || "7", 10), 1), 90);
 
-  if (!pageId) {
+  /* Validate UUID format — Supabase throws 500 on invalid UUID; return 400 instead */
+  const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!pageId || !UUID_PATTERN.test(pageId)) {
     return NextResponse.json({ count: 0 }, { status: 400 });
   }
 

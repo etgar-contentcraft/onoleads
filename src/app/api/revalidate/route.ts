@@ -26,6 +26,12 @@ export async function POST(request: Request) {
   const { slug } = (await request.json()) as { slug?: string };
   if (!slug) return Response.json({ error: "missing slug" }, { status: 400 });
 
+  /* Validate slug format to prevent path traversal (e.g. "../../dashboard") */
+  const SLUG_PATTERN = /^[a-z0-9-]{1,200}$/;
+  if (!SLUG_PATTERN.test(slug)) {
+    return Response.json({ error: "invalid_slug" }, { status: 400 });
+  }
+
   revalidatePath(`/lp/${slug}`);
 
   return Response.json({ revalidated: true, slug, at: new Date().toISOString() });

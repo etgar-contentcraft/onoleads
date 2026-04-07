@@ -91,6 +91,25 @@ async function hashIP(ip: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/* ─── URL Safety ─── */
+
+/**
+ * Validates that a URL is safe to redirect to.
+ * Only allows https:// protocol to prevent open-redirect abuse
+ * (javascript:, data:, http:, file:, etc. are rejected).
+ * @param url - URL string to validate
+ * @returns True if safe to redirect
+ */
+function isSafeRedirectUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /* ─── Route Handler ─── */
 
 /**
@@ -132,7 +151,7 @@ export async function GET(
 
   /* Expired — redirect to fallback or return 410 Gone */
   if (link.expires_at && new Date(link.expires_at) < new Date()) {
-    if (link.fallback_url) {
+    if (link.fallback_url && isSafeRedirectUrl(link.fallback_url)) {
       return NextResponse.redirect(link.fallback_url, 302);
     }
     return new NextResponse("Gone", { status: HTTP_GONE });
@@ -152,6 +171,9 @@ export async function GET(
   });
 
   /* ── 302 Redirect ── */
+  if (!isSafeRedirectUrl(link.target_url)) {
+    return new NextResponse("Invalid redirect target", { status: 400 });
+  }
   return NextResponse.redirect(link.target_url, 302);
 }
 

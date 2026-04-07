@@ -71,14 +71,15 @@ export function HeroSection({ content, language }: HeroSectionProps) {
     };
     // Start on mount (small delay so page has settled)
     const initial = setTimeout(startPulse, 1200);
-    // Restart each time user focuses the tab
-    const handleFocus = () => startPulse();
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") handleFocus();
-    });
+    // Restart each time user focuses the tab.
+    // IMPORTANT: the named function reference must match between add/removeEventListener.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") startPulse();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       clearTimeout(initial);
-      document.removeEventListener("visibilitychange", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 

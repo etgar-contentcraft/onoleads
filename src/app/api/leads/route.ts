@@ -94,7 +94,7 @@ const leadSchema = z.object({
   full_name: z.string().min(2, "שם חייב להכיל לפחות 2 תווים").max(100),
   phone: z.string().optional().nullable(),
   email: z.string().optional().nullable(),
-  page_id: z.string().optional().nullable(),
+  page_id: z.string().uuid().optional().nullable(),
   program_id: z.string().optional().nullable(),
   program_interest: z.string().optional().nullable(),
   utm_source: z.string().optional().nullable(),
@@ -306,8 +306,10 @@ export async function POST(request: NextRequest) {
     const cookieId = data.cookie_id || crypto.randomUUID();
     const pageId = data.page_id ? sanitizeGeneral(data.page_id) : null;
 
-    /* Referrer: if it's our own domain treat as "direct" */
-    const OWN_DOMAINS = ["onoleads.vercel.app", "localhost"];
+    /* Referrer: if it's our own domain treat as "direct"
+     * Read from env so custom domains are handled automatically */
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "onoleads.vercel.app";
+    const OWN_DOMAINS = [new URL(baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`).hostname, "localhost"];
     const rawReferrerDomain = extractDomain(data.referrer);
     const referrerDomain = rawReferrerDomain && OWN_DOMAINS.some((d) => rawReferrerDomain.includes(d))
       ? null
@@ -524,7 +526,6 @@ async function fireWebhook(
 
     if (!webhookUrl) {
       /* No webhook configured — skip silently */
-      console.log("[webhook] no URL configured, skipping");
       return true;
     }
 
@@ -547,10 +548,7 @@ async function fireWebhook(
       return false;
     }
 
-    console.log("[webhook] firing to", parsedHost);
-
     const result = await sendWebhookWithRetry(webhookUrl, payload, null);
-    console.log("[webhook] result:", result);
     return result.success;
   } catch (err) {
     console.error("Webhook error:", err);

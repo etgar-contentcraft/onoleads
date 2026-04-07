@@ -13,7 +13,11 @@ import { sanitizeGeneral } from "@/lib/security/sanitize";
 const MAX_EVENTS_PER_MINUTE = 30;
 
 /** Valid event types for this endpoint (form_submit is handled by /api/leads) */
-const ALLOWED_EVENT_TYPES = ["page_view", "cta_click", "popup_view", "popup_dismiss", "scroll_depth", "click"] as const;
+const ALLOWED_EVENT_TYPES = [
+  "page_view", "cta_click", "popup_view", "popup_dismiss",
+  "scroll_depth", "click",
+  "viewport_time",  // dwell-time bands from ViewportTracker
+] as const;
 
 /** Zod schema for analytics event payloads */
 const eventSchema = z.object({
@@ -33,8 +37,19 @@ const eventSchema = z.object({
   time_on_page: z.number().int().min(0).optional().nullable(),
   /** Section identifier for section-level click events */
   section_id: z.string().max(100).optional().nullable(),
-  /** Arbitrary event data (click coordinates, element info, etc.) */
-  event_data: z.record(z.string(), z.unknown()).optional().nullable(),
+  /**
+   * Arbitrary event data (click coordinates, element info, viewport bands, etc.)
+   * Restricted to scalar values only — no nested objects, no PII fields.
+   * Max 30 keys, keys max 50 chars, string values max 500 chars.
+   */
+  event_data: z
+    .record(
+      z.string().max(50),
+      z.union([z.string().max(500), z.number(), z.boolean(), z.array(z.record(z.string().max(20), z.union([z.number(), z.string().max(50)])))])
+    )
+    .refine((obj) => Object.keys(obj).length <= 30, { message: "event_data: max 30 keys" })
+    .optional()
+    .nullable(),
 });
 
 /**
