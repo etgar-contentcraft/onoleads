@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Loader2, Save, ExternalLink, Tag, Search, X, ChevronUp, ChevronDown, Link2 } from "lucide-react";
 import { LogoPicker } from "@/components/admin/logo-picker";
+import { revalidateNow } from "@/lib/admin/revalidate";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 import type { InterestArea } from "@/lib/types/database";
@@ -495,6 +496,16 @@ export default function PageSettingsPage() {
           sort_order: i,
         }))
       );
+    }
+
+    /* Bust ISR cache so logo override / per-page settings reflect immediately
+       on the public LP. We revalidate BOTH the new and (if changed) the old
+       slug — the old slug now redirects but its cached HTML must be busted. */
+    if (!pageError) {
+      await revalidateNow(cleanSlug);
+      if (cleanSlug !== pageSlug) {
+        await revalidateNow(pageSlug);
+      }
     }
 
     setSaving(false);

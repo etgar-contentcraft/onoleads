@@ -72,6 +72,7 @@ import {
 } from "lucide-react";
 import { sanitizeSlug } from "@/lib/utils/slug";
 import { extractYoutubeId } from "@/lib/utils/youtube";
+import { scheduleRevalidate, revalidateNow } from "@/lib/admin/revalidate";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -2472,6 +2473,10 @@ export default function PageBuilderPage() {
   /** Always-fresh ref to sections — prevents stale closure bugs in useCallback */
   const sectionsRef = useRef<PageSection[]>([]);
   useEffect(() => { sectionsRef.current = sections; }, [sections]);
+  /** Always-fresh ref to page — used by callbacks that need the current slug
+   *  for ISR cache busting without re-creating on every page state change */
+  const pageRef = useRef<PageData | null>(null);
+  useEffect(() => { pageRef.current = page; }, [page]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -2551,6 +2556,8 @@ export default function PageBuilderPage() {
           setSaved(true);
           setTimeout(() => setSaved(false), 2000);
           fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_page_updated", resource_type: "page_sections", resource_id: pageId, metadata: { sections_count: upserts.length } }) }).catch(() => {});
+          /* Bust ISR cache so the public LP picks up the new section order/visibility/content */
+          scheduleRevalidate(pageRef.current?.slug);
         }
         setSaving(false);
       }, 600);
@@ -2599,6 +2606,7 @@ export default function PageBuilderPage() {
     if (!error && data) {
       setSections((prev) => [...prev, data as PageSection]);
       showToast(`מקטע משותף "${gs.name_he}" נוספה`);
+      scheduleRevalidate(pageRef.current?.slug);
     } else {
       showToast("שגיאה בהוספת מקטע משותף", "error");
     }
@@ -2614,6 +2622,7 @@ export default function PageBuilderPage() {
       setSections((prev) =>
         prev.map((s) => s.id === sectionId ? { ...s, shared_section_id: null } : s)
       );
+      scheduleRevalidate(pageRef.current?.slug);
     }
   }, [supabase]);
 
@@ -2632,6 +2641,10 @@ export default function PageBuilderPage() {
       setGlobalEditDialogOpen(false);
       setEditingSection(null);
       showToast("המקטע המשותף עודכנה — כל הדפים המשתמשים בה עודכנו");
+      /* Bust ISR cache for current page (best-effort — other pages using this
+         shared section will still serve their cached HTML until they're saved
+         or until next manual revalidate). */
+      scheduleRevalidate(pageRef.current?.slug);
     } else {
       showToast("שגיאה בשמירה הגלובלית", "error");
     }
@@ -2666,6 +2679,7 @@ export default function PageBuilderPage() {
       setSaveAsGlobalSection(null);
       setSaveAsGlobalName("");
       setSaveAsGlobalCategory("");
+      scheduleRevalidate(pageRef.current?.slug);
     } else {
       showToast("שגיאה בשמירת המקטע המשותף", "error");
     }
@@ -2726,6 +2740,7 @@ export default function PageBuilderPage() {
       setSections(newSections as PageSection[]);
       setVersionHistoryOpen(false);
       showToast(`גרסה ${version.version_num} שוחזרה בהצלחה`);
+      scheduleRevalidate(pageRef.current?.slug);
     } else {
       showToast("שגיאה בשחזור גרסה", "error");
     }
@@ -2786,6 +2801,7 @@ export default function PageBuilderPage() {
         .update({ is_visible: newVisible })
         .eq("id", id);
       showToast(newVisible ? "המקטע מוצג כעת" : "המקטע הוסתר");
+      scheduleRevalidate(pageRef.current?.slug);
     },
     [sections, supabase, showToast]
   );
@@ -2814,6 +2830,7 @@ export default function PageBuilderPage() {
         showToast("מקטע חדש נוסף");
         /* Auto-open editor for the new section */
         setEditingSection(data as PageSection);
+        scheduleRevalidate(pageRef.current?.slug);
       } else {
         console.error("[addSection] insert error:", JSON.stringify(error));
         showToast(`שגיאה בהוספת מקטע: ${error?.message || error?.code || "unknown"}`, "error");
@@ -2848,6 +2865,8 @@ export default function PageBuilderPage() {
         );
         setEditingSection(null);
         showToast("התוכן נשמר בהצלחה");
+        /* Bust ISR cache so the public LP picks up the new section content */
+        scheduleRevalidate(pageRef.current?.slug);
       } else {
         console.error("[saveEditSection] error:", JSON.stringify(error));
         showToast(`שגיאה בשמירה: ${error.message || error.code || "unknown"}`, "error");
@@ -2866,6 +2885,7 @@ export default function PageBuilderPage() {
         setSections((prev) => prev.filter((s) => s.id !== id));
         setDeleteTargetId(null);
         showToast("המקטע נמחק");
+        scheduleRevalidate(pageRef.current?.slug);
       } else {
         showToast("שגיאה במחיקה", "error");
       }
@@ -2936,13 +2956,8 @@ export default function PageBuilderPage() {
       setTimeout(() => setSaved(false), 2500);
       showToast("הדף נשמר בהצלחה");
       // Trigger on-demand ISR so the static LP HTML is regenerated
-      if (page?.slug) {
-        fetch("/api/revalidate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug: page.slug }),
-        }).catch(() => {/* non-blocking */});
-      }
+      // (await so success toast reflects a fully-busted cache)
+      await revalidateNow(page?.slug);
       fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "admin_page_updated", resource_type: "page", resource_id: pageId, metadata: { slug: page?.slug, sections_count: upserts.length } }) }).catch(() => {});
     } else {
       // Log full error for debugging, show brief message in UI
@@ -2980,6 +2995,8 @@ export default function PageBuilderPage() {
     if (!error) {
       setPage((prev) => prev ? { ...prev, status: newStatus } : prev);
       showToast(isPublished ? "העמוד הוחזר לטיוטה" : "העמוד פורסם בהצלחה!");
+      /* Bust ISR so the new published/unpublished state is reflected immediately */
+      await revalidateNow(page.slug);
       fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: isPublished ? "admin_page_unpublished" : "admin_page_published", resource_type: "page", resource_id: pageId, metadata: { slug: page.slug } }) }).catch(() => {});
     } else {
       showToast("שגיאה בעדכון סטטוס", "error");
