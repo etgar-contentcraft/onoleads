@@ -649,20 +649,18 @@ function InnerLayout({
           </>
         )}
 
-        {/* If no CTA section exists, add a default one */}
-        {!existingSectionTypes.has("cta") && (
-          <SectionErrorBoundary sectionType="cta">
-            <CtaSection
-              content={{
-                heading_he: "מוכנים להתחיל?",
-                description_he: "השאירו פרטים ויועץ לימודים יחזור אליכם",
-                button_text_he: "לפרטים נוספים",
-                phone: "*2899",
-              }}
-              language={language}
-            />
-          </SectionErrorBoundary>
-        )}
+        {/* No auto-injected CTA section.
+         *
+         * Previously: when no `cta` section existed in the visible sections list,
+         * the layout would inject a hardcoded fallback CTA in Hebrew. This had
+         * two bugs:
+         *   1. Editors who deliberately removed (or hid) the CTA section would
+         *      still see it on the live page — the layout silently put it back.
+         *   2. The fallback was hardcoded with `_he` fields only, leaking
+         *      Hebrew copy onto English / Arabic landing pages.
+         *
+         * Editors who want a CTA section must add one explicitly via the
+         * builder. The principle: visible sections list = exactly what renders. */}
       </main>
 
       {/* Footer */}

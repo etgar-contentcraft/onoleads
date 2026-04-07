@@ -21,10 +21,31 @@ export function CtaSection({ content, language }: CtaSectionProps) {
   const { open } = useCtaModal();
   const isRtl = language === "he" || language === "ar";
 
-  /* ---- Content fields ---- */
-  const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || (isRtl ? "מוכנים להתחיל?" : "Ready to start?");
-  const description = (content[`description_${language}`] as string) || (content.description_he as string) || (isRtl ? "השאירו פרטים ויועץ לימודים יחזור אליכם" : "");
-  const buttonText = (content[`button_text_${language}`] as string) || (content.button_text_he as string) || (isRtl ? "לפרטים נוספים" : "Get info");
+  /* ---- Content fields ----
+   * Language-aware fallback chain:
+   *   1. Field for the requested language (heading_en on an English page)
+   *   2. ONLY if requested language is Hebrew, fall back to heading_he
+   *      (English / Arabic pages must NEVER show Hebrew copy as a fallback —
+   *      see v0.8.0 Hebrew-leak fixes for benefits/info-bar sections)
+   *   3. Hardcoded language-appropriate default
+   */
+  const lang = language;
+  const headingDefault = lang === "en" ? "Ready to start?" : lang === "ar" ? "مستعد للبدء؟" : "מוכנים להתחיל?";
+  const descriptionDefault = lang === "en" ? "Leave your details and an academic advisor will get back to you" : lang === "ar" ? "اترك تفاصيلك وسيعاود مستشار أكاديمي الاتصال بك" : "השאירו פרטים ויועץ לימודים יחזור אליכם";
+  const buttonDefault = lang === "en" ? "Get info" : lang === "ar" ? "للمزيد من المعلومات" : "לפרטים נוספים";
+
+  const heading =
+    (content[`heading_${lang}`] as string) ||
+    (lang === "he" ? (content.heading_he as string) : "") ||
+    headingDefault;
+  const description =
+    (content[`description_${lang}`] as string) ||
+    (lang === "he" ? (content.description_he as string) : "") ||
+    descriptionDefault;
+  const buttonText =
+    (content[`button_text_${lang}`] as string) ||
+    (lang === "he" ? (content.button_text_he as string) : "") ||
+    buttonDefault;
   const phone = (content.phone as string) || "*2899";
   const ctaEnabled = content.cta_enabled !== false;
   const bgImage = (content.background_image_url as string) || "";
