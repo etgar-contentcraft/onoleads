@@ -11,6 +11,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { type AnalyticsEvent } from "@/lib/analytics/types";
 import {
   Card,
   CardContent,
@@ -105,25 +106,6 @@ const CAMPAIGN_COLLAPSE_THRESHOLD = 5;
 const DONUT_RADIUS = 15.91549431;
 
 /* ─── Types ─── */
-
-/** Raw analytics event row from Supabase */
-interface AnalyticsEvent {
-  id: string;
-  event_type: string;
-  page_id: string;
-  cookie_id: string | null;
-  utm_source: string | null;
-  utm_medium: string | null;
-  utm_campaign: string | null;
-  utm_content: string | null;
-  utm_term: string | null;
-  referrer_domain: string | null;
-  device_type: string | null;
-  webhook_status: string | null;
-  scroll_depth: number | null;
-  time_on_page: number | null;
-  created_at: string;
-}
 
 /** Scroll depth band for the scroll depth chart */
 interface ScrollDepthBand {

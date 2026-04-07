@@ -51,6 +51,7 @@ const BC_KEY_MAP: Record<string, string> = {
   "/dashboard/faculty": "bc_faculty",
   "/dashboard/shared-sections": "bc_shared_sections",
   "/dashboard/audit": "bc_audit",
+  "/dashboard/changelog": "bc_changelog",
   "/dashboard/help": "bc_help",
   "/dashboard/users": "bc_users",
 };

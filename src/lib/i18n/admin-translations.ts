@@ -23,6 +23,7 @@ const translations = {
     nav_ai_import: "ייבוא AI",
     nav_shared_sections: "סקציות גלובליות",
     nav_audit: "יומן ביקורת",
+    nav_changelog: "עדכוני מערכת",
     nav_help: "מרכז עזרה",
     nav_users: "משתמשים",
     nav_pixels: "פיקסלים",
@@ -50,6 +51,7 @@ const translations = {
     bc_faculty: "מאגר מרצים",
     bc_shared_sections: "סקציות גלובליות",
     bc_audit: "יומן ביקורת",
+    bc_changelog: "עדכוני מערכת",
     bc_help: "מרכז עזרה",
     bc_users: "משתמשים",
 
@@ -74,6 +76,7 @@ const translations = {
     nav_ai_import: "AI Import",
     nav_shared_sections: "Global Sections",
     nav_audit: "Audit Log",
+    nav_changelog: "Release Notes",
     nav_help: "Help Center",
     nav_users: "Users",
     nav_pixels: "Pixels",
@@ -101,6 +104,7 @@ const translations = {
     bc_faculty: "Faculty",
     bc_shared_sections: "Global Sections",
     bc_audit: "Audit Log",
+    bc_changelog: "Release Notes",
     bc_help: "Help Center",
     bc_users: "Users",
 
@@ -125,6 +129,7 @@ const translations = {
     nav_ai_import: "استيراد AI",
     nav_shared_sections: "الأقسام المشتركة",
     nav_audit: "سجل المراجعة",
+    nav_changelog: "ملاحظات الإصدار",
     nav_help: "مركز المساعدة",
     nav_users: "المستخدمون",
     nav_pixels: "بيكسلات",
@@ -152,6 +157,7 @@ const translations = {
     bc_faculty: "أعضاء هيئة التدريس",
     bc_shared_sections: "الأقسام المشتركة",
     bc_audit: "سجل المراجعة",
+    bc_changelog: "ملاحظات الإصدار",
     bc_help: "مركز المساعدة",
     bc_users: "المستخدمون",
 

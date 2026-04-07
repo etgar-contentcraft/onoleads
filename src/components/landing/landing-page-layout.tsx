@@ -36,6 +36,7 @@ const CountdownSection = dynamic(() => import("./sections/countdown-section").th
 const EventSection = dynamic(() => import("./sections/event-section"));
 const FormSection = dynamic(() => import("./sections/form-section").then(mod => ({ default: mod.FormSection })));
 
+import { SectionErrorBoundary } from "./section-error-boundary";
 import { SocialProofToast } from "./social-proof-toast";
 import { PopupManager } from "./popup-manager";
 import type { PopupCampaign } from "@/lib/types/popup-campaigns";
@@ -578,30 +579,46 @@ function InnerLayout({
         {/* Render explicit sections with auto-sections injected after hero */}
         {mainSections.map((section, index) => (
           <div key={section.id}>
-            {renderSection(section, language, pageId, programId, urlParams, pageSlug)}
+            <SectionErrorBoundary sectionType={section.section_type}>
+              {renderSection(section, language, pageId, programId, urlParams, pageSlug)}
+            </SectionErrorBoundary>
             {/* After hero, inject auto-generated sections */}
             {index === heroIndex && filteredAutoSections.length > 0 && (
-              <>{filteredAutoSections}</>
+              <>
+                {filteredAutoSections.map((el) => (
+                  <SectionErrorBoundary key={el.key as string} sectionType={el.key as string}>
+                    {el}
+                  </SectionErrorBoundary>
+                ))}
+              </>
             )}
           </div>
         ))}
 
         {/* If no hero section, put auto sections at the top */}
         {!hasHero && filteredAutoSections.length > 0 && (
-          <>{filteredAutoSections}</>
+          <>
+            {filteredAutoSections.map((el) => (
+              <SectionErrorBoundary key={el.key as string} sectionType={el.key as string}>
+                {el}
+              </SectionErrorBoundary>
+            ))}
+          </>
         )}
 
         {/* If no CTA section exists, add a default one */}
         {!existingSectionTypes.has("cta") && (
-          <CtaSection
-            content={{
-              heading_he: "מוכנים להתחיל?",
-              description_he: "השאירו פרטים ויועץ לימודים יחזור אליכם",
-              button_text_he: "לפרטים נוספים",
-              phone: "*2899",
-            }}
-            language={language}
-          />
+          <SectionErrorBoundary sectionType="cta">
+            <CtaSection
+              content={{
+                heading_he: "מוכנים להתחיל?",
+                description_he: "השאירו פרטים ויועץ לימודים יחזור אליכם",
+                button_text_he: "לפרטים נוספים",
+                phone: "*2899",
+              }}
+              language={language}
+            />
+          </SectionErrorBoundary>
         )}
       </main>
 

@@ -18,6 +18,10 @@ import {
 } from "@/components/ui/dialog";
 import { Globe, Plus, Pencil, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { SectionContentEditor } from "@/components/admin/section-content-editor";
+import {
+  SECTION_TYPE_LABELS,
+  ALL_SECTION_TYPE_KEYS,
+} from "@/lib/sections/registry";
 
 interface SharedSection {
   id: string;
@@ -33,29 +37,7 @@ interface SharedSection {
   usage_count?: number;
 }
 
-/** Human-readable section type names — must match all types in renderSection() */
-const SECTION_TYPE_LABELS: Record<string, string> = {
-  hero: "Hero — כותרת ראשית",
-  program_info_bar: "סרגל מידע על התוכנית",
-  about: "אודות",
-  benefits: "יתרונות",
-  stats: "סטטיסטיקות",
-  testimonials: "המלצות",
-  faq: "שאלות נפוצות",
-  cta: "קריאה לפעולה",
-  curriculum: "תוכנית לימודים",
-  career: "קריירה",
-  faculty: "סגל",
-  video: "וידאו",
-  gallery: "גלריה",
-  countdown: "ספירה לאחור",
-  map: "מפה",
-  admission: "תנאי קבלה",
-  whatsapp: "WhatsApp צף",
-  event: "אירוע / יום פתוח",
-};
-
-const SECTION_TYPES = Object.keys(SECTION_TYPE_LABELS);
+// SECTION_TYPE_LABELS and ALL_SECTION_TYPE_KEYS are imported from the registry above.
 
 export default function SharedSectionsPage() {
   const supabase = createClient();
@@ -311,7 +293,7 @@ export default function SharedSectionsPage() {
                 className="w-full h-10 px-3 rounded-lg border border-input bg-background text-sm"
                 dir="rtl"
               >
-                {SECTION_TYPES.map((t) => (
+                {ALL_SECTION_TYPE_KEYS.map((t) => (
                   <option key={t} value={t}>{SECTION_TYPE_LABELS[t] || t}</option>
                 ))}
               </select>

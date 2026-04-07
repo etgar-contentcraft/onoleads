@@ -32,6 +32,7 @@ import {
   Sparkles,
   Tag,
   Antenna,
+  History,
 } from "lucide-react";
 import { useAdminLanguage } from "@/contexts/admin-language-context";
 import type { TranslationKey } from "@/lib/i18n/admin-translations";
@@ -88,8 +89,9 @@ const navGroups: NavGroup[] = [
       { labelKey: "nav_settings", href: "/dashboard/settings", icon: Settings },
       { labelKey: "nav_pixels",   href: "/dashboard/pixels",   icon: Antenna },
       { labelKey: "nav_users",    href: "/dashboard/users",    icon: Users2 },
-      { labelKey: "nav_audit",    href: "/dashboard/audit",    icon: ShieldCheck },
-      { labelKey: "nav_help",     href: "/dashboard/help",     icon: HelpCircle },
+      { labelKey: "nav_audit",      href: "/dashboard/audit",      icon: ShieldCheck },
+      { labelKey: "nav_changelog", href: "/dashboard/changelog", icon: History },
+      { labelKey: "nav_help",      href: "/dashboard/help",      icon: HelpCircle },
     ],
   },
 ];

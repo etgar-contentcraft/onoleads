@@ -5,7 +5,7 @@
  * Exposes `lang`, `setLang`, and `t()` translation function throughout the dashboard.
  */
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { type AdminLang, type TranslationKey, createTranslator } from "@/lib/i18n/admin-translations";
 
 const STORAGE_KEY = "onoleads_admin_lang";
@@ -42,7 +42,8 @@ export function AdminLanguageProvider({ children }: { children: React.ReactNode 
     localStorage.setItem(STORAGE_KEY, next);
   };
 
-  const t = createTranslator(lang);
+  // Memoize the translator so consumers only re-render when `lang` actually changes
+  const t = useMemo(() => createTranslator(lang), [lang]);
   const isRtl = lang === "he" || lang === "ar";
 
   return (

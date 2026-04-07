@@ -35,32 +35,33 @@ import {
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
-// Constants
+// Constants (derived from the central section registry)
 // ---------------------------------------------------------------------------
 
-/** Human-readable labels and Tailwind color classes for each section type */
-const SECTION_CONFIG: Record<string, { label: string; color: string }> = {
-  hero: { label: "Hero", color: "bg-yellow-100 text-yellow-700" },
-  program_info_bar: { label: "פס מידע", color: "bg-gray-100 text-gray-600" },
-  about: { label: "אודות", color: "bg-blue-100 text-blue-700" },
-  benefits: { label: "יתרונות", color: "bg-green-100 text-green-700" },
-  curriculum: { label: "תוכנית לימודים", color: "bg-indigo-100 text-indigo-700" },
-  career: { label: "קריירה", color: "bg-orange-100 text-orange-700" },
-  faculty: { label: "סגל", color: "bg-purple-100 text-purple-700" },
-  stats: { label: "סטטיסטיקות", color: "bg-cyan-100 text-cyan-700" },
-  testimonials: { label: "המלצות", color: "bg-pink-100 text-pink-700" },
-  video: { label: "וידאו", color: "bg-red-100 text-red-700" },
-  faq: { label: "FAQ", color: "bg-teal-100 text-teal-700" },
-  cta: { label: "CTA", color: "bg-lime-100 text-lime-700" },
-  whatsapp: { label: "WhatsApp", color: "bg-green-100 text-green-600" },
-  admission: { label: "קבלה", color: "bg-amber-100 text-amber-700" },
-  gallery: { label: "גלריה", color: "bg-violet-100 text-violet-700" },
-  map: { label: "מפה", color: "bg-sky-100 text-sky-700" },
-  countdown: { label: "ספירה", color: "bg-rose-100 text-rose-700" },
-};
+import {
+  SECTION_TYPE_LABELS,
+  SECTION_BADGE_COLORS,
+  ALL_SECTION_TYPE_KEYS,
+} from "@/lib/sections/registry";
 
-/** All available section types in display order */
-const ALL_SECTION_TYPES = Object.keys(SECTION_CONFIG);
+/**
+ * Local adapter that gives each section type a `{ label, color }` shape,
+ * matching what the SectionChip and SectionRow components expect.
+ * Derived entirely from the central registry — do not edit here.
+ */
+const SECTION_CONFIG: Record<string, { label: string; color: string }> =
+  Object.fromEntries(
+    ALL_SECTION_TYPE_KEYS.map((type) => [
+      type,
+      {
+        label: SECTION_TYPE_LABELS[type] ?? type,
+        color: SECTION_BADGE_COLORS[type] ?? "bg-gray-100 text-gray-600",
+      },
+    ])
+  );
+
+/** All available section types in display order — from the central registry */
+const ALL_SECTION_TYPES = ALL_SECTION_TYPE_KEYS;
 
 /** Template type enum values and their Hebrew labels */
 const TEMPLATE_TYPE_LABELS: Record<string, string> = {

@@ -2,47 +2,42 @@
 
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  LayoutTemplate,
-  FileText,
-  Video,
-  BarChart3,
-  HelpCircle,
-  Quote,
-  BookOpen,
-  MousePointerClick,
-  MessageCircle,
-  PanelTop,
-  ChevronDown,
-  ImageIcon,
-  Code2,
-  LucideIcon,
-} from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  SECTION_REGISTRY,
+  type SectionTypeMeta,
+} from "@/lib/sections/registry";
 
-export interface SectionTypeDefinition {
-  type: string;
+/**
+ * Shape used by the palette draggable items.
+ * Re-exported so the builder page can reference it without an extra import.
+ */
+export type SectionTypeDefinition = Pick<
+  SectionTypeMeta,
+  "type" | "labelEn" | "labelHe" | "icon" | "description"
+> & {
+  /** Alias kept for backward-compat with existing drag-drop consumers */
   label: string;
-  labelHe: string;
-  icon: LucideIcon;
-  description: string;
-}
+};
 
-export const SECTION_TYPES: SectionTypeDefinition[] = [
-  { type: "hero", label: "Hero", labelHe: "באנר ראשי", icon: LayoutTemplate, description: "Main hero with background image and CTA" },
-  { type: "form", label: "Lead Form", labelHe: "טופס לידים", icon: FileText, description: "Lead capture form" },
-  { type: "video", label: "Video", labelHe: "וידאו", icon: Video, description: "YouTube or Vimeo embed" },
-  { type: "stats", label: "Stats", labelHe: "נתונים", icon: BarChart3, description: "Animated stat counters" },
-  { type: "faq", label: "FAQ", labelHe: "שאלות נפוצות", icon: HelpCircle, description: "Frequently asked questions" },
-  { type: "testimonials", label: "Testimonials", labelHe: "המלצות", icon: Quote, description: "Student/alumni quotes" },
-  { type: "curriculum", label: "Curriculum", labelHe: "תוכנית לימודים", icon: BookOpen, description: "Program curriculum" },
-  { type: "cta", label: "CTA Banner", labelHe: "באנר קריאה לפעולה", icon: MousePointerClick, description: "Call-to-action banner" },
-  { type: "whatsapp", label: "WhatsApp", labelHe: "וואטסאפ", icon: MessageCircle, description: "Floating WhatsApp button" },
-  { type: "sticky_header", label: "Sticky Header", labelHe: "כותרת נצמדת", icon: PanelTop, description: "Sticky top navigation bar" },
-  { type: "accordion", label: "Accordion", labelHe: "אקורדיון", icon: ChevronDown, description: "Expandable content sections" },
-  { type: "gallery", label: "Gallery", labelHe: "גלריה", icon: ImageIcon, description: "Image gallery/carousel" },
-  { type: "custom_html", label: "Custom HTML", labelHe: "HTML מותאם", icon: Code2, description: "Raw HTML block" },
-];
+/**
+ * The ordered list of section types shown in the builder palette.
+ * Only includes types that are meaningful to drag onto a page.
+ * Derived from SECTION_REGISTRY — do not edit here; edit the registry instead.
+ */
+export const SECTION_TYPES: SectionTypeDefinition[] = SECTION_REGISTRY
+  .filter((entry) =>
+    // Exclude types that aren't draggable palette items
+    !["program_info_bar", "sticky_header", "event"].includes(entry.type)
+  )
+  .map((entry) => ({
+    type: entry.type,
+    labelEn: entry.labelEn,
+    labelHe: entry.labelHe,
+    label: entry.labelEn, // backward-compat alias
+    icon: entry.icon,
+    description: entry.description,
+  }));
 
 function DraggableSectionType({ def }: { def: SectionTypeDefinition }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({

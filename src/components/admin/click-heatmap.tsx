@@ -42,6 +42,12 @@ interface DwellBand {
   s: number;
 }
 
+/** Raw viewport_time row as stored in the database — used for client-side device filtering */
+interface RawDwellRow {
+  device_type: string;
+  bands: Array<{ b: number; s: number }>;
+}
+
 interface ClickHeatmapProps {
   pageId: string;
   pageSlug: string;
@@ -173,7 +179,9 @@ function drawClicks(
 
 /**
  * Draw dwell-time gradient bands on a canvas.
- * Uses smooth vertical interpolation between bands.
+ * Uses a single vertical createLinearGradient covering the full canvas height
+ * instead of 1250+ individual fillRect calls — dramatically faster on tall pages.
+ * The side minimap strip (10px) uses a separate strip gradient for full opacity.
  */
 function drawDwell(
   canvas: HTMLCanvasElement,
@@ -196,44 +204,34 @@ function drawDwell(
   /* Find max dwell time for normalization (relative scale) */
   const maxS = Math.max(...bands.map((b) => b.s), 1);
 
-  /* Build a lookup: band% → seconds */
-  const bandMap = new Map<number, number>();
-  for (const b of bands) bandMap.set(b.b, b.s);
+  /* Sort bands by y-position so gradient stops are in ascending order */
+  const sorted = [...bands].sort((a, b) => a.b - b.b);
 
-  /* Draw row-by-row with interpolation for smoothness */
-  const ROW_H = 4; // draw every 4px for performance
-  for (let y = 0; y < h; y += ROW_H) {
-    const yPct = (y / h) * 100;
-
-    /* Find the two nearest bands and interpolate */
-    const bandIdx = Math.floor(yPct / 5) * 5;
-    const nextBandIdx = bandIdx + 5;
-    const s1 = bandMap.get(bandIdx) ?? 0;
-    const s2 = bandMap.get(nextBandIdx) ?? 0;
-    const frac = (yPct - bandIdx) / 5;
-    const interpolatedS = s1 + (s2 - s1) * frac;
-
-    const intensity = interpolatedS / maxS;
+  /* ── Main overlay gradient — one fillRect instead of ~1250 ── */
+  const STRIP_W = 10;
+  const gradient = ctx.createLinearGradient(0, 0, 0, h);
+  for (const band of sorted) {
+    const yStop = Math.max(0, Math.min(1, band.b / 100));
+    const intensity = band.s / maxS;
     if (intensity < 0.05) continue; // skip near-zero bands
-
     const c = getDwellColor(intensity);
     const a = opacity * intensity;
-    ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${a})`;
-    ctx.fillRect(0, y, w, ROW_H);
+    gradient.addColorStop(yStop, `rgba(${c.r},${c.g},${c.b},${a})`);
   }
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, w, h);
 
-  /* Side minimap strip (12px on left edge) */
-  const STRIP_W = 10;
-  for (let y = 0; y < h; y += ROW_H) {
-    const yPct = (y / h) * 100;
-    const bandIdx = Math.floor(yPct / 5) * 5;
-    const s = bandMap.get(bandIdx) ?? 0;
-    const intensity = s / maxS;
+  /* ── Side minimap strip (10px left edge) — separate gradient at full opacity ── */
+  const stripGradient = ctx.createLinearGradient(0, 0, 0, h);
+  for (const band of sorted) {
+    const yStop = Math.max(0, Math.min(1, band.b / 100));
+    const intensity = band.s / maxS;
     if (intensity < 0.05) continue;
     const c = getDwellColor(intensity);
-    ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, 0.85)`;
-    ctx.fillRect(0, y, STRIP_W, ROW_H);
+    stripGradient.addColorStop(yStop, `rgba(${c.r},${c.g},${c.b},0.85)`);
   }
+  ctx.fillStyle = stripGradient;
+  ctx.fillRect(0, 0, STRIP_W, h);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -242,7 +240,8 @@ function drawDwell(
 
 export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeatmapProps) {
   const [clicks, setClicks] = useState<ClickPoint[]>([]);
-  const [dwellBands, setDwellBands] = useState<DwellBand[]>([]);
+  /** Raw dwell rows fetched once — device filtering is applied client-side in filteredDwellBands */
+  const [rawDwellRows, setRawDwellRows] = useState<RawDwellRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [layerMode, setLayerMode] = useState<LayerMode>("clicks");
@@ -311,38 +310,23 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
       .lte("created_at", endDate);
 
     if (dwellRows && dwellRows.length > 0) {
-      /* Aggregate: average seconds per band across all sessions */
-      const bandTotals = new Map<number, { sum: number; count: number }>();
-
+      /* Store all raw rows — device filtering happens client-side in filteredDwellBands memo */
+      const parsed: RawDwellRow[] = [];
       for (const row of dwellRows) {
         const ed = row.event_data as { bands?: Array<{ b: number; s: number }> } | null;
         if (!ed?.bands) continue;
-        /* Filter by device type matching current view */
-        const dt = (row.device_type as string) || "desktop";
-        const matchesDevice = isMobile
-          ? dt === "mobile"
-          : dt === "desktop" || dt === "tablet";
-        if (!matchesDevice) continue;
-
-        for (const band of ed.bands) {
-          const existing = bandTotals.get(band.b) ?? { sum: 0, count: 0 };
-          existing.sum += band.s;
-          existing.count += 1;
-          bandTotals.set(band.b, existing);
-        }
+        parsed.push({
+          device_type: (row.device_type as string) || "desktop",
+          bands: ed.bands,
+        });
       }
-
-      const avgBands: DwellBand[] = [];
-      bandTotals.forEach((val, key) => {
-        avgBands.push({ b: key, s: Math.round((val.sum / val.count) * 10) / 10 });
-      });
-      setDwellBands(avgBands);
+      setRawDwellRows(parsed);
     } else {
-      setDwellBands([]);
+      setRawDwellRows([]);
     }
 
     setLoading(false);
-  }, [pageId, startDate, endDate, isMobile]);
+  }, [pageId, startDate, endDate]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -356,11 +340,37 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
   const desktopCount = clicks.filter((c) => c.device_type === "desktop" || c.device_type === "tablet").length;
   const mobileCount = clicks.filter((c) => c.device_type === "mobile").length;
 
+  /**
+   * Aggregate raw dwell rows for the currently selected device type.
+   * Client-side filtering avoids a full Supabase re-fetch on device toggle.
+   */
+  const filteredDwellBands = useMemo((): DwellBand[] => {
+    if (rawDwellRows.length === 0) return [];
+    const bandTotals = new Map<number, { sum: number; count: number }>();
+    for (const row of rawDwellRows) {
+      const matchesDevice = isMobile
+        ? row.device_type === "mobile"
+        : row.device_type === "desktop" || row.device_type === "tablet";
+      if (!matchesDevice) continue;
+      for (const band of row.bands) {
+        const existing = bandTotals.get(band.b) ?? { sum: 0, count: 0 };
+        existing.sum += band.s;
+        existing.count += 1;
+        bandTotals.set(band.b, existing);
+      }
+    }
+    const avgBands: DwellBand[] = [];
+    bandTotals.forEach((val, key) => {
+      avgBands.push({ b: key, s: Math.round((val.sum / val.count) * 10) / 10 });
+    });
+    return avgBands;
+  }, [rawDwellRows, isMobile]);
+
   /* Peak dwell time for legend */
   const peakDwell = useMemo(() => {
-    if (dwellBands.length === 0) return 0;
-    return Math.max(...dwellBands.map((b) => b.s));
-  }, [dwellBands]);
+    if (filteredDwellBands.length === 0) return 0;
+    return Math.max(...filteredDwellBands.map((b) => b.s));
+  }, [filteredDwellBands]);
 
   /* ── Iframe lifecycle ── */
 
@@ -421,14 +431,14 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
     if (dwellCanvasRef.current) {
       if (showDwell) {
         const opacity = layerMode === "both" ? 0.38 : 0.55;
-        drawDwell(dwellCanvasRef.current, dwellBands, w, h, opacity);
+        drawDwell(dwellCanvasRef.current, filteredDwellBands, w, h, opacity);
       } else {
         dwellCanvasRef.current.width = w;
         dwellCanvasRef.current.height = h;
         dwellCanvasRef.current.getContext("2d")?.clearRect(0, 0, w, h);
       }
     }
-  }, [filteredClicks, dwellBands, phase, showClicks, showDwell, layerMode, pageHeight, viewMode]);
+  }, [filteredClicks, filteredDwellBands, phase, showClicks, showDwell, layerMode, pageHeight, viewMode]);
 
   /* ── Scroll indicator ── */
 
@@ -490,7 +500,7 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
               {loading ? "טוען..." : (
                 <>
                   {filteredClicks.length.toLocaleString("he-IL")} לחיצות
-                  {dwellBands.length > 0 && ` · ${peakDwell} שנ׳ שיא שהייה`}
+                  {filteredDwellBands.length > 0 && ` · ${peakDwell} שנ׳ שיא שהייה`}
                   {` (${isMobile ? "נייד" : "מחשב"})`}
                 </>
               )}
@@ -670,7 +680,7 @@ export function ClickHeatmap({ pageId, pageSlug, startDate, endDate }: ClickHeat
                     )}
 
                     {/* Empty state */}
-                    {phase === "ready" && filteredClicks.length === 0 && dwellBands.length === 0 && (
+                    {phase === "ready" && filteredClicks.length === 0 && filteredDwellBands.length === 0 && (
                       <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm">
                         <div className="text-center space-y-2">
                           <MousePointerClick className="w-10 h-10 mx-auto text-[#E5E5E5]" />

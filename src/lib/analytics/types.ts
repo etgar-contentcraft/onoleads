@@ -19,6 +19,10 @@ export interface AnalyticsEvent {
   referrer_domain: string | null;
   device_type: string | null;
   webhook_status: string | null;
+  /** Scroll depth percentage (0–100) recorded when the visitor leaves */
+  scroll_depth: number | null;
+  /** Time spent on the page in seconds */
+  time_on_page: number | null;
   created_at: string;
 }
 
