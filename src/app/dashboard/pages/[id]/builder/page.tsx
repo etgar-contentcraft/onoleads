@@ -1678,10 +1678,37 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
   const [draft, setDraft] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
-    if (section) {
-      setDraft(section.content ? { ...section.content as Record<string, unknown> } : {});
+    if (!section) return;
+    const raw = section.content ? { ...section.content as Record<string, unknown> } : {};
+    const lang = pageLanguage || "he";
+
+    /**
+     * Copy-up: for non-Hebrew pages, if a lang-specific field (_en / _ar) is empty,
+     * initialise it from the _he fallback so existing Hebrew content is visible and
+     * editable in the correct field rather than appearing "blank" to the editor.
+     *
+     * Applies to CTA-family sections whose fields the language-aware editor manages.
+     * Does NOT apply to Hebrew pages (the _he field IS the primary storage).
+     */
+    if (lang !== "he") {
+      const copyUpFields: Record<string, string[]> = {
+        cta: ["heading", "description", "button_text"],
+        footer_cta: ["heading", "description", "button_text"],
+        event: ["heading", "description"],
+        map: ["heading"],
+      };
+      const fields = copyUpFields[section.section_type] ?? [];
+      for (const field of fields) {
+        const langKey = `${field}_${lang}`;
+        const heKey = `${field}_he`;
+        if (!raw[langKey] && raw[heKey]) {
+          raw[langKey] = raw[heKey];
+        }
+      }
     }
-  }, [section]);
+
+    setDraft(raw);
+  }, [section, pageLanguage]);
 
   if (!section) return null;
 
