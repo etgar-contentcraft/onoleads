@@ -11,7 +11,8 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { type AnalyticsEvent } from "@/lib/analytics/types";
+import { type AnalyticsEvent, type AttributionModel, type AnalyticsFilters, type ViewMode, EMPTY_FILTERS } from "@/lib/analytics/types";
+import { applyFilters, getUniqueValues, computeSessions, computeAttribution } from "@/lib/analytics/compute";
 import {
   Card,
   CardContent,
@@ -52,6 +53,11 @@ import {
   Activity,
   MousePointerClick,
   BarChart3,
+  Filter,
+  Layers,
+  Search,
+  Check,
+  X,
 } from "lucide-react";
 import { ClickHeatmap } from "@/components/admin/click-heatmap";
 
@@ -105,6 +111,26 @@ const CAMPAIGN_COLLAPSE_THRESHOLD = 5;
 /** Donut chart SVG radius (matches existing analytics page) */
 const DONUT_RADIUS = 15.91549431;
 
+/** Attribution model options shown in the dropdown */
+const ATTRIBUTION_MODELS: { value: AttributionModel; label: string; description: string }[] = [
+  { value: "last_touch",  label: "נגיעה אחרונה", description: "100% למקור האחרון לפני ההמרה" },
+  { value: "first_touch", label: "נגיעה ראשונה", description: "100% למקור הראשון של המבקר" },
+  { value: "linear",      label: "לינארי",      description: "חלוקה שווה בין כל נקודות המגע" },
+  { value: "u_shaped",    label: "U-Shaped",    description: "40% ראשון, 40% אחרון, 20% לאמצע" },
+];
+
+/** ISO-2 country code → Hebrew display name (mirrors global dashboard) */
+const COUNTRY_NAMES_HE: Record<string, string> = {
+  IL: "ישראל",       US: "ארצות הברית",   GB: "בריטניה",      DE: "גרמניה",
+  FR: "צרפת",       RU: "רוסיה",         CA: "קנדה",         AU: "אוסטרליה",
+  IT: "איטליה",      ES: "ספרד",          NL: "הולנד",        BE: "בלגיה",
+  CH: "שווייץ",     AT: "אוסטריה",        SE: "שוודיה",       NO: "נורווגיה",
+  DK: "דנמרק",      FI: "פינלנד",         PL: "פולין",        BR: "ברזיל",
+  AR: "ארגנטינה",   MX: "מקסיקו",         IN: "הודו",         CN: "סין",
+  JP: "יפן",        KR: "דרום קוריאה",    TR: "טורקיה",       AE: "איחוד האמירויות",
+  SA: "ערב הסעודית", EG: "מצרים",         ZA: "דרום אפריקה",
+};
+
 /* ─── Types ─── */
 
 /** Scroll depth band for the scroll depth chart */
@@ -119,11 +145,20 @@ interface ScrollDepthBand {
 interface PeriodMetrics {
   pageViews: number;
   uniqueVisitors: number;
+  /** GA-style sessions: events grouped by 30-minute inactivity window */
+  totalSessions: number;
   formSubmissions: number;
   ctaClicks: number;
   conversionRate: number;
   avgTimeOnPage: number;
   bounceRate: number;
+}
+
+/** Attribution row for the per-page attribution table */
+interface AttributionRow {
+  source: string;
+  conversions: number;
+  weightedConversions: number;
 }
 
 /** Daily breakdown entry for the timeline chart */
@@ -209,6 +244,8 @@ interface PageAnalytics {
   countries: GeoRow[];
   regions: GeoRow[];
   cities: GeoRow[];
+  /* Multi-touch attribution — top sources weighted by selected model */
+  attribution: AttributionRow[];
 }
 
 /* ─── Helpers ─── */
@@ -267,6 +304,154 @@ function countDistinct(values: (string | null)[]): number {
   return set.size;
 }
 
+/* ─── Multi-select filter dropdown (mirrors global dashboard) ─── */
+
+/**
+ * Generic multi-select dropdown for filtering by source / medium / campaign /
+ * device / country / referrer. Pure UI — selection state lives in the parent.
+ *
+ * @param label       - Button label when nothing is selected (e.g. "מקור")
+ * @param icon        - Lucide icon shown inside the trigger button
+ * @param options     - All values available for selection
+ * @param selected    - Currently selected values
+ * @param onChange    - Called whenever the selection changes
+ * @param displayName - Optional formatter (e.g. ISO country → Hebrew name)
+ * @param width       - Minimum trigger button width in pixels
+ */
+function MultiSelectFilter({
+  label,
+  icon,
+  options,
+  selected,
+  onChange,
+  displayName,
+  width = 160,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  options: string[];
+  selected: string[];
+  onChange: (values: string[]) => void;
+  displayName?: (raw: string) => string;
+  width?: number;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  /* Close on outside click */
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setIsOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const display = displayName || ((s: string) => s);
+  const filtered = options.filter(
+    (o) => o.toLowerCase().includes(search.toLowerCase()) || display(o).toLowerCase().includes(search.toLowerCase())
+  );
+
+  const toggle = (val: string) => {
+    if (selected.includes(val)) onChange(selected.filter((v) => v !== val));
+    else onChange([...selected, val]);
+  };
+
+  const buttonLabel =
+    selected.length === 0
+      ? label
+      : selected.length === 1
+        ? display(selected[0])
+        : `${selected.length} ${label}`;
+
+  /* Hide button entirely when no options exist (keeps the bar tidy) */
+  if (options.length === 0) return null;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ minWidth: width }}
+        className="flex items-center gap-2 h-9 px-3 rounded-lg border border-gray-200 bg-white text-sm hover:bg-gray-50 transition-colors"
+      >
+        <span className="text-[#9A969A] shrink-0">{icon}</span>
+        <span className="truncate text-[#2a2628]">{buttonLabel}</span>
+        <ChevronDown size={14} className={`text-[#9A969A] shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+
+      {selected.length > 0 && (
+        <button
+          onClick={() => onChange([])}
+          className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+          aria-label="נקה"
+        >
+          <X size={10} />
+        </button>
+      )}
+
+      {isOpen && (
+        <div className="absolute top-full mt-1 right-0 w-72 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <Search size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#9A969A]" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="חיפוש..."
+                className="w-full h-8 pr-8 pl-2 text-sm rounded-lg border border-gray-200 focus:border-[#B8D900] focus:outline-none"
+                dir="rtl"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-gray-100">
+            <button onClick={() => onChange(options)} className="text-xs text-[#3B82F6] hover:underline">
+              בחר הכל
+            </button>
+            <span className="text-[#9A969A]">·</span>
+            <button onClick={() => onChange([])} className="text-xs text-[#3B82F6] hover:underline">
+              נקה הכל
+            </button>
+            <span className="text-xs text-[#9A969A] mr-auto">
+              {selected.length}/{options.length}
+            </span>
+          </div>
+
+          <div className="max-h-60 overflow-y-auto py-1">
+            {filtered.length === 0 ? (
+              <p className="text-center text-sm text-[#9A969A] py-4">לא נמצאו תוצאות</p>
+            ) : (
+              filtered.map((opt) => {
+                const isSelected = selected.includes(opt);
+                return (
+                  <button
+                    key={opt}
+                    onClick={() => toggle(opt)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                      isSelected ? "bg-[#B8D900]/5" : ""
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                        isSelected ? "bg-[#B8D900] border-[#B8D900]" : "border-gray-300"
+                      }`}
+                    >
+                      {isSelected && <Check size={10} className="text-white" />}
+                    </div>
+                    <span className="truncate text-[#2a2628] text-right flex-1">{display(opt)}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Main Component ─── */
 
 export default function PageAnalyticsPage() {
@@ -283,6 +468,19 @@ export default function PageAnalyticsPage() {
   const [pageName, setPageName] = useState<string>("");
   const [pageSlug, setPageSlug] = useState<string>("");
   const [campaignsExpanded, setCampaignsExpanded] = useState(false);
+
+  /* ─── Cross-dimension filters & view options (mirrors global dashboard) ─── */
+  /** Cross-dimension filters (UTM / device / geo / referrer) */
+  const [filters, setFilters] = useState<AnalyticsFilters>(EMPTY_FILTERS);
+  /** Visitors vs sessions view mode */
+  const [viewMode, setViewMode] = useState<ViewMode>("users");
+  /** Multi-touch attribution model */
+  const [attributionModel, setAttributionModel] = useState<AttributionModel>("last_touch");
+  /** Toggle period-comparison badges on/off */
+  const [showComparison, setShowComparison] = useState(true);
+  /** Raw event arrays kept in memory so filter changes don't refetch */
+  const [rawCurrent, setRawCurrent] = useState<AnalyticsEvent[]>([]);
+  const [rawPrev, setRawPrev] = useState<AnalyticsEvent[]>([]);
 
   /* Stable Supabase client — createClient() must NOT be called on every render
    * as it creates a new WebSocket/realtime connection each time. */
@@ -485,6 +683,9 @@ export default function PageAnalyticsPage() {
     const ctaClicks = ctaClickEvents.length;
     const conversionRate = uniqueVisitors > 0 ? (formSubmissions / uniqueVisitors) * 100 : 0;
 
+    /* Sessions: 30-minute inactivity window grouping (GA-style) */
+    const totalSessions = computeSessions(events).length;
+
     /* Average time on page (from events with time_on_page set) */
     const timeEvents = events.filter((e) => e.time_on_page != null && e.time_on_page > 0);
     const avgTimeOnPage = timeEvents.length > 0
@@ -501,12 +702,14 @@ export default function PageAnalyticsPage() {
     Array.from(visitorEventCounts.values()).forEach(count => { if (count === 1) bounces++; });
     const bounceRate = uniqueVisitors > 0 ? (bounces / uniqueVisitors) * 100 : 0;
 
-    return { pageViews, uniqueVisitors, formSubmissions, ctaClicks, conversionRate, avgTimeOnPage, bounceRate };
+    return { pageViews, uniqueVisitors, totalSessions, formSubmissions, ctaClicks, conversionRate, avgTimeOnPage, bounceRate };
   }, []);
 
   /**
-   * Main data fetch: retrieves current + previous period events,
-   * computes all breakdowns, and sets state.
+   * Main data fetch: retrieves current + previous period events from Supabase
+   * and stashes them in state. The actual aggregation happens in a separate
+   * effect that re-runs whenever filters / view mode / attribution change —
+   * so toggling filters never re-queries the database.
    */
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
@@ -518,6 +721,21 @@ export default function PageAnalyticsPage() {
       fetchEvents(bounds.prevStart, bounds.prevEnd),
     ]);
 
+    setRawCurrent(currentEvents);
+    setRawPrev(prevEvents);
+    setLoading(false);
+  }, [getPeriodBounds, fetchEvents]);
+
+  /**
+   * Pure data-builder: takes raw events + the active period (current/previous)
+   * and returns a fully-built PageAnalytics object. Filters & attribution model
+   * are read from outer-scope state because the function is invoked from a
+   * useEffect that already depends on them.
+   */
+  const buildPageAnalytics = useCallback((
+    currentEvents: AnalyticsEvent[],
+    prevEvents: AnalyticsEvent[],
+  ): PageAnalytics => {
     const current = computeMetrics(currentEvents);
     const previous = computeMetrics(prevEvents);
 
@@ -667,7 +885,14 @@ export default function PageAnalyticsPage() {
     const regions = buildGeoBreakdown("region");
     const cities = buildGeoBreakdown("city");
 
-    setData({
+    /* --- Multi-touch attribution (top sources weighted by selected model) --- */
+    const attribution: AttributionRow[] = computeAttribution(currentEvents, attributionModel).map((a) => ({
+      source: a.source,
+      conversions: a.conversions,
+      weightedConversions: a.weightedConversions,
+    }));
+
+    return {
       current,
       previous,
       daily,
@@ -683,9 +908,48 @@ export default function PageAnalyticsPage() {
       countries,
       regions,
       cities,
-    });
-    setLoading(false);
-  }, [getPeriodBounds, fetchEvents, computeMetrics]);
+      attribution,
+    };
+  }, [computeMetrics, attributionModel]);
+
+  /**
+   * Recompute aggregations whenever raw events, filters, or attribution change.
+   * This is a pure in-memory pipeline — no network involved.
+   * Builds an empty-but-valid PageAnalytics object even with zero events so
+   * the dashboard can render an empty state instead of an infinite spinner.
+   */
+  useEffect(() => {
+    const filteredCurrent = applyFilters(rawCurrent, filters);
+    const filteredPrev = applyFilters(rawPrev, filters);
+    const built = buildPageAnalytics(filteredCurrent, filteredPrev);
+    setData(built);
+  }, [rawCurrent, rawPrev, filters, attributionModel, buildPageAnalytics]);
+
+  /**
+   * Available filter options derived from the current period's raw events.
+   * Recomputed only when raw data changes — dropdowns stay populated even
+   * after the user narrows the dataset via filters.
+   */
+  const availableFilterOptions = useMemo(
+    () => ({
+      sources: getUniqueValues(rawCurrent, "utm_source"),
+      mediums: getUniqueValues(rawCurrent, "utm_medium"),
+      campaigns: getUniqueValues(rawCurrent, "utm_campaign"),
+      devices: getUniqueValues(rawCurrent, "device_type"),
+      countries: getUniqueValues(rawCurrent, "country"),
+      referrers: getUniqueValues(rawCurrent, "referrer_domain"),
+    }),
+    [rawCurrent]
+  );
+
+  /** True if any cross-dimension filter is active */
+  const hasActiveFilters =
+    filters.sources.length > 0 ||
+    filters.mediums.length > 0 ||
+    filters.campaigns.length > 0 ||
+    filters.devices.length > 0 ||
+    filters.countries.length > 0 ||
+    filters.referrers.length > 0;
 
   /**
    * Builds a UTM breakdown table for a given UTM field.
@@ -789,7 +1053,8 @@ export default function PageAnalyticsPage() {
   const totalDevices = data.devices.reduce((sum, d) => sum + d.count, 0);
   const totalWebhook = data.webhook.sent + data.webhook.failed + data.webhook.pending;
 
-  /** Metric cards configuration */
+  /** Metric cards configuration — second card swaps between visitors / sessions
+   *  based on the active view mode (mirrors the global dashboard). */
   const metricCards = [
     {
       label: "צפיות בדף",
@@ -798,13 +1063,21 @@ export default function PageAnalyticsPage() {
       icon: Eye,
       color: "bg-[#B8D900]/10 text-[#8BA300]",
     },
-    {
-      label: "מבקרים ייחודיים",
-      value: data.current.uniqueVisitors,
-      prev: data.previous.uniqueVisitors,
-      icon: Users,
-      color: "bg-blue-500/10 text-blue-600",
-    },
+    viewMode === "sessions"
+      ? {
+          label: "סשנים",
+          value: data.current.totalSessions,
+          prev: data.previous.totalSessions,
+          icon: Layers,
+          color: "bg-blue-500/10 text-blue-600",
+        }
+      : {
+          label: "מבקרים ייחודיים",
+          value: data.current.uniqueVisitors,
+          prev: data.previous.uniqueVisitors,
+          icon: Users,
+          color: "bg-blue-500/10 text-blue-600",
+        },
     {
       label: "שליחות טופס",
       value: data.current.formSubmissions,
@@ -923,13 +1196,138 @@ export default function PageAnalyticsPage() {
               />
             </>
           )}
+
+          {/* Comparison toggle */}
+          <button
+            onClick={() => setShowComparison(!showComparison)}
+            className={`h-9 px-3 rounded-lg text-sm border transition-colors ${
+              showComparison
+                ? "bg-[#B8D900]/10 border-[#B8D900]/30 text-[#8BA300]"
+                : "bg-white border-gray-200 text-[#9A969A] hover:bg-gray-50"
+            }`}
+          >
+            השוואת תקופות
+          </button>
+
+          <div className="w-px h-6 bg-gray-200 hidden sm:block" />
+
+          {/* View mode toggle (visitors / sessions) */}
+          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+            <button
+              onClick={() => setViewMode("users")}
+              className={`h-8 px-3 rounded-md text-sm font-medium transition-all ${
+                viewMode === "users"
+                  ? "bg-white shadow-sm text-[#2a2628]"
+                  : "text-[#9A969A] hover:text-[#716C70]"
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <Users size={13} /> מבקרים
+              </span>
+            </button>
+            <button
+              onClick={() => setViewMode("sessions")}
+              className={`h-8 px-3 rounded-md text-sm font-medium transition-all ${
+                viewMode === "sessions"
+                  ? "bg-white shadow-sm text-[#2a2628]"
+                  : "text-[#9A969A] hover:text-[#716C70]"
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <Layers size={13} /> סשנים
+              </span>
+            </button>
+          </div>
+
+          {/* Attribution model dropdown */}
+          <Select
+            value={attributionModel}
+            onValueChange={(val: string | null) => {
+              if (val) setAttributionModel(val as AttributionModel);
+            }}
+          >
+            <SelectTrigger className="h-9 w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ATTRIBUTION_MODELS.map((am) => (
+                <SelectItem key={am.value} value={am.value}>
+                  {am.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+      </div>
+
+      {/* ── Cross-dimension filters bar (UTM / device / geo / referrer) ── */}
+      <div className="flex flex-wrap items-center gap-2 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
+        <span className="text-xs font-semibold text-[#716C70] flex items-center gap-1.5 ml-1">
+          <Filter size={12} /> סינון מתקדם:
+        </span>
+        <MultiSelectFilter
+          label="מקור (source)"
+          icon={<Globe size={13} />}
+          options={availableFilterOptions.sources}
+          selected={filters.sources}
+          onChange={(v) => setFilters({ ...filters, sources: v })}
+        />
+        <MultiSelectFilter
+          label="ערוץ (medium)"
+          icon={<Send size={13} />}
+          options={availableFilterOptions.mediums}
+          selected={filters.mediums}
+          onChange={(v) => setFilters({ ...filters, mediums: v })}
+        />
+        <MultiSelectFilter
+          label="קמפיין"
+          icon={<MousePointerClick size={13} />}
+          options={availableFilterOptions.campaigns}
+          selected={filters.campaigns}
+          onChange={(v) => setFilters({ ...filters, campaigns: v })}
+          width={180}
+        />
+        <MultiSelectFilter
+          label="מכשיר"
+          icon={<Layers size={13} />}
+          options={availableFilterOptions.devices}
+          selected={filters.devices}
+          onChange={(v) => setFilters({ ...filters, devices: v })}
+          displayName={(d) => DEVICE_LABELS[d] || d}
+          width={120}
+        />
+        <MultiSelectFilter
+          label="מדינה"
+          icon={<Globe size={13} />}
+          options={availableFilterOptions.countries}
+          selected={filters.countries}
+          onChange={(v) => setFilters({ ...filters, countries: v })}
+          displayName={(c) => COUNTRY_NAMES_HE[c.toUpperCase()] || c}
+          width={140}
+        />
+        <MultiSelectFilter
+          label="הפניה"
+          icon={<Activity size={13} />}
+          options={availableFilterOptions.referrers}
+          selected={filters.referrers}
+          onChange={(v) => setFilters({ ...filters, referrers: v })}
+          width={150}
+        />
+        {hasActiveFilters && (
+          <button
+            onClick={() => setFilters(EMPTY_FILTERS)}
+            className="text-xs text-red-500 hover:text-red-600 hover:underline mr-auto"
+          >
+            נקה סינון מתקדם
+          </button>
+        )}
       </div>
 
       {/* ── Key Metric Cards ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {metricCards.map((card) => {
-          const change = card.isPercentage
+          const isPct = "isPercentage" in card && card.isPercentage;
+          const change = isPct
             ? Math.round(card.value - card.prev)
             : percentChange(card.value, card.prev);
           const Icon = card.icon;
@@ -938,7 +1336,7 @@ export default function PageAnalyticsPage() {
             change > 0 ? "text-emerald-600" : change < 0 ? "text-red-500" : "text-[#9A969A]";
           const displayValue = "formatFn" in card && card.formatFn
             ? card.formatFn(card.value)
-            : card.isPercentage
+            : isPct
               ? `${card.value.toFixed(1)}%`
               : formatNum(card.value);
 
@@ -949,14 +1347,16 @@ export default function PageAnalyticsPage() {
                   <div className="space-y-0.5 min-w-0">
                     <p className="text-xs text-[#9A969A] font-medium truncate">{card.label}</p>
                     <p className="text-2xl font-bold text-[#2a2628] tabular-nums">{displayValue}</p>
-                    <div className={`flex items-center gap-1 text-[10px] ${changeColor}`}>
-                      <ChangeIcon className="w-2.5 h-2.5" />
-                      <span>
-                        {card.isPercentage
-                          ? `${change > 0 ? "+" : ""}${change} נק׳`
-                          : formatPct(change)}
-                      </span>
-                    </div>
+                    {showComparison && (
+                      <div className={`flex items-center gap-1 text-[10px] ${changeColor}`}>
+                        <ChangeIcon className="w-2.5 h-2.5" />
+                        <span>
+                          {isPct
+                            ? `${change > 0 ? "+" : ""}${change} נק׳`
+                            : formatPct(change)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div
                     className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center ${card.color}`}
@@ -1245,6 +1645,67 @@ export default function PageAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Multi-touch Attribution ── */}
+      <Card className="border-0 shadow-sm rounded-2xl">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-bold text-[#2a2628]">
+                שיוך המרות
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {ATTRIBUTION_MODELS.find((a) => a.value === attributionModel)?.description}
+              </CardDescription>
+            </div>
+            <MousePointerClick className="w-4 h-4 text-[#9A969A]" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          {data.attribution.length === 0 ? (
+            <p className="text-center text-[#9A969A] py-4 text-sm">
+              אין המרות לשיוך בתקופה זו
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {data.attribution.map((attr, idx) => {
+                const maxW = Math.max(
+                  ...data.attribution.map((a) => a.weightedConversions),
+                  1
+                );
+                const pct = Math.round((attr.weightedConversions / maxW) * 100);
+                return (
+                  <div key={attr.source} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[#716C70] truncate max-w-[60%]">
+                        {attr.source}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-[#9A969A]">
+                          {attr.conversions} מגעים
+                        </span>
+                        <span className="font-bold text-[#2a2628] tabular-nums">
+                          {attr.weightedConversions.toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="w-full h-2 bg-[#f3f4f6] rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: mounted ? `${pct}%` : "0%",
+                          backgroundColor: UTM_COLORS[idx % UTM_COLORS.length],
+                          transitionDelay: `${idx * 80}ms`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ── Bottom Row: Devices, Referrers, Webhooks ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
