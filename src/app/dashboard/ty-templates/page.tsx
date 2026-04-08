@@ -33,6 +33,7 @@ const LAYOUT_LABELS: Record<TyLayoutId, string> = {
   social_proof: "הוכחה חברתית",
   urgency_cohort: "דחיפות מחזור",
   multi_channel: "רב-ערוצי",
+  simple_thanks: "תודה בסיסי",
 };
 
 const LAYOUT_IDS: TyLayoutId[] = [
@@ -46,6 +47,7 @@ const LAYOUT_IDS: TyLayoutId[] = [
   "social_proof",
   "urgency_cohort",
   "multi_channel",
+  "simple_thanks",
 ];
 
 export default function TyTemplatesDashboard() {

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { CharCount } from "../char-count";
 import { ImageUploadField } from "@/components/ui/image-upload-field";
 
@@ -43,6 +44,8 @@ interface HeroContent {
   cta_text_en?: string;
   cta_text_ar?: string;
   cta_url?: string;
+  /** When false, the CTA button is completely hidden. Default true. */
+  cta_enabled?: boolean;
   background_overlay_opacity?: number;
 }
 
@@ -309,6 +312,18 @@ export function HeroEditor({ content, onChange }: HeroEditorProps) {
 
       <div className="border-t pt-4 space-y-4">
         <h3 className="text-xs font-semibold text-[#9A969A] uppercase tracking-wider">הגדרות משותפות</h3>
+
+        {/* CTA enabled toggle — applies to all languages */}
+        <div className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg bg-muted/30">
+          <div>
+            <Label className="text-xs font-semibold">הצג כפתור קריאה לפעולה</Label>
+            <p className="text-[10px] text-[#9A969A] mt-0.5">כבה כדי להסתיר לחלוטין את הכפתור ב-Hero</p>
+          </div>
+          <Switch
+            checked={content.cta_enabled !== false}
+            onCheckedChange={(checked) => onChange({ ...content, cta_enabled: checked })}
+          />
+        </div>
 
         <Field
           label="תמונת רקע"

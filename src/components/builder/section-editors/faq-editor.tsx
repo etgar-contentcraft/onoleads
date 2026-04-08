@@ -9,11 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2 } from "lucide-react";
 import { CharCount } from "../char-count";
 
-const LIMITS = { heading: 50, question: 80, answer: 350 };
+const LIMITS = { heading: 50, question: 80, answer: 350, cta_text: 60 };
 
 interface FaqItem {
   question_he: string;
@@ -29,6 +30,11 @@ interface FaqContent {
   heading_en?: string;
   heading_ar?: string;
   items?: FaqItem[];
+  /** When false, the "Have more questions?" CTA button is hidden. Default true. */
+  cta_enabled?: boolean;
+  cta_text_he?: string;
+  cta_text_en?: string;
+  cta_text_ar?: string;
 }
 
 interface FaqEditorProps {
@@ -173,6 +179,54 @@ export function FaqEditor({ content, onChange }: FaqEditorProps) {
         <Plus className="w-3.5 h-3.5 mr-1.5" />
         הוסף שאלה
       </Button>
+
+      {/* CTA toggle + text — applies to all languages */}
+      <div className="border-t border-border pt-4 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-1.5 h-4 bg-[#B8D900] rounded-full" />
+          <span className="text-xs font-bold text-[#2A2628]">כפתור קריאה לפעולה</span>
+        </div>
+        <div className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg bg-muted/30">
+          <div>
+            <Label className="text-xs font-semibold">הצג כפתור קריאה לפעולה</Label>
+            <p className="text-[10px] text-[#9A969A] mt-0.5">כבה כדי להסתיר לחלוטין את הכפתור מתחת לשאלות</p>
+          </div>
+          <Switch
+            checked={content.cta_enabled !== false}
+            onCheckedChange={(checked) => onChange({ ...content, cta_enabled: checked })}
+          />
+        </div>
+
+        {content.cta_enabled !== false && (
+          <div className="space-y-2 pr-3 border-r-2 border-[#B8D900]/30">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">טקסט כפתור (עברית)</Label>
+                <CharCount value={content.cta_text_he || ""} max={LIMITS.cta_text} />
+              </div>
+              <Input
+                value={content.cta_text_he || ""}
+                onChange={(e) => update("cta_text_he", e.target.value)}
+                placeholder="יש לכם עוד שאלה? דברו איתנו"
+                dir="rtl"
+                className="h-8 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">טקסט כפתור (אנגלית)</Label>
+                <CharCount value={content.cta_text_en || ""} max={LIMITS.cta_text} />
+              </div>
+              <Input
+                value={content.cta_text_en || ""}
+                onChange={(e) => update("cta_text_en", e.target.value)}
+                placeholder="Have More Questions? Contact Us"
+                className="h-8 text-sm"
+              />
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

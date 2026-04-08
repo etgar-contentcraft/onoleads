@@ -692,6 +692,30 @@ const multiChannelContent: TyContent = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Template 11: Simple Thanks — minimal "we got your details" + back link
+// ─────────────────────────────────────────────────────────────────────────────
+const simpleThanksContent: TyContent = {
+  he: {
+    heading: "תודה רבה!",
+    subheading: "קיבלנו את פרטיך ונחזור אליך בהקדם",
+    back_link: "חזרה לעמוד הראשי",
+    copyright: "© הקריה האקדמית אונו",
+  },
+  en: {
+    heading: "Thank you!",
+    subheading: "We received your details and will be in touch shortly",
+    back_link: "Back to main page",
+    copyright: "© Ono Academic College",
+  },
+  ar: {
+    heading: "شكراً جزيلاً!",
+    subheading: "لقد تلقينا تفاصيلك وسنتواصل معك قريباً",
+    back_link: "العودة إلى الصفحة الرئيسية",
+    copyright: "© كلية أونو الأكاديمية",
+  },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Export the full catalog
 // ─────────────────────────────────────────────────────────────────────────────
 export const TY_TEMPLATE_CATALOG: TemplateSeed[] = [
@@ -832,6 +856,20 @@ export const TY_TEMPLATE_CATALOG: TemplateSeed[] = [
     description_ar: "يعرض جميع قنوات الاتصال بالتوازي - واتساب، هاتف، بريد إلكتروني، تقويم. يدع العميل المحتمل يختار.",
     content: multiChannelContent,
     config: { accent_color: "#B8D900", bg_style: "gradient" },
+    is_system: true,
+    is_default: false,
+  },
+  {
+    template_key: "simple_thanks",
+    layout_id: "simple_thanks",
+    name_he: "תודה בסיסי",
+    name_en: "Simple Thanks",
+    name_ar: "شكر بسيط",
+    description_he: "העיצוב המינימלי ביותר - תודה קצרה, אישור קבלה וקישור חזרה. ללא הסחות דעת, ללא קריאות פעולה נוספות.",
+    description_en: "The most minimal design — short thanks, confirmation, and a link back. No distractions, no extra CTAs.",
+    description_ar: "التصميم الأكثر بساطة - شكر قصير، تأكيد، ورابط للعودة. لا تشتيت، لا عبارات إضافية.",
+    content: simpleThanksContent,
+    config: { accent_color: "#B8D900", bg_style: "light", show_checkmark: true },
     is_system: true,
     is_default: false,
   },

@@ -24,7 +24,8 @@ export type TyLayoutId =
   | "resource_library"
   | "social_proof"
   | "urgency_cohort"
-  | "multi_channel";
+  | "multi_channel"
+  | "simple_thanks";
 
 /**
  * Editable content fields for a single language.

@@ -20,6 +20,7 @@ import { revalidateNow } from "@/lib/admin/revalidate";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 import type { InterestArea } from "@/lib/types/database";
+import { getLayoutFieldInfo } from "@/lib/thank-you/layout-field-map";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1148,68 +1149,168 @@ export default function PageSettingsPage() {
             </div>
           </div>
 
-          <Separator />
+          {/*
+            Adaptive override fields — only the sections relevant to the
+            selected template's layout are shown. The full content (advisor
+            details, testimonials, video URL, etc.) is edited in the template
+            management page; here you can only override the universal pieces
+            (heading/subheading + visibility toggles for whatsapp/social).
+          */}
+          {(() => {
+            const selectedTemplate = tyTemplates.find((t) => t.id === selectedTemplateId);
+            const effectiveLayoutId =
+              selectedTemplate?.layout_id ||
+              tyTemplates.find((t) => t.is_default)?.layout_id ||
+              "classic_dark";
+            const info = getLayoutFieldInfo(effectiveLayoutId);
+            const showSection = (s: string) => info.sections.includes(s as never);
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm font-medium text-[#2a2628]">כותרת ראשית (דריסה)</Label>
-              <Input value={tySettings.heading_he || ""} onChange={(e) => setTySettings((p) => ({ ...p, heading_he: e.target.value }))}
-                placeholder="תודה! קיבלנו את פרטיך" className="mt-1.5 h-9" dir="rtl" />
-              <p className="text-[11px] text-[#9A969A] mt-1">השתמשו ב-[שם] להצגת שם הלקוח</p>
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-[#2a2628]">כותרת משנה (דריסה)</Label>
-              <Input value={tySettings.subheading_he || ""} onChange={(e) => setTySettings((p) => ({ ...p, subheading_he: e.target.value }))}
-                placeholder="יועץ לימודים ייצור איתך קשר בקרוב" className="mt-1.5 h-9" dir="rtl" />
-            </div>
-          </div>
+            return (
+              <>
+                <Separator />
 
-          <Separator />
-
-          {/* Social */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <Label className="text-sm font-semibold text-[#2a2628]">רשתות חברתיות</Label>
-              <div className="flex items-center gap-2">
-                <Switch checked={tySettings.show_social !== false}
-                  onCheckedChange={(v) => setTySettings((p) => ({ ...p, show_social: v }))} />
-                <span className="text-xs text-[#9A969A]">{tySettings.show_social !== false ? "מוצג" : "מוסתר"}</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {(["facebook_url", "instagram_url", "youtube_url", "linkedin_url", "tiktok_url"] as const).map((k) => (
-                <div key={k}>
-                  <Label className="text-xs text-[#716C70]">{k.replace("_url", "").replace("_", " ")}</Label>
-                  <Input value={tySettings[k] || ""} onChange={(e) => setTySettings((p) => ({ ...p, [k]: e.target.value }))}
-                    placeholder="https://..." className="mt-1 h-8 text-xs" dir="ltr" />
+                {/* Layout info banner — explains what the chosen template renders */}
+                <div className="rounded-xl bg-[#fafafa] border border-[#e5e5e5] p-4 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="inline-flex h-5 px-2 items-center rounded-full bg-[#B8D900]/20 text-[#6b8d00] text-[11px] font-semibold">
+                      {selectedTemplate?.name_he || "ברירת מחדל גלובלית"}
+                    </span>
+                    <span className="text-[11px] text-[#9A969A]">
+                      פריסה: {effectiveLayoutId}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#4A4648] leading-relaxed">{info.description}</p>
+                  <div className="text-[11px] text-[#716C70]">
+                    <span className="font-semibold text-[#2a2628]">שדות שהתבנית מציגה: </span>
+                    {info.coreFields.join(" · ")}
+                  </div>
+                  {info.editTip && (
+                    <p className="text-[11px] text-[#9A6900] bg-[#fff8e6] border border-[#fde68a] rounded-lg p-2 mt-2">
+                      💡 {info.editTip}
+                    </p>
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
+
+                {(showSection("heading") || showSection("subheading")) && (
+                  <>
+                    <Separator />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {showSection("heading") && (
+                        <div>
+                          <Label className="text-sm font-medium text-[#2a2628]">כותרת ראשית (דריסה)</Label>
+                          <Input value={tySettings.heading_he || ""} onChange={(e) => setTySettings((p) => ({ ...p, heading_he: e.target.value }))}
+                            placeholder="תודה! קיבלנו את פרטיך" className="mt-1.5 h-9" dir="rtl" />
+                          <p className="text-[11px] text-[#9A969A] mt-1">השתמשו ב-[שם] להצגת שם הלקוח</p>
+                        </div>
+                      )}
+                      {showSection("subheading") && (
+                        <div>
+                          <Label className="text-sm font-medium text-[#2a2628]">כותרת משנה (דריסה)</Label>
+                          <Input value={tySettings.subheading_he || ""} onChange={(e) => setTySettings((p) => ({ ...p, subheading_he: e.target.value }))}
+                            placeholder="יועץ לימודים ייצור איתך קשר בקרוב" className="mt-1.5 h-9" dir="rtl" />
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {showSection("social") && (
+                  <>
+                    <Separator />
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <Label className="text-sm font-semibold text-[#2a2628]">רשתות חברתיות</Label>
+                        <div className="flex items-center gap-2">
+                          <Switch checked={tySettings.show_social !== false}
+                            onCheckedChange={(v) => setTySettings((p) => ({ ...p, show_social: v }))} />
+                          <span className="text-xs text-[#9A969A]">{tySettings.show_social !== false ? "מוצג" : "מוסתר"}</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {(["facebook_url", "instagram_url", "youtube_url", "linkedin_url", "tiktok_url"] as const).map((k) => (
+                          <div key={k}>
+                            <Label className="text-xs text-[#716C70]">{k.replace("_url", "").replace("_", " ")}</Label>
+                            <Input value={tySettings[k] || ""} onChange={(e) => setTySettings((p) => ({ ...p, [k]: e.target.value }))}
+                              placeholder="https://..." className="mt-1 h-8 text-xs" dir="ltr" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {showSection("whatsapp") && (
+                  <>
+                    <Separator />
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-semibold text-[#2a2628]">כפתור WhatsApp</Label>
+                        <div className="flex items-center gap-2">
+                          <Switch checked={tySettings.show_whatsapp !== false}
+                            onCheckedChange={(v) => setTySettings((p) => ({ ...p, show_whatsapp: v }))} />
+                          <span className="text-xs text-[#9A969A]">{tySettings.show_whatsapp !== false ? "מוצג" : "מוסתר"}</span>
+                        </div>
+                      </div>
+                      <Input value={tySettings.whatsapp_cta_he || ""} onChange={(e) => setTySettings((p) => ({ ...p, whatsapp_cta_he: e.target.value }))}
+                        placeholder="רוצים לדבר עכשיו? כתבו לנו" className="h-9" dir="rtl" />
+                    </div>
+                  </>
+                )}
+
+                {showSection("calendar") && (
+                  <>
+                    <Separator />
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-semibold text-[#2a2628]">קביעת שיחה ביומן</Label>
+                        <div className="flex items-center gap-2">
+                          <Switch checked={tySettings.show_calendar !== false}
+                            onCheckedChange={(v) => setTySettings((p) => ({ ...p, show_calendar: v }))} />
+                          <span className="text-xs text-[#9A969A]">{tySettings.show_calendar !== false ? "מוצג" : "מוסתר"}</span>
+                        </div>
+                      </div>
+                      <Input value={tySettings.calendar_url || ""} onChange={(e) => setTySettings((p) => ({ ...p, calendar_url: e.target.value }))}
+                        placeholder="https://calendly.com/..." className="h-9" dir="ltr" />
+                      <p className="text-[11px] text-[#9A969A] mt-1">קישור Calendly או דומה לקביעת שיחה.</p>
+                    </div>
+                  </>
+                )}
+
+                {showSection("video") && (
+                  <>
+                    <Separator />
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-semibold text-[#2a2628]">וידאו ברכה</Label>
+                        <div className="flex items-center gap-2">
+                          <Switch checked={tySettings.show_video !== false}
+                            onCheckedChange={(v) => setTySettings((p) => ({ ...p, show_video: v }))} />
+                          <span className="text-xs text-[#9A969A]">{tySettings.show_video !== false ? "מוצג" : "מוסתר"}</span>
+                        </div>
+                      </div>
+                      <Input value={tySettings.video_url || ""} onChange={(e) => setTySettings((p) => ({ ...p, video_url: e.target.value }))}
+                        placeholder="https://www.youtube.com/embed/..." className="h-9" dir="ltr" />
+                      <p className="text-[11px] text-[#9A969A] mt-1">קישור YouTube/Vimeo embed או mp4 ישיר.</p>
+                    </div>
+                  </>
+                )}
+              </>
+            );
+          })()}
 
           <Separator />
 
-          {/* WhatsApp */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label className="text-sm font-semibold text-[#2a2628]">כפתור WhatsApp</Label>
-              <div className="flex items-center gap-2">
-                <Switch checked={tySettings.show_whatsapp !== false}
-                  onCheckedChange={(v) => setTySettings((p) => ({ ...p, show_whatsapp: v }))} />
-                <span className="text-xs text-[#9A969A]">{tySettings.show_whatsapp !== false ? "מוצג" : "מוסתר"}</span>
-              </div>
-            </div>
-            <Input value={tySettings.whatsapp_cta_he || ""} onChange={(e) => setTySettings((p) => ({ ...p, whatsapp_cta_he: e.target.value }))}
-              placeholder="רוצים לדבר עכשיו? כתבו לנו" className="h-9" dir="rtl" />
-          </div>
-
-          <Separator />
-
-          {/* Preview */}
+          {/* Preview — must use ?slug= because /ty reads settings by slug, not page_id.
+              Without the slug, the route can't find the page's selected template and
+              always falls back to the global default (classic_dark). */}
           <div className="p-3 rounded-xl bg-[#f9fafb] border border-[#e5e7eb] flex items-center justify-between">
             <span className="text-xs text-[#9A969A]">תצוגה מקדימה של עמוד תודה</span>
-            <a href={`/ty?name=ישראל&page_id=${pageId}`} target="_blank" rel="noopener noreferrer"
-              className="text-xs font-medium text-[#B8D900] hover:underline flex items-center gap-1">
+            <a
+              href={pageSlug ? `/ty?slug=${encodeURIComponent(pageSlug)}` : "/ty"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-medium text-[#B8D900] hover:underline flex items-center gap-1"
+            >
               פתחו עמוד תודה
               <ExternalLink className="w-3 h-3" />
             </a>

@@ -6,8 +6,11 @@
  * 2. Per-page override in pages.custom_styles.thank_you_settings
  *
  * Query params:
- *   slug  - the landing page slug (to fetch per-page settings + back link)
- *   name  - NOT passed via URL; read from sessionStorage on the client
+ *   slug     - the landing page slug (to fetch per-page settings + back link)
+ *   template - explicit template id (from the templates dashboard preview button)
+ *              When set, this overrides the page's saved template selection
+ *              and the global default — used for previewing templates standalone.
+ *   name     - NOT passed via URL; read from sessionStorage on the client
  */
 
 import { redirect } from "next/navigation";
@@ -25,7 +28,7 @@ import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 
 interface PageProps {
-  searchParams: Promise<{ slug?: string }>;
+  searchParams: Promise<{ slug?: string; template?: string }>;
 }
 
 export const metadata: Metadata = {
@@ -35,7 +38,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ThankYouRoute({ searchParams }: PageProps) {
-  const { slug } = await searchParams;
+  const { slug, template: templateIdOverride } = await searchParams;
   const supabase = await createClient();
   // Settings table is restricted to authenticated users via RLS.
   // The thank-you page is public so we use the admin client for settings reads.
@@ -137,9 +140,20 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
       "",
   };
 
-  // ── Resolve template: page selection > global default ─────────────────────
+  // ── Resolve template: ?template= override > page selection > global default ──
   let template: ThankYouTemplate | null = null;
-  if (pageTemplateId) {
+  if (templateIdOverride) {
+    // Explicit template id from the dashboard preview button — used to view
+    // a specific template layout standalone, regardless of the page selection.
+    const { data } = await adminClient
+      .from("thank_you_templates")
+      .select("*")
+      .eq("id", templateIdOverride)
+      .eq("is_active", true)
+      .maybeSingle();
+    template = (data as ThankYouTemplate) || null;
+  }
+  if (!template && pageTemplateId) {
     const { data } = await adminClient
       .from("thank_you_templates")
       .select("*")
