@@ -21,6 +21,7 @@ import type {
   TyLang,
 } from "@/lib/types/thank-you-templates";
 import { pickField as pickFieldRaw } from "@/lib/types/thank-you-templates";
+import type { EventMeta } from "@/lib/types/events";
 
 /** Data passed to every layout */
 export interface LayoutContext {
@@ -47,6 +48,14 @@ export interface LayoutContext {
   showVideo?: boolean;
   calendarUrl?: string;
   videoUrl?: string;
+
+  /**
+   * Raw EventMeta blob from the linked event row (only set when the page is
+   * linked to an active event). Layouts like `open_day` use this to render
+   * rich structured content — speakers, schedule, FAQ, highlights, gallery,
+   * capacity counter — that the string-based template content can't carry.
+   */
+  eventMeta?: EventMeta;
 }
 
 /** Every layout implements this shape */

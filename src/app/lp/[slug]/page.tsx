@@ -11,6 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 const getAdminClient = () => createAdminClient();
 import type { Page, PageSection, Language, Program } from "@/lib/types/database";
 import type { PopupCampaign } from "@/lib/types/popup-campaigns";
+import type { EventRow } from "@/lib/types/events";
 import { LandingPageLayout, type PageSettings } from "@/components/landing/landing-page-layout";
 import type { Metadata } from "next";
 import { cache } from "react";
@@ -175,6 +176,30 @@ const getPageData = cache(async function getPageData(slug: string) {
     return s;
   }) as PageSection[];
 
+  // ── Fetch linked events referenced by event-type sections ──────────────
+  // Any event section can reference a row from the `events` table via
+  // `content.event_id`. We batch-fetch every distinct id in one query, then
+  // build an { id → EventRow } map the layout can use to overlay rich data
+  // on top of whatever inline content the section already has.
+  const eventIds = new Set<string>();
+  for (const section of sections) {
+    if (section.section_type === "event") {
+      const eventId = (section.content as Record<string, unknown>)?.event_id;
+      if (typeof eventId === "string" && eventId) eventIds.add(eventId);
+    }
+  }
+  const eventsMap: Record<string, EventRow> = {};
+  if (eventIds.size > 0) {
+    const { data: eventRows } = await adminClient
+      .from("events")
+      .select("*")
+      .in("id", Array.from(eventIds))
+      .eq("is_active", true);
+    for (const row of (eventRows || []) as EventRow[]) {
+      eventsMap[row.id] = row;
+    }
+  }
+
   // Filter active campaigns (check dates and is_active flag)
   const now = new Date().toISOString();
   const campaigns = ((campaignsRes.data || []) as { campaign: PopupCampaign | null }[])
@@ -213,6 +238,7 @@ const getPageData = cache(async function getPageData(slug: string) {
     campaigns,
     pageInterestAreas,
     unknownOption,
+    eventsMap,
   };
 });
 
@@ -510,7 +536,7 @@ export default async function LandingPage({ params }: PageProps) {
     notFound();
   }
 
-  const { page, sections, program, settings, campaigns, pageInterestAreas, unknownOption } = data;
+  const { page, sections, program, settings, campaigns, pageInterestAreas, unknownOption, eventsMap } = data;
   const language = (page.language || "he") as Language;
   const isRtl = language === "he" || language === "ar";
 
@@ -550,6 +576,7 @@ export default async function LandingPage({ params }: PageProps) {
         campaigns={campaigns}
         pageInterestAreas={pageInterestAreas}
         unknownOption={unknownOption}
+        eventsMap={eventsMap}
       />
     </>
   );

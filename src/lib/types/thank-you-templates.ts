@@ -158,6 +158,30 @@ export interface TyContentFields {
   event_language_of_event?: string;
   /** Price / free flag text. */
   event_price_info?: string;
+  /** Refreshments / catering note. */
+  event_refreshments?: string;
+  /** Hashtag for social media. */
+  event_hashtag?: string;
+  /** Certificate of attendance description. */
+  event_certificate_info?: string;
+  /** Custom CTA button label (overrides the default from the template). */
+  event_cta_label?: string;
+  /** Custom CTA button URL. */
+  event_cta_url?: string;
+  /** Intro video URL (YouTube/Vimeo/mp4). */
+  event_intro_video_url?: string;
+  /** Livestream URL for hybrid events. */
+  event_livestream_url?: string;
+  /** Recording URL for past events. */
+  event_recording_url?: string;
+  /** External registration URL. */
+  event_registration_url?: string;
+  /** Registration deadline ISO date. */
+  event_registration_deadline?: string;
+  /** Event capacity (as string so empty = unset). */
+  event_capacity?: string;
+  /** Registered count so far (as string so empty = unset). */
+  event_registered_count?: string;
 }
 
 /** Per-language content map */

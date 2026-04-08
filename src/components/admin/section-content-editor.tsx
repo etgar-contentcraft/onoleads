@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, X, ImageIcon, Loader2, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { extractYoutubeId } from "@/lib/utils/youtube";
+import { ImageUploadField } from "@/components/ui/image-upload-field";
 
 export interface SectionContentEditorProps {
   sectionType: string;
@@ -234,6 +235,9 @@ interface ObjField {
   key: string;
   label: string;
   type?: "textarea" | "image";
+  recommendedSize?: string;
+  hint?: string;
+  previewAspect?: "aspect-video" | "aspect-square" | "aspect-[4/3]" | "aspect-[3/2]";
 }
 
 function ObjectListField({
@@ -285,11 +289,13 @@ function ObjectListField({
               ) : f.type === "image" ? (
                 <div key={f.key} className="space-y-1">
                   <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
-                  <Input value={item[f.key] || ""} onChange={(e) => updateField(i, f.key, e.target.value)} placeholder="https://..." dir="ltr" className="h-8 text-sm font-mono" />
-                  {item[f.key] && (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={item[f.key]} alt="" className="w-12 h-12 rounded-lg object-cover border border-[#E5E5E5]" />
-                  )}
+                  <ImageUploadField
+                    value={item[f.key] || ""}
+                    onChange={(url) => updateField(i, f.key, url)}
+                    recommendedSize={f.recommendedSize || "400×400"}
+                    hint={f.hint}
+                    previewAspect={f.previewAspect || "aspect-square"}
+                  />
                 </div>
               ) : (
                 <div key={f.key} className="space-y-1">
@@ -463,7 +469,7 @@ export function SectionContentEditor({ sectionType, content, onChange }: Section
                 { key: "name", label: "שם" },
                 { key: "role", label: "תפקיד / שנה" },
                 { key: "quote", label: "ציטוט", type: "textarea" },
-                { key: "image_url", label: "תמונה (URL)", type: "image" },
+                { key: "image_url", label: "תמונת פרופיל", type: "image", recommendedSize: "400×400", hint: "תמונה ריבועית", previewAspect: "aspect-square" },
               ]}
               draft={draft}
               set={set}
@@ -482,7 +488,7 @@ export function SectionContentEditor({ sectionType, content, onChange }: Section
                 { key: "name_he", label: "שם" },
                 { key: "title_he", label: "תפקיד / תואר" },
                 { key: "bio_he", label: "תיאור קצר", type: "textarea" },
-                { key: "image_url", label: "תמונה (URL)", type: "image" },
+                { key: "image_url", label: "תמונת פרופיל", type: "image", recommendedSize: "400×400", hint: "תמונה ריבועית", previewAspect: "aspect-square" },
               ]}
               draft={draft}
               set={set}
@@ -556,7 +562,7 @@ export function SectionContentEditor({ sectionType, content, onChange }: Section
               label="תמונות"
               fieldKey="images"
               fields={[
-                { key: "url", label: "URL תמונה", type: "image" },
+                { key: "url", label: "תמונת גלריה", type: "image", recommendedSize: "1200×800", hint: "JPG/WebP", previewAspect: "aspect-[3/2]" },
                 { key: "caption_he", label: "כיתוב" },
               ]}
               draft={draft}

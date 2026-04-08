@@ -3,6 +3,7 @@
 import { HeroEditor } from "./hero-editor";
 import { FormEditor } from "./form-editor";
 import { FaqEditor } from "./faq-editor";
+import { EventEditor } from "./event-editor";
 import { GenericEditor } from "./generic-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { PageSection } from "@/lib/types/database";
@@ -45,6 +46,8 @@ export function SectionEditorPanel({ section, onContentChange }: SectionEditorPa
         return <FormEditor content={content as any} onChange={handleChange} />;
       case "faq":
         return <FaqEditor content={content as any} onChange={handleChange} />;
+      case "event":
+        return <EventEditor content={content} onChange={handleChange} />;
       default:
         return (
           <GenericEditor
@@ -83,4 +86,5 @@ export function SectionEditorPanel({ section, onContentChange }: SectionEditorPa
 export { HeroEditor } from "./hero-editor";
 export { FormEditor } from "./form-editor";
 export { FaqEditor } from "./faq-editor";
+export { EventEditor } from "./event-editor";
 export { GenericEditor } from "./generic-editor";

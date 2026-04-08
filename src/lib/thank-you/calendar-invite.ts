@@ -180,7 +180,12 @@ function escapeIcsText(text: string): string {
  */
 export function buildInviteBody(event: CalendarEvent): string {
   const lines: string[] = [];
-  if (event.description) lines.push(event.description.trim());
+  // Only include a description if it's not empty — callers should pass
+  // an empty string for events without a description so we don't echo
+  // template placeholders like "כאן יופיע התיאור...".
+  if (event.description && event.description.trim()) {
+    lines.push(event.description.trim());
+  }
 
   const ex = event.extras;
   if (!ex) return lines.join("\n\n");
@@ -200,8 +205,13 @@ export function buildInviteBody(event: CalendarEvent): string {
     pushLine(label, ex.onlineUrl);
   }
 
-  // Physical directions link.
-  pushLine(labels.directions, ex.directionsUrl);
+  // NOTE: Directions URL is intentionally NOT added to the description body
+  // — modern calendar apps (Google, Apple, Outlook) auto-link the LOCATION
+  // field to maps, so a clickable pin is already available on the event.
+  // Including a raw long URL here would just clutter the invite with an
+  // ugly maps.google.com/?q=… string. If the editor really needs to expose
+  // a custom directions link, they should use the event description itself
+  // to write something like "חניה ציבורית בכניסה הדרומית" with short context.
 
   pushLine(labels.timezone, ex.timezone);
   pushLine(labels.audience, ex.audience);
@@ -262,9 +272,11 @@ export function buildIcs(event: CalendarEvent): string {
   const dtstart = toCalendarFormat(start);
   const dtend = toCalendarFormat(end);
 
-  // For online events, prefer the join URL as LOCATION so Calendar apps
-  // render it as a clickable link; the physical location (if present) is
-  // still shown inside the description block.
+  // LOCATION rules:
+  //   • Online event: use the join URL (calendar apps render it as a link).
+  //   • Physical event: use the human-readable address — NEVER a long
+  //     maps.google.com URL, which would just display as raw text in most
+  //     clients. Calendar apps auto-link addresses to maps on the back end.
   const location = event.extras?.onlineUrl || event.location || "";
   const body = buildInviteBody(event);
 

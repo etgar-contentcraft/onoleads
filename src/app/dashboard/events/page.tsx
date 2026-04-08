@@ -5,23 +5,29 @@
  *
  * Lists all rows from `events`. Admins can:
  *   - Create new events (open day, webinar, career fair, etc.)
- *   - Edit existing events in all 3 languages (he/en/ar)
+ *   - Edit existing events in a single primary language
+ *   - Duplicate an existing event (copies all data, clears the id, shifts date +7d)
  *   - Toggle `is_active` to temporarily hide an event
  *   - Delete events (hard delete — only do this if no landing page / TY
  *     page references it)
  *
  * An event created here can be referenced by:
  *   1. The `open_day` thank-you template (via ty_settings.event_id)
- *   2. Event-type landing pages (future wiring)
+ *   2. Event-type landing pages (event-section via events.event_id)
  *
- * When referenced, every visible event field (title, date, location,
- * organizer) is pulled from the row here — edit once, every surface
- * updates.
+ * When referenced, every visible event field is pulled from the row here —
+ * edit once, every surface updates.
  *
- * Schema note: the `events` table keeps most fields as flat columns
- * (name_*, event_date, location, …) but stores extras (location_url,
- * organizer_*, image_url, description_ar) inside a `meta` JSONB column.
- * See `src/lib/types/events.ts` helpers `toEventRow` / `fromEventRow`.
+ * Schema note: the `events` table keeps stable fields as flat columns
+ * (name_*, event_date, location, event_type, is_active). Everything else —
+ * speakers, schedule, highlights, FAQ, gallery, organizer contact info,
+ * custom CTA — lives inside the `meta` JSONB column. See the helpers in
+ * `src/lib/types/events.ts` (`toEventRow` / `fromEventRow`).
+ *
+ * Form UX philosophy: every field beyond title/date is optional. The form
+ * is organised into collapsible sections, and only the "Basics" block is
+ * expanded on open. Editors can scroll down to reveal speakers, schedule,
+ * FAQ, testimonials, gallery, and extras as they need them.
  */
 
 import { useEffect, useState, useMemo } from "react";
@@ -38,6 +44,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ImageUploadField } from "@/components/ui/image-upload-field";
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -50,17 +57,42 @@ import {
   User as UserIcon,
   Copy,
   Video,
-  Globe,
+  ChevronDown,
+  ChevronRight,
+  Users,
+  ListOrdered,
+  Sparkles,
+  HelpCircle,
+  Quote,
+  ImagePlus,
+  Tag as TagIcon,
+  Star,
+  Info,
+  Megaphone,
+  Link as LinkIcon,
+  X as XIcon,
 } from "lucide-react";
-import type { EventRow, EventInput } from "@/lib/types/events";
+import type {
+  EventRow,
+  EventInput,
+  EventSpeaker,
+  EventScheduleItem,
+  EventHighlight,
+  EventFaqItem,
+  EventTestimonial,
+  EventGalleryImage,
+  EventBadge,
+  EventLanguage,
+} from "@/lib/types/events";
 import { EMPTY_EVENT, toEventRow, fromEventRow } from "@/lib/types/events";
 
+// ─── Date/time helpers ─────────────────────────────────────────────────
+
 /** Convert an ISO timestamp string to a value accepted by <input type="datetime-local">. */
-function toDatetimeLocal(iso: string | null): string {
+function toDatetimeLocal(iso: string | null | undefined): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  // datetime-local expects "YYYY-MM-DDTHH:MM" in **local** time (no Z).
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
@@ -71,6 +103,15 @@ function fromDatetimeLocal(value: string): string {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
   return d.toISOString();
+}
+
+/** Convert ISO date string to value for <input type="date">. */
+function toDateInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 /** Format an ISO timestamp for display in the Hebrew admin list. */
@@ -89,6 +130,8 @@ function formatDisplayDate(iso: string | null): string {
     return iso;
   }
 }
+
+// ─── Main dashboard ────────────────────────────────────────────────────
 
 export default function EventsDashboard() {
   const supabase = createClient();
@@ -139,6 +182,32 @@ export default function EventsDashboard() {
     setEditing({ id: row.id, data: fromEventRow(row) });
   }
 
+  /**
+   * Duplicate — clone an existing event into a brand-new form.
+   * Shifts the start date +7 days, copies EVERY field, and clears the id
+   * so save-insert creates a separate row.
+   */
+  function handleDuplicate(row: EventRow) {
+    const base = fromEventRow(row);
+    // Shift start + end by 7 days so the clone doesn't collide on the list
+    const shift = (iso: string) => {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      d.setDate(d.getDate() + 7);
+      return d.toISOString();
+    };
+    setEditing({
+      id: null,
+      data: {
+        ...base,
+        name: base.name ? `${base.name} (עותק)` : "",
+        event_date: shift(base.event_date),
+        event_end_date: shift(base.event_end_date),
+      },
+    });
+  }
+
   /** Save (insert or update) the current form to Supabase. */
   async function handleSave() {
     if (!editing) return;
@@ -160,7 +229,12 @@ export default function EventsDashboard() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("למחוק את האירוע? כל העמודים שמשויכים לאירוע הזה יחזרו לברירת המחדל של התבנית.")) return;
+    if (
+      !confirm(
+        "למחוק את האירוע? כל העמודים שמשויכים לאירוע הזה יחזרו לברירת המחדל של התבנית.",
+      )
+    )
+      return;
     setBusyId(id);
     const { error } = await supabase.from("events").delete().eq("id", id);
     if (error) alert("שגיאה במחיקה: " + error.message);
@@ -215,8 +289,9 @@ export default function EventsDashboard() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">אירועים</h1>
           <p className="text-gray-600 mt-1">
-            מקור אחד לפרטי אירוע — ניתן לקשר אירוע לעמוד תודה (ובהמשך גם לעמוד נחיתה), וכל הפרטים
-            יישאבו אוטומטית (תאריך, מיקום, ספירה לאחור, קובץ יומן).
+            מקור אחד לפרטי אירוע — ניתן לקשר אירוע לעמוד תודה ולמקטע אירוע בעמוד נחיתה, וכל
+            הפרטים יישאבו אוטומטית (תאריך, מיקום, ספירה לאחור, קובץ יומן, דוברים, לו&quot;ז,
+            שאלות נפוצות ועוד).
           </p>
         </div>
         <Button onClick={handleNew} className="gap-2">
@@ -227,7 +302,9 @@ export default function EventsDashboard() {
       {events.length === 0 && (
         <div className="text-center py-20 rounded-2xl border border-dashed border-gray-300 bg-gray-50">
           <CalendarIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 text-sm">עדיין אין אירועים. לחצו על &quot;אירוע חדש&quot; כדי ליצור את הראשון.</p>
+          <p className="text-gray-500 text-sm">
+            עדיין אין אירועים. לחצו על &quot;אירוע חדש&quot; כדי ליצור את הראשון.
+          </p>
         </div>
       )}
 
@@ -244,6 +321,7 @@ export default function EventsDashboard() {
                 event={ev}
                 busy={busyId === ev.id}
                 onEdit={() => handleEdit(ev)}
+                onDuplicate={() => handleDuplicate(ev)}
                 onDelete={() => handleDelete(ev.id)}
                 onToggle={() => handleToggleActive(ev)}
                 onCopyId={() => handleCopyId(ev.id)}
@@ -266,6 +344,7 @@ export default function EventsDashboard() {
                 event={ev}
                 busy={busyId === ev.id}
                 onEdit={() => handleEdit(ev)}
+                onDuplicate={() => handleDuplicate(ev)}
                 onDelete={() => handleDelete(ev.id)}
                 onToggle={() => handleToggleActive(ev)}
                 onCopyId={() => handleCopyId(ev.id)}
@@ -278,472 +357,16 @@ export default function EventsDashboard() {
 
       {/* Create/Edit dialog */}
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>{editing?.id ? "עריכת אירוע" : "אירוע חדש"}</DialogTitle>
           </DialogHeader>
 
           {editing && (
-            <div className="space-y-5 py-2">
-              {/* Active toggle + event type */}
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-end">
-                <div>
-                  <Label className="text-xs font-semibold">סוג אירוע</Label>
-                  <select
-                    value={editing.data.event_type}
-                    onChange={(e) =>
-                      setEditing({ ...editing, data: { ...editing.data, event_type: e.target.value } })
-                    }
-                    className="w-full h-10 px-3 rounded-md border border-gray-200 bg-white text-sm"
-                  >
-                    <option value="open_day">יום פתוח</option>
-                    <option value="webinar">וובינר</option>
-                    <option value="conference">כנס</option>
-                    <option value="workshop">סדנה</option>
-                    <option value="other">אחר</option>
-                  </select>
-                </div>
-                <div className="flex items-center gap-2 pb-2">
-                  <Switch
-                    checked={editing.data.is_active}
-                    onCheckedChange={(checked) =>
-                      setEditing({ ...editing, data: { ...editing.data, is_active: checked } })
-                    }
-                  />
-                  <Label className="text-xs">פעיל</Label>
-                </div>
-              </div>
-
-              {/* Title (3 languages) */}
-              <fieldset className="space-y-3 border rounded-lg p-4">
-                <legend className="text-xs font-bold px-2 text-gray-700">כותרת האירוע</legend>
-                <div>
-                  <Label className="text-xs">עברית *</Label>
-                  <Input
-                    value={editing.data.name_he}
-                    onChange={(e) =>
-                      setEditing({ ...editing, data: { ...editing.data, name_he: e.target.value } })
-                    }
-                    placeholder="יום פתוח — הקריה האקדמית אונו"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">English</Label>
-                  <Input
-                    dir="ltr"
-                    value={editing.data.name_en}
-                    onChange={(e) =>
-                      setEditing({ ...editing, data: { ...editing.data, name_en: e.target.value } })
-                    }
-                    placeholder="Open Day — Ono Academic College"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">العربية</Label>
-                  <Input
-                    value={editing.data.name_ar}
-                    onChange={(e) =>
-                      setEditing({ ...editing, data: { ...editing.data, name_ar: e.target.value } })
-                    }
-                    placeholder="يوم مفتوح — كلية أونو الأكاديمية"
-                  />
-                </div>
-              </fieldset>
-
-              {/* Description (3 languages) */}
-              <fieldset className="space-y-3 border rounded-lg p-4">
-                <legend className="text-xs font-bold px-2 text-gray-700">תיאור האירוע</legend>
-                <div>
-                  <Label className="text-xs">עברית</Label>
-                  <Textarea
-                    rows={3}
-                    value={editing.data.description_he}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        data: { ...editing.data, description_he: e.target.value },
-                      })
-                    }
-                    placeholder="יום פתוח להכרת התוכניות שלנו..."
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">English</Label>
-                  <Textarea
-                    dir="ltr"
-                    rows={3}
-                    value={editing.data.description_en}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        data: { ...editing.data, description_en: e.target.value },
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">العربية</Label>
-                  <Textarea
-                    rows={3}
-                    value={editing.data.description_ar}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        data: { ...editing.data, description_ar: e.target.value },
-                      })
-                    }
-                  />
-                </div>
-              </fieldset>
-
-              {/* Date/time */}
-              <fieldset className="space-y-3 border rounded-lg p-4">
-                <legend className="text-xs font-bold px-2 text-gray-700">מועד</legend>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">התחלה *</Label>
-                    <Input
-                      type="datetime-local"
-                      value={toDatetimeLocal(editing.data.event_date)}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          data: {
-                            ...editing.data,
-                            event_date: fromDatetimeLocal(e.target.value),
-                          },
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">סיום (אופציונלי — ברירת מחדל: +2 שעות)</Label>
-                    <Input
-                      type="datetime-local"
-                      value={toDatetimeLocal(editing.data.event_end_date)}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          data: {
-                            ...editing.data,
-                            event_end_date: fromDatetimeLocal(e.target.value),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </fieldset>
-
-              {/* Physical vs online toggle */}
-              <fieldset className="space-y-3 border rounded-lg p-4">
-                <legend className="text-xs font-bold px-2 text-gray-700">סוג מיקום</legend>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setEditing({
-                        ...editing,
-                        data: { ...editing.data, is_online: false },
-                      })
-                    }
-                    className={`flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-all ${
-                      !editing.data.is_online
-                        ? "border-[#FF6B35] bg-[#FF6B35]/5 text-[#FF6B35]"
-                        : "border-gray-200 text-gray-500 hover:border-gray-300"
-                    }`}
-                  >
-                    <MapPin className="w-4 h-4" /> אירוע פיזי
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setEditing({
-                        ...editing,
-                        data: { ...editing.data, is_online: true },
-                      })
-                    }
-                    className={`flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-all ${
-                      editing.data.is_online
-                        ? "border-[#FF6B35] bg-[#FF6B35]/5 text-[#FF6B35]"
-                        : "border-gray-200 text-gray-500 hover:border-gray-300"
-                    }`}
-                  >
-                    <Video className="w-4 h-4" /> אירוע אונליין
-                  </button>
-                </div>
-
-                {editing.data.is_online ? (
-                  <>
-                    <div>
-                      <Label className="text-xs">קישור להצטרפות (Zoom / Teams / YouTube / Meet) *</Label>
-                      <Input
-                        dir="ltr"
-                        value={editing.data.online_url}
-                        onChange={(e) =>
-                          setEditing({
-                            ...editing,
-                            data: { ...editing.data, online_url: e.target.value },
-                          })
-                        }
-                        placeholder="https://zoom.us/j/..."
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">פלטפורמה</Label>
-                      <Input
-                        value={editing.data.online_platform}
-                        onChange={(e) =>
-                          setEditing({
-                            ...editing,
-                            data: { ...editing.data, online_platform: e.target.value },
-                          })
-                        }
-                        placeholder="Zoom / Teams / YouTube Live / Google Meet"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <Label className="text-xs">כתובת / מקום</Label>
-                      <Input
-                        value={editing.data.location}
-                        onChange={(e) =>
-                          setEditing({
-                            ...editing,
-                            data: { ...editing.data, location: e.target.value },
-                          })
-                        }
-                        placeholder='קמפוס קריית אונו, צה"ל 104, קריית אונו'
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">קישור למפה / הוראות הגעה</Label>
-                      <Input
-                        dir="ltr"
-                        value={editing.data.location_url}
-                        onChange={(e) =>
-                          setEditing({
-                            ...editing,
-                            data: { ...editing.data, location_url: e.target.value },
-                          })
-                        }
-                        placeholder="https://maps.google.com/?q=..."
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">חניה / נגישות (אופציונלי)</Label>
-                      <Textarea
-                        rows={2}
-                        value={editing.data.parking_info}
-                        onChange={(e) =>
-                          setEditing({
-                            ...editing,
-                            data: { ...editing.data, parking_info: e.target.value },
-                          })
-                        }
-                        placeholder="חניון ציבורי צמוד לקמפוס, כניסה נגישה לנכים"
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div>
-                  <Label className="text-xs">אזור זמן</Label>
-                  <Input
-                    dir="ltr"
-                    value={editing.data.timezone}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        data: { ...editing.data, timezone: e.target.value },
-                      })
-                    }
-                    placeholder="Asia/Jerusalem"
-                  />
-                </div>
-              </fieldset>
-
-              {/* Organizer */}
-              <fieldset className="space-y-3 border rounded-lg p-4">
-                <legend className="text-xs font-bold px-2 text-gray-700">מארגן</legend>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">שם המארגן</Label>
-                    <Input
-                      value={editing.data.organizer_name}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          data: { ...editing.data, organizer_name: e.target.value },
-                        })
-                      }
-                      placeholder="הקריה האקדמית אונו"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">אימייל</Label>
-                    <Input
-                      type="email"
-                      dir="ltr"
-                      value={editing.data.organizer_email}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          data: { ...editing.data, organizer_email: e.target.value },
-                        })
-                      }
-                      placeholder="info@ono.ac.il"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">טלפון</Label>
-                    <Input
-                      dir="ltr"
-                      value={editing.data.organizer_phone}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          data: { ...editing.data, organizer_phone: e.target.value },
-                        })
-                      }
-                      placeholder="+972-3-123-4567"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">אתר אינטרנט</Label>
-                    <Input
-                      dir="ltr"
-                      value={editing.data.organizer_website}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          data: { ...editing.data, organizer_website: e.target.value },
-                        })
-                      }
-                      placeholder="https://www.ono.ac.il"
-                    />
-                  </div>
-                </div>
-              </fieldset>
-
-              {/* Rich extras — propagated to the calendar invite */}
-              <fieldset className="space-y-3 border rounded-lg p-4">
-                <legend className="text-xs font-bold px-2 text-gray-700 flex items-center gap-1">
-                  <Globe className="w-3 h-3" /> פרטים נוספים (נכללים בזימון ליומן)
-                </legend>
-                <p className="text-[11px] text-gray-500 -mt-1">
-                  כל שדה שימולא יישלח לכל מי שיוריד את הזימון לאירוע מעמוד התודה — סדר יום, מה
-                  להביא, חניה, קוד לבוש, קהל יעד ועוד.
-                </p>
-
-                <div>
-                  <Label className="text-xs">סדר יום / לו&quot;ז</Label>
-                  <Textarea
-                    rows={3}
-                    value={editing.data.agenda}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        data: { ...editing.data, agenda: e.target.value },
-                      })
-                    }
-                    placeholder="18:00 – קבלה ורישום&#10;18:15 – הרצאה מרכזית&#10;19:00 – סיור בקמפוס"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-xs">מה להביא</Label>
-                  <Textarea
-                    rows={2}
-                    value={editing.data.what_to_bring}
-                    onChange={(e) =>
-                      setEditing({
-                        ...editing,
-                        data: { ...editing.data, what_to_bring: e.target.value },
-                      })
-                    }
-                    placeholder="תעודת זהות, כוס מים, שאלות שהכנתם מראש"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">קהל יעד</Label>
-                    <Input
-                      value={editing.data.audience}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          data: { ...editing.data, audience: e.target.value },
-                        })
-                      }
-                      placeholder="מועמדים ללימודים והוריהם"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">שפת האירוע</Label>
-                    <Input
-                      value={editing.data.event_language}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          data: { ...editing.data, event_language: e.target.value },
-                        })
-                      }
-                      placeholder="עברית"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">קוד לבוש</Label>
-                    <Input
-                      value={editing.data.dress_code}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          data: { ...editing.data, dress_code: e.target.value },
-                        })
-                      }
-                      placeholder="קז&quot;ואל חכם"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">מחיר / עלות</Label>
-                    <Input
-                      value={editing.data.price_info}
-                      onChange={(e) =>
-                        setEditing({
-                          ...editing,
-                          data: { ...editing.data, price_info: e.target.value },
-                        })
-                      }
-                      placeholder="כניסה חופשית"
-                    />
-                  </div>
-                </div>
-              </fieldset>
-
-              {/* Image URL */}
-              <div>
-                <Label className="text-xs">תמונת אירוע (אופציונלי)</Label>
-                <Input
-                  dir="ltr"
-                  value={editing.data.image_url}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      data: { ...editing.data, image_url: e.target.value },
-                    })
-                  }
-                  placeholder="https://..."
-                />
-              </div>
-            </div>
+            <EventEditorForm
+              value={editing.data}
+              onChange={(data) => setEditing({ ...editing, data })}
+            />
           )}
 
           <DialogFooter className="gap-2">
@@ -752,7 +375,7 @@ export default function EventsDashboard() {
             </Button>
             <Button
               onClick={handleSave}
-              disabled={saving || !editing?.data.name_he || !editing?.data.event_date}
+              disabled={saving || !editing?.data.name || !editing?.data.event_date}
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               {editing?.id ? "שמור שינויים" : "צור אירוע"}
@@ -764,15 +387,19 @@ export default function EventsDashboard() {
   );
 }
 
+// ─── Event card ────────────────────────────────────────────────────────
+
 /**
  * Event card — compact display in the list view.
- * Shows the key facts (title, date, location) and exposes CRUD actions.
+ * Shows the key facts (title, date, location) and exposes CRUD actions
+ * including duplicate.
  */
 function EventCard({
   event,
   busy,
   isPast,
   onEdit,
+  onDuplicate,
   onDelete,
   onToggle,
   onCopyId,
@@ -781,122 +408,1191 @@ function EventCard({
   busy: boolean;
   isPast?: boolean;
   onEdit: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
   onToggle: () => void;
   onCopyId: () => void;
 }) {
+  const primaryLang: EventLanguage = event.meta?.primary_language
+    || (event.name_en ? "en" : event.name_ar ? "ar" : "he");
+  const displayName =
+    primaryLang === "en"
+      ? event.name_en || event.name_he
+      : primaryLang === "ar"
+        ? event.name_ar || event.name_he
+        : event.name_he;
+
   return (
     <div
-      className={`relative rounded-2xl border-2 bg-white p-5 transition-all ${
+      className={`relative rounded-2xl border-2 bg-white overflow-hidden transition-all ${
         event.is_active ? "border-gray-200 hover:border-gray-300" : "border-gray-200 opacity-60"
       } ${isPast ? "bg-gray-50" : ""}`}
     >
-      {!event.is_active && (
-        <div className="absolute -top-3 right-4 bg-gray-400 text-white text-[10px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-md">
-          מושבת
-        </div>
-      )}
-      {isPast && event.is_active && (
-        <div className="absolute -top-3 right-4 bg-gray-500 text-white text-[10px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-md">
-          עבר
-        </div>
+      {/* Hero image */}
+      {event.meta?.image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={event.meta.image_url}
+          alt={displayName || ""}
+          className="w-full h-32 object-cover"
+          onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+        />
+      ) : (
+        <div
+          className={`w-full h-20 ${
+            event.meta?.is_online
+              ? "bg-gradient-to-br from-blue-50 to-blue-100"
+              : "bg-gradient-to-br from-[#FF6B35]/5 to-[#FF6B35]/10"
+          }`}
+        />
       )}
 
-      <div className="flex items-start gap-3 mb-3">
-        <div
-          className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            event.meta?.is_online ? "bg-blue-50" : "bg-[#FF6B35]/10"
-          }`}
-        >
+      <div className="p-5">
+        {!event.is_active && (
+          <div className="absolute top-2 right-2 bg-gray-600 text-white text-[10px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-md">
+            מושבת
+          </div>
+        )}
+        {isPast && event.is_active && (
+          <div className="absolute top-2 right-2 bg-gray-500 text-white text-[10px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-md">
+            עבר
+          </div>
+        )}
+
+        <div className="flex items-start gap-3 mb-3">
+          <div
+            className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              event.meta?.is_online ? "bg-blue-50" : "bg-[#FF6B35]/10"
+            }`}
+          >
+            {event.meta?.is_online ? (
+              <Video className="w-5 h-5 text-blue-600" />
+            ) : (
+              <CalendarIcon className="w-5 h-5 text-[#FF6B35]" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-bold text-base text-gray-900 leading-tight line-clamp-2">
+              {displayName || "אירוע ללא שם"}
+            </h3>
+            <p className="text-xs text-gray-500 mt-1 line-clamp-1 flex items-center gap-1.5">
+              <span>
+                {event.event_type === "open_day"
+                  ? "יום פתוח"
+                  : event.event_type === "webinar"
+                    ? "וובינר"
+                    : event.event_type === "conference"
+                      ? "כנס"
+                      : event.event_type === "workshop"
+                        ? "סדנה"
+                        : event.event_type}
+              </span>
+              {event.meta?.is_online && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold">
+                  אונליין
+                </span>
+              )}
+              {primaryLang !== "he" && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 font-semibold uppercase">
+                  {primaryLang}
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-1.5 text-xs text-gray-600 mb-4">
+          <div className="flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+            <span className="truncate">{formatDisplayDate(event.event_date)}</span>
+          </div>
           {event.meta?.is_online ? (
-            <Video className="w-5 h-5 text-blue-600" />
+            event.meta?.online_url && (
+              <div className="flex items-center gap-1.5">
+                <Video className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                <span className="truncate" dir="ltr">
+                  {event.meta.online_platform || event.meta.online_url}
+                </span>
+              </div>
+            )
           ) : (
-            <CalendarIcon className="w-5 h-5 text-[#FF6B35]" />
+            event.location && (
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                <span className="truncate">{event.location}</span>
+              </div>
+            )
+          )}
+          {event.meta?.organizer_name && (
+            <div className="flex items-center gap-1.5">
+              <UserIcon className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+              <span className="truncate">{event.meta.organizer_name}</span>
+            </div>
+          )}
+          {event.meta?.organizer_email && (
+            <div className="flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+              <span className="truncate" dir="ltr">
+                {event.meta.organizer_email}
+              </span>
+            </div>
+          )}
+
+          {/* Rich content summary */}
+          {(event.meta?.speakers?.length ||
+            event.meta?.schedule?.length ||
+            event.meta?.faq?.length ||
+            event.meta?.capacity) && (
+            <div className="flex flex-wrap gap-1.5 pt-2">
+              {!!event.meta?.speakers?.length && (
+                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 font-semibold">
+                  <Users className="w-2.5 h-2.5" /> {event.meta.speakers.length} דוברים
+                </span>
+              )}
+              {!!event.meta?.schedule?.length && (
+                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-semibold">
+                  <ListOrdered className="w-2.5 h-2.5" /> {event.meta.schedule.length} סדר יום
+                </span>
+              )}
+              {!!event.meta?.faq?.length && (
+                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold">
+                  <HelpCircle className="w-2.5 h-2.5" /> {event.meta.faq.length} שאלות נפוצות
+                </span>
+              )}
+              {!!event.meta?.capacity && (
+                <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 font-semibold">
+                  <Star className="w-2.5 h-2.5" /> {event.meta.registered_count || 0}/
+                  {event.meta.capacity}
+                </span>
+              )}
+            </div>
           )}
         </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={onEdit}
+            disabled={busy}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-50"
+          >
+            <Pencil className="w-3.5 h-3.5" /> ערוך
+          </button>
+          <button
+            onClick={onDuplicate}
+            disabled={busy}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-50"
+            title="שכפל את האירוע עם כל המידע"
+          >
+            <Copy className="w-3.5 h-3.5" /> שכפל
+          </button>
+          <button
+            onClick={onCopyId}
+            disabled={busy}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-50"
+            title="העתק את מזהה האירוע כדי להדביק בהגדרות העמוד"
+          >
+            <LinkIcon className="w-3.5 h-3.5" /> העתק ID
+          </button>
+          <button
+            onClick={onToggle}
+            disabled={busy}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-50"
+          >
+            {event.is_active ? "השבת" : "הפעל"}
+          </button>
+          <button
+            onClick={onDelete}
+            disabled={busy}
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md bg-red-50 hover:bg-red-100 text-red-700 disabled:opacity-50"
+          >
+            <Trash2 className="w-3.5 h-3.5" /> מחק
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Collapsible section wrapper ───────────────────────────────────────
+
+/**
+ * Collapsible fieldset — click the header to expand/collapse. Used to keep
+ * the form compact when the editor only cares about a subset of fields.
+ */
+function Section({
+  title,
+  subtitle,
+  icon,
+  defaultOpen = false,
+  children,
+  count,
+}: {
+  title: string;
+  subtitle?: string;
+  icon: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+  count?: number;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border rounded-lg bg-white overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-right"
+      >
+        <div className="w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+          {icon}
+        </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-base text-gray-900 leading-tight line-clamp-2">
-            {event.name_he}
-          </h3>
-          <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-            {event.event_type === "open_day" ? "יום פתוח" : event.event_type}
-            {event.meta?.is_online && (
-              <span className="ms-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold">
-                אונליין
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-gray-900">{title}</h3>
+            {typeof count === "number" && count > 0 && (
+              <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-[#FF6B35] text-white">
+                {count}
               </span>
             )}
-          </p>
+          </div>
+          {subtitle && <p className="text-[11px] text-gray-500 leading-tight mt-0.5">{subtitle}</p>}
         </div>
-      </div>
-
-      <div className="space-y-1.5 text-xs text-gray-600 mb-4">
-        <div className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-          <span className="truncate">{formatDisplayDate(event.event_date)}</span>
-        </div>
-        {event.meta?.is_online ? (
-          event.meta?.online_url && (
-            <div className="flex items-center gap-1.5">
-              <Video className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-              <span className="truncate" dir="ltr">
-                {event.meta.online_platform || event.meta.online_url}
-              </span>
-            </div>
-          )
+        {open ? (
+          <ChevronDown className="w-4 h-4 text-gray-400" />
         ) : (
-          event.location && (
-            <div className="flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-              <span className="truncate">{event.location}</span>
-            </div>
-          )
+          <ChevronRight className="w-4 h-4 text-gray-400" />
         )}
-        {event.meta?.organizer_name && (
-          <div className="flex items-center gap-1.5">
-            <UserIcon className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-            <span className="truncate">{event.meta.organizer_name}</span>
-          </div>
-        )}
-        {event.meta?.organizer_email && (
-          <div className="flex items-center gap-1.5">
-            <Mail className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
-            <span className="truncate" dir="ltr">
-              {event.meta.organizer_email}
-            </span>
-          </div>
-        )}
-      </div>
+      </button>
+      {open && <div className="px-4 pb-4 pt-1 space-y-3 border-t">{children}</div>}
+    </div>
+  );
+}
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={onEdit}
-          disabled={busy}
-          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-50"
+// ─── The actual editor form ───────────────────────────────────────────
+
+/**
+ * Full editor for a single event. Broken into collapsible sections so the
+ * form isn't overwhelming. Controlled component — receives value + onChange.
+ */
+function EventEditorForm({
+  value,
+  onChange,
+}: {
+  value: EventInput;
+  onChange: (value: EventInput) => void;
+}) {
+  // Shortcut helper that patches a subset of fields
+  const update = (patch: Partial<EventInput>) => onChange({ ...value, ...patch });
+
+  return (
+    <div className="space-y-3 py-2">
+      {/* ─── Basics (always expanded) ─────────────────────────────── */}
+      <Section
+        title="פרטי יסוד"
+        subtitle="שם, תאריך, תמונה, מיקום — הכרחי למעבר לשלבים הבאים"
+        icon={<Info className="w-4 h-4 text-[#FF6B35]" />}
+        defaultOpen
+      >
+        {/* Language + type + active toggle */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <Label className="text-xs font-semibold">שפת האירוע</Label>
+            <select
+              value={value.primary_language}
+              onChange={(e) => update({ primary_language: e.target.value as EventLanguage })}
+              className="w-full h-10 px-3 rounded-md border border-gray-200 bg-white text-sm"
+            >
+              <option value="he">עברית</option>
+              <option value="en">English</option>
+              <option value="ar">العربية</option>
+            </select>
+          </div>
+          <div>
+            <Label className="text-xs font-semibold">סוג אירוע</Label>
+            <select
+              value={value.event_type}
+              onChange={(e) => update({ event_type: e.target.value })}
+              className="w-full h-10 px-3 rounded-md border border-gray-200 bg-white text-sm"
+            >
+              <option value="open_day">יום פתוח</option>
+              <option value="webinar">וובינר</option>
+              <option value="conference">כנס</option>
+              <option value="workshop">סדנה</option>
+              <option value="other">אחר</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2 pb-1 self-end">
+            <Switch
+              checked={value.is_active}
+              onCheckedChange={(checked) => update({ is_active: checked })}
+            />
+            <Label className="text-xs">פעיל</Label>
+          </div>
+        </div>
+
+        {/* Title (single language) */}
+        <div>
+          <Label className="text-xs">
+            שם האירוע *
+            <span className="text-gray-400 font-normal me-1">
+              ({value.primary_language === "he"
+                ? "עברית"
+                : value.primary_language === "en"
+                  ? "English"
+                  : "العربية"})
+            </span>
+          </Label>
+          <Input
+            value={value.name}
+            dir={value.primary_language === "en" ? "ltr" : "rtl"}
+            onChange={(e) => update({ name: e.target.value })}
+            placeholder={
+              value.primary_language === "he"
+                ? "יום פתוח — הקריה האקדמית אונו"
+                : value.primary_language === "en"
+                  ? "Open Day — Ono Academic College"
+                  : "يوم مفتوح — كلية أونو الأكاديمية"
+            }
+            required
+          />
+        </div>
+
+        {/* Description */}
+        <div>
+          <Label className="text-xs">תיאור קצר</Label>
+          <Textarea
+            rows={3}
+            value={value.description}
+            dir={value.primary_language === "en" ? "ltr" : "rtl"}
+            onChange={(e) => update({ description: e.target.value })}
+            placeholder="תיאור האירוע — מה חשוב למשתתפים לדעת"
+          />
+        </div>
+
+        {/* Date + end date */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">מועד התחלה *</Label>
+            <Input
+              type="datetime-local"
+              value={toDatetimeLocal(value.event_date)}
+              onChange={(e) => update({ event_date: fromDatetimeLocal(e.target.value) })}
+              required
+            />
+          </div>
+          <div>
+            <Label className="text-xs">מועד סיום (ברירת מחדל +2 שעות)</Label>
+            <Input
+              type="datetime-local"
+              value={toDatetimeLocal(value.event_end_date)}
+              onChange={(e) => update({ event_end_date: fromDatetimeLocal(e.target.value) })}
+            />
+          </div>
+        </div>
+
+        {/* Event image */}
+        <div>
+          <Label className="text-xs">תמונת כיסוי</Label>
+          <ImageUploadField
+            value={value.image_url}
+            onChange={(url) => update({ image_url: url })}
+            recommendedSize="1600×900"
+            hint="תמונה ראשית שתוצג בכל המקומות"
+            previewAspect="aspect-video"
+          />
+        </div>
+
+        {/* Physical vs online toggle */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => update({ is_online: false })}
+            className={`flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-all ${
+              !value.is_online
+                ? "border-[#FF6B35] bg-[#FF6B35]/5 text-[#FF6B35]"
+                : "border-gray-200 text-gray-500 hover:border-gray-300"
+            }`}
+          >
+            <MapPin className="w-4 h-4" /> אירוע פיזי
+          </button>
+          <button
+            type="button"
+            onClick={() => update({ is_online: true })}
+            className={`flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-all ${
+              value.is_online
+                ? "border-[#FF6B35] bg-[#FF6B35]/5 text-[#FF6B35]"
+                : "border-gray-200 text-gray-500 hover:border-gray-300"
+            }`}
+          >
+            <Video className="w-4 h-4" /> אירוע אונליין
+          </button>
+        </div>
+
+        {value.is_online ? (
+          <>
+            <div>
+              <Label className="text-xs">קישור להצטרפות (Zoom / Teams / YouTube / Meet)</Label>
+              <Input
+                dir="ltr"
+                value={value.online_url}
+                onChange={(e) => update({ online_url: e.target.value })}
+                placeholder="https://zoom.us/j/..."
+              />
+            </div>
+            <div>
+              <Label className="text-xs">פלטפורמה</Label>
+              <Input
+                value={value.online_platform}
+                onChange={(e) => update({ online_platform: e.target.value })}
+                placeholder="Zoom / Teams / YouTube Live / Google Meet"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <Label className="text-xs">כתובת פיזית</Label>
+              <Input
+                value={value.location}
+                onChange={(e) => update({ location: e.target.value })}
+                placeholder='קמפוס קריית אונו, צה"ל 104, קריית אונו'
+              />
+            </div>
+            <div>
+              <Label className="text-xs">קישור להוראות הגעה / מפה (לא יופיע כטקסט גולמי)</Label>
+              <Input
+                dir="ltr"
+                value={value.location_url}
+                onChange={(e) => update({ location_url: e.target.value })}
+                placeholder="https://maps.google.com/?q=..."
+              />
+              <p className="text-[10px] text-gray-400 mt-1">
+                קישור זה ייפתח בלחיצה על &quot;הוראות הגעה&quot; בעמודים וביומן — המשתמש לא יראה
+                את הכתובת הארוכה.
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs">חניה / נגישות</Label>
+              <Textarea
+                rows={2}
+                value={value.parking_info}
+                onChange={(e) => update({ parking_info: e.target.value })}
+                placeholder="חניון ציבורי צמוד לקמפוס, כניסה נגישה לנכים"
+              />
+            </div>
+          </>
+        )}
+      </Section>
+
+      {/* ─── Speakers ─────────────────────────────────────────────── */}
+      <Section
+        title="דוברים / מרצים"
+        subtitle="דוברים, מרצים, אורחים — יופיעו בקרוסלה מלאה בעמוד האירוע ובעמוד התודה"
+        icon={<Users className="w-4 h-4 text-purple-600" />}
+        count={value.speakers.length}
+      >
+        <RepeaterList<EventSpeaker>
+          items={value.speakers}
+          onChange={(speakers) => update({ speakers })}
+          empty={{ name: "", role: "", bio: "", image_url: "", link_url: "" }}
+          addLabel="הוסף דובר"
+          renderItem={(item, idx, updateItem) => (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Input
+                  value={item.name}
+                  onChange={(e) => updateItem({ ...item, name: e.target.value })}
+                  placeholder="שם מלא — ד״ר רונית לוי"
+                />
+                <Input
+                  value={item.role || ""}
+                  onChange={(e) => updateItem({ ...item, role: e.target.value })}
+                  placeholder="תפקיד — ראשת החוג"
+                />
+              </div>
+              <Textarea
+                rows={2}
+                value={item.bio || ""}
+                onChange={(e) => updateItem({ ...item, bio: e.target.value })}
+                placeholder="ביוגרפיה קצרה (2-3 משפטים)"
+              />
+              <ImageUploadField
+                value={item.image_url || ""}
+                onChange={(url) => updateItem({ ...item, image_url: url })}
+                recommendedSize="400×400"
+                hint="תמונה ריבועית"
+                previewAspect="aspect-square"
+              />
+              <Input
+                dir="ltr"
+                value={item.link_url || ""}
+                onChange={(e) => updateItem({ ...item, link_url: e.target.value })}
+                placeholder="https://www.linkedin.com/in/..."
+              />
+            </div>
+          )}
+        />
+      </Section>
+
+      {/* ─── Schedule ─────────────────────────────────────────────── */}
+      <Section
+        title="לוח זמנים / סדר יום"
+        subtitle="טיימליין עם שעה, כותרת ואייקון — יוצג כלוח זמנים מעוצב בעמוד"
+        icon={<ListOrdered className="w-4 h-4 text-amber-600" />}
+        count={value.schedule.length}
+      >
+        <RepeaterList<EventScheduleItem>
+          items={value.schedule}
+          onChange={(schedule) => update({ schedule })}
+          empty={{ time: "", title: "", description: "", icon: "talk" }}
+          addLabel="הוסף סעיף ללוח הזמנים"
+          renderItem={(item, idx, updateItem) => (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-[90px_1fr_140px] gap-2">
+                <Input
+                  value={item.time}
+                  onChange={(e) => updateItem({ ...item, time: e.target.value })}
+                  placeholder="18:00"
+                />
+                <Input
+                  value={item.title}
+                  onChange={(e) => updateItem({ ...item, title: e.target.value })}
+                  placeholder="קבלה ורישום"
+                />
+                <select
+                  value={item.icon || "talk"}
+                  onChange={(e) => updateItem({ ...item, icon: e.target.value })}
+                  className="h-10 px-3 rounded-md border border-gray-200 bg-white text-sm"
+                >
+                  <option value="checkin">רישום</option>
+                  <option value="talk">הרצאה</option>
+                  <option value="workshop">סדנה</option>
+                  <option value="tour">סיור</option>
+                  <option value="break">הפסקה</option>
+                  <option value="meal">ארוחה</option>
+                  <option value="network">נטוורקינג</option>
+                </select>
+              </div>
+              <Input
+                value={item.description || ""}
+                onChange={(e) => updateItem({ ...item, description: e.target.value })}
+                placeholder="תיאור קצר (אופציונלי)"
+              />
+            </div>
+          )}
+        />
+      </Section>
+
+      {/* ─── Highlights ───────────────────────────────────────────── */}
+      <Section
+        title="מה מחכה לכם"
+        subtitle="קלפי &quot;מה תקבלו&quot; — יוצגו כגריד צבעוני"
+        icon={<Sparkles className="w-4 h-4 text-pink-600" />}
+        count={value.highlights.length}
+      >
+        <RepeaterList<EventHighlight>
+          items={value.highlights}
+          onChange={(highlights) => update({ highlights })}
+          empty={{ icon: "sparkles", title: "", description: "" }}
+          addLabel="הוסף קלף הייליט"
+          renderItem={(item, idx, updateItem) => (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-2">
+                <select
+                  value={item.icon || "sparkles"}
+                  onChange={(e) => updateItem({ ...item, icon: e.target.value })}
+                  className="h-10 px-3 rounded-md border border-gray-200 bg-white text-sm"
+                >
+                  <option value="sparkles">✨ ניצוצות</option>
+                  <option value="gift">🎁 מתנה</option>
+                  <option value="users">👥 אנשים</option>
+                  <option value="map">🗺 מפה</option>
+                  <option value="star">⭐ כוכב</option>
+                  <option value="award">🏆 פרס</option>
+                  <option value="clock">⏰ שעון</option>
+                  <option value="heart">❤️ לב</option>
+                </select>
+                <Input
+                  value={item.title}
+                  onChange={(e) => updateItem({ ...item, title: e.target.value })}
+                  placeholder="כותרת — למשל: סיור בקמפוס"
+                />
+              </div>
+              <Input
+                value={item.description || ""}
+                onChange={(e) => updateItem({ ...item, description: e.target.value })}
+                placeholder="תיאור קצר (אופציונלי)"
+              />
+            </div>
+          )}
+        />
+      </Section>
+
+      {/* ─── FAQ ──────────────────────────────────────────────────── */}
+      <Section
+        title="שאלות נפוצות"
+        subtitle="שאלות ותשובות — יופיעו כאקורדיון"
+        icon={<HelpCircle className="w-4 h-4 text-emerald-600" />}
+        count={value.faq.length}
+      >
+        <RepeaterList<EventFaqItem>
+          items={value.faq}
+          onChange={(faq) => update({ faq })}
+          empty={{ question: "", answer: "" }}
+          addLabel="הוסף שאלה"
+          renderItem={(item, idx, updateItem) => (
+            <div className="space-y-2">
+              <Input
+                value={item.question}
+                onChange={(e) => updateItem({ ...item, question: e.target.value })}
+                placeholder="השאלה — למשל: האם יש חניה?"
+              />
+              <Textarea
+                rows={2}
+                value={item.answer}
+                onChange={(e) => updateItem({ ...item, answer: e.target.value })}
+                placeholder="התשובה"
+              />
+            </div>
+          )}
+        />
+      </Section>
+
+      {/* ─── Testimonials ─────────────────────────────────────────── */}
+      <Section
+        title="ציטוטים / חוות דעת"
+        subtitle="עדויות ממשתתפים קודמים — יופיעו כקלפים עם תמונה וציטוט"
+        icon={<Quote className="w-4 h-4 text-cyan-600" />}
+        count={value.testimonials.length}
+      >
+        <RepeaterList<EventTestimonial>
+          items={value.testimonials}
+          onChange={(testimonials) => update({ testimonials })}
+          empty={{ name: "", role: "", quote: "", image_url: "" }}
+          addLabel="הוסף עדות"
+          renderItem={(item, idx, updateItem) => (
+            <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Input
+                  value={item.name}
+                  onChange={(e) => updateItem({ ...item, name: e.target.value })}
+                  placeholder="שם — דניאל כהן"
+                />
+                <Input
+                  value={item.role || ""}
+                  onChange={(e) => updateItem({ ...item, role: e.target.value })}
+                  placeholder="סטודנט / בוגר"
+                />
+              </div>
+              <Textarea
+                rows={3}
+                value={item.quote}
+                onChange={(e) => updateItem({ ...item, quote: e.target.value })}
+                placeholder="הציטוט — מה הוא או היא אמרו על האירוע"
+              />
+              <ImageUploadField
+                value={item.image_url || ""}
+                onChange={(url) => updateItem({ ...item, image_url: url })}
+                recommendedSize="400×400"
+                hint="תמונה ריבועית"
+                previewAspect="aspect-square"
+              />
+            </div>
+          )}
+        />
+      </Section>
+
+      {/* ─── Gallery ─────────────────────────────────────────────── */}
+      <Section
+        title="גלריית תמונות"
+        subtitle="תמונות מאירועים קודמים — יופיעו כגריד גלריה"
+        icon={<ImagePlus className="w-4 h-4 text-indigo-600" />}
+        count={value.gallery.length}
+      >
+        <RepeaterList<EventGalleryImage>
+          items={value.gallery}
+          onChange={(gallery) => update({ gallery })}
+          empty={{ url: "", caption: "" }}
+          addLabel="הוסף תמונה"
+          renderItem={(item, idx, updateItem) => (
+            <div className="space-y-2">
+              <ImageUploadField
+                value={item.url}
+                onChange={(url) => updateItem({ ...item, url })}
+                recommendedSize="1200×800"
+                hint="תמונת גלריה"
+                previewAspect="aspect-[3/2]"
+              />
+              <Input
+                value={item.caption || ""}
+                onChange={(e) => updateItem({ ...item, caption: e.target.value })}
+                placeholder="כיתוב (אופציונלי)"
+              />
+            </div>
+          )}
+        />
+      </Section>
+
+      {/* ─── Featured programs / partners ────────────────────────── */}
+      <Section
+        title="תוכניות / שותפים מובילים"
+        subtitle="תוכניות לימוד או שותפים שמוצגים בתגיות / לוגואים"
+        icon={<Megaphone className="w-4 h-4 text-orange-600" />}
+        count={value.featured_programs.length}
+      >
+        <RepeaterList<EventBadge>
+          items={value.featured_programs}
+          onChange={(featured_programs) => update({ featured_programs })}
+          empty={{ label: "", logo_url: "", link_url: "" }}
+          addLabel="הוסף תוכנית / שותף"
+          renderItem={(item, idx, updateItem) => (
+            <div className="space-y-2">
+              <Input
+                value={item.label}
+                onChange={(e) => updateItem({ ...item, label: e.target.value })}
+                placeholder="שם — משפטים B.A."
+              />
+              <ImageUploadField
+                value={item.logo_url || ""}
+                onChange={(url) => updateItem({ ...item, logo_url: url })}
+                recommendedSize="240×120"
+                hint="לוגו (אופציונלי)"
+                previewAspect="aspect-[3/2]"
+              />
+              <Input
+                dir="ltr"
+                value={item.link_url || ""}
+                onChange={(e) => updateItem({ ...item, link_url: e.target.value })}
+                placeholder="https://..."
+              />
+            </div>
+          )}
+        />
+      </Section>
+
+      {/* ─── Tags ─────────────────────────────────────────────────── */}
+      <Section
+        title="תגיות / נושאים"
+        subtitle='מילות מפתח / תחומים — יוצגו כ"גלולות" קטנות'
+        icon={<TagIcon className="w-4 h-4 text-sky-600" />}
+        count={value.tags.length}
+      >
+        <TagEditor tags={value.tags} onChange={(tags) => update({ tags })} />
+      </Section>
+
+      {/* ─── Organizer ───────────────────────────────────────────── */}
+      <Section
+        title="פרטי מארגן"
+        subtitle="שם, אימייל, טלפון ואתר — ייכנסו לזימון ליומן כ-ORGANIZER"
+        icon={<UserIcon className="w-4 h-4 text-gray-600" />}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">שם המארגן</Label>
+            <Input
+              value={value.organizer_name}
+              onChange={(e) => update({ organizer_name: e.target.value })}
+              placeholder="הקריה האקדמית אונו"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">אימייל</Label>
+            <Input
+              type="email"
+              dir="ltr"
+              value={value.organizer_email}
+              onChange={(e) => update({ organizer_email: e.target.value })}
+              placeholder="info@ono.ac.il"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">טלפון</Label>
+            <Input
+              dir="ltr"
+              value={value.organizer_phone}
+              onChange={(e) => update({ organizer_phone: e.target.value })}
+              placeholder="+972-3-123-4567"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">אתר אינטרנט</Label>
+            <Input
+              dir="ltr"
+              value={value.organizer_website}
+              onChange={(e) => update({ organizer_website: e.target.value })}
+              placeholder="https://www.ono.ac.il"
+            />
+          </div>
+        </div>
+      </Section>
+
+      {/* ─── Registration ────────────────────────────────────────── */}
+      <Section
+        title="הרשמה"
+        subtitle="קישור הרשמה חיצוני, דדליין, קיבולת וספירה נוכחית"
+        icon={<CalendarIcon className="w-4 h-4 text-[#FF6B35]" />}
+      >
+        <div>
+          <Label className="text-xs">קישור הרשמה חיצוני</Label>
+          <Input
+            dir="ltr"
+            value={value.registration_url}
+            onChange={(e) => update({ registration_url: e.target.value })}
+            placeholder="https://..."
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <Label className="text-xs">דדליין להרשמה</Label>
+            <Input
+              type="date"
+              value={toDateInput(value.registration_deadline)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!v) update({ registration_deadline: "" });
+                else {
+                  const d = new Date(v);
+                  update({ registration_deadline: d.toISOString() });
+                }
+              }}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">קיבולת מקסימלית</Label>
+            <Input
+              type="number"
+              value={value.capacity}
+              onChange={(e) => update({ capacity: e.target.value })}
+              placeholder="200"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">רשומים עד כה</Label>
+            <Input
+              type="number"
+              value={value.registered_count}
+              onChange={(e) => update({ registered_count: e.target.value })}
+              placeholder="47"
+            />
+          </div>
+        </div>
+      </Section>
+
+      {/* ─── Extras (calendar invite + details) ──────────────────── */}
+      <Section
+        title="פרטים נוספים (מופיעים בזימון ליומן)"
+        subtitle="סדר יום חופשי, מה להביא, קהל יעד, קוד לבוש, מחיר ועוד — הכל אופציונלי"
+        icon={<Info className="w-4 h-4 text-gray-600" />}
+      >
+        <div>
+          <Label className="text-xs">סדר יום (טקסט חופשי)</Label>
+          <Textarea
+            rows={3}
+            value={value.agenda}
+            onChange={(e) => update({ agenda: e.target.value })}
+            placeholder={"18:00 – קבלה ורישום\n18:15 – הרצאה מרכזית\n19:00 – סיור בקמפוס"}
+          />
+        </div>
+        <div>
+          <Label className="text-xs">מה להביא</Label>
+          <Textarea
+            rows={2}
+            value={value.what_to_bring}
+            onChange={(e) => update({ what_to_bring: e.target.value })}
+            placeholder="תעודת זהות, כוס מים, שאלות שהכנתם מראש"
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">קהל יעד</Label>
+            <Input
+              value={value.audience}
+              onChange={(e) => update({ audience: e.target.value })}
+              placeholder="מועמדים ללימודים והוריהם"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">שפת הדוברים</Label>
+            <Input
+              value={value.event_language}
+              onChange={(e) => update({ event_language: e.target.value })}
+              placeholder="עברית"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">קוד לבוש</Label>
+            <Input
+              value={value.dress_code}
+              onChange={(e) => update({ dress_code: e.target.value })}
+              placeholder='קז"ואל חכם'
+            />
+          </div>
+          <div>
+            <Label className="text-xs">מחיר / עלות</Label>
+            <Input
+              value={value.price_info}
+              onChange={(e) => update({ price_info: e.target.value })}
+              placeholder="כניסה חופשית"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">כיבוד</Label>
+            <Input
+              value={value.refreshments}
+              onChange={(e) => update({ refreshments: e.target.value })}
+              placeholder="קפה, תה, עוגיות"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">האשטאג</Label>
+            <Input
+              dir="ltr"
+              value={value.hashtag}
+              onChange={(e) => update({ hashtag: e.target.value })}
+              placeholder="#OnoOpenDay2026"
+            />
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs">תעודת השתתפות</Label>
+          <Textarea
+            rows={2}
+            value={value.certificate_info}
+            onChange={(e) => update({ certificate_info: e.target.value })}
+            placeholder="תעודת השתתפות תישלח באימייל תוך שבוע"
+          />
+        </div>
+        <div>
+          <Label className="text-xs">אזור זמן</Label>
+          <Input
+            dir="ltr"
+            value={value.timezone}
+            onChange={(e) => update({ timezone: e.target.value })}
+            placeholder="Asia/Jerusalem"
+          />
+        </div>
+      </Section>
+
+      {/* ─── Media: video + hybrid links ─────────────────────────── */}
+      <Section
+        title="מדיה וסטרימינג"
+        subtitle="סרטון הקדמה, לינק לסטרימינג בשידור חי, הקלטה לאחר האירוע"
+        icon={<Video className="w-4 h-4 text-rose-600" />}
+      >
+        <div>
+          <Label className="text-xs">סרטון הקדמה (YouTube / Vimeo / MP4)</Label>
+          <Input
+            dir="ltr"
+            value={value.intro_video_url}
+            onChange={(e) => update({ intro_video_url: e.target.value })}
+            placeholder="https://www.youtube.com/watch?v=..."
+          />
+        </div>
+        <div>
+          <Label className="text-xs">קישור שידור חי (בנוסף לאירוע הפיזי)</Label>
+          <Input
+            dir="ltr"
+            value={value.livestream_url}
+            onChange={(e) => update({ livestream_url: e.target.value })}
+            placeholder="https://..."
+          />
+        </div>
+        <div>
+          <Label className="text-xs">קישור להקלטה (לאחר האירוע)</Label>
+          <Input
+            dir="ltr"
+            value={value.recording_url}
+            onChange={(e) => update({ recording_url: e.target.value })}
+            placeholder="https://..."
+          />
+        </div>
+      </Section>
+
+      {/* ─── Custom CTA ─────────────────────────────────────────── */}
+      <Section
+        title="כפתור קריאה לפעולה (CTA)"
+        subtitle="כפתור מותאם אישית שיופיע בעמוד"
+        icon={<Star className="w-4 h-4 text-yellow-600" />}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">טקסט הכפתור</Label>
+            <Input
+              value={value.cta_label}
+              onChange={(e) => update({ cta_label: e.target.value })}
+              placeholder="הרשמו עכשיו"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">יעד הכפתור (URL)</Label>
+            <Input
+              dir="ltr"
+              value={value.cta_url}
+              onChange={(e) => update({ cta_url: e.target.value })}
+              placeholder="https://..."
+            />
+          </div>
+        </div>
+      </Section>
+    </div>
+  );
+}
+
+// ─── Generic repeater-list editor ─────────────────────────────────────
+
+/**
+ * Generic list editor — renders each item with the provided render function,
+ * plus add/remove/reorder controls. Keeps the form clean even for complex
+ * array-of-object fields like speakers and schedule rows.
+ */
+function RepeaterList<T>({
+  items,
+  onChange,
+  renderItem,
+  empty,
+  addLabel,
+}: {
+  items: T[];
+  onChange: (items: T[]) => void;
+  renderItem: (item: T, idx: number, update: (item: T) => void) => React.ReactNode;
+  empty: T;
+  addLabel: string;
+}) {
+  function updateAt(idx: number, item: T) {
+    const next = items.slice();
+    next[idx] = item;
+    onChange(next);
+  }
+  function removeAt(idx: number) {
+    const next = items.slice();
+    next.splice(idx, 1);
+    onChange(next);
+  }
+  function moveUp(idx: number) {
+    if (idx === 0) return;
+    const next = items.slice();
+    [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+    onChange(next);
+  }
+  function moveDown(idx: number) {
+    if (idx === items.length - 1) return;
+    const next = items.slice();
+    [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+    onChange(next);
+  }
+  function add() {
+    onChange([...items, { ...empty }]);
+  }
+
+  return (
+    <div className="space-y-2">
+      {items.length === 0 && (
+        <p className="text-[11px] text-gray-400 text-center py-2">עדיין לא נוספו פריטים</p>
+      )}
+      {items.map((item, idx) => (
+        <div
+          key={idx}
+          className="relative rounded-md border border-gray-200 bg-gray-50 p-3 pt-2"
         >
-          <Pencil className="w-3.5 h-3.5" /> ערוך
-        </button>
-        <button
-          onClick={onCopyId}
-          disabled={busy}
-          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-50"
-          title="העתק את מזהה האירוע כדי להדביק בהגדרות העמוד"
-        >
-          <Copy className="w-3.5 h-3.5" /> העתק ID
-        </button>
-        <button
-          onClick={onToggle}
-          disabled={busy}
-          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-50"
-        >
-          {event.is_active ? "השבת" : "הפעל"}
-        </button>
-        <button
-          onClick={onDelete}
-          disabled={busy}
-          className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-md bg-red-50 hover:bg-red-100 text-red-700 disabled:opacity-50"
-        >
-          <Trash2 className="w-3.5 h-3.5" /> מחק
-        </button>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-gray-400 uppercase">#{idx + 1}</span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => moveUp(idx)}
+                disabled={idx === 0}
+                className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:bg-gray-200 disabled:opacity-30"
+                title="הזז למעלה"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                onClick={() => moveDown(idx)}
+                disabled={idx === items.length - 1}
+                className="w-6 h-6 flex items-center justify-center rounded text-gray-400 hover:bg-gray-200 disabled:opacity-30"
+                title="הזז למטה"
+              >
+                ↓
+              </button>
+              <button
+                type="button"
+                onClick={() => removeAt(idx)}
+                className="w-6 h-6 flex items-center justify-center rounded text-red-500 hover:bg-red-100"
+                title="מחק"
+              >
+                <XIcon className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+          {renderItem(item, idx, (updated) => updateAt(idx, updated))}
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={add}
+        className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-md border border-dashed border-gray-300 text-gray-600 hover:border-[#FF6B35] hover:text-[#FF6B35] transition-colors"
+      >
+        <Plus className="w-3.5 h-3.5" /> {addLabel}
+      </button>
+    </div>
+  );
+}
+
+// ─── Tag editor ────────────────────────────────────────────────────────
+
+/** Simple pill-style tag editor — type + enter to add, click X to remove. */
+function TagEditor({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
+  const [input, setInput] = useState("");
+
+  function add() {
+    const v = input.trim();
+    if (!v || tags.includes(v)) return;
+    onChange([...tags, v]);
+    setInput("");
+  }
+
+  function remove(tag: string) {
+    onChange(tags.filter((t) => t !== tag));
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {tags.length === 0 && (
+          <p className="text-[11px] text-gray-400">עדיין לא נוספו תגיות</p>
+        )}
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-sky-50 text-sky-700 text-xs font-semibold"
+          >
+            {tag}
+            <button
+              type="button"
+              onClick={() => remove(tag)}
+              className="hover:text-sky-900"
+            >
+              <XIcon className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+          placeholder="תגית חדשה ולחצו Enter"
+          className="text-xs"
+        />
+        <Button type="button" variant="outline" size="sm" onClick={add}>
+          הוסף
+        </Button>
       </div>
     </div>
   );

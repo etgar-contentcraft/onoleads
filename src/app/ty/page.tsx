@@ -179,6 +179,11 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
   // event row and overlay its fields on top of the template content before
   // rendering. This lets editors maintain event details in one place and
   // have them appear on every page that references the event.
+  //
+  // We also forward the raw `meta` blob to the renderer so the open-day
+  // layout can render rich structured content (speakers, schedule, FAQ,
+  // gallery, highlights) that doesn't fit the string-based template content.
+  let linkedEventMeta: EventRow["meta"] | undefined;
   if (settings.event_id && template && template.layout_id === "open_day") {
     const { data: eventRow } = await adminClient
       .from("events")
@@ -188,6 +193,7 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
       .maybeSingle();
     if (eventRow) {
       template = overlayEventOnTemplate(template, eventRow as EventRow);
+      linkedEventMeta = (eventRow as EventRow).meta || undefined;
     }
   }
 
@@ -236,6 +242,7 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
             pageSlug={slug}
             language={language}
             logoUrl={resolvedLogoUrl}
+            eventMeta={linkedEventMeta || undefined}
           />
         ) : (
           // Fallback to legacy renderer if no templates exist (e.g. fresh DB)

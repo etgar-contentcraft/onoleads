@@ -48,25 +48,34 @@ export function overlayEventOnTemplate(
   for (const lang of LANGS) {
     const original: TyContentFields = template.content?.[lang] || {};
 
-    // For online events: put the join URL in the "location" slot so the
-    // page and invite both surface it. Physical events keep a real address.
+    // When an event is linked, we drop the template's placeholder text for
+    // event-specific fields so literal defaults like "כאן יופיע התיאור" never
+    // leak into the page or invite. Template defaults are still used for
+    // non-event copy (heading, subheading, whatsapp CTA, etc.).
+    const resolvedTitle = eventTitle(event, lang);
+    const resolvedDescription = eventDescription(event, lang);
+
+    // For online events: show the platform label as the location on the page,
+    // and keep the JOIN URL available via event_online_url so the invite
+    // builder can use it as LOCATION. Physical events always surface the
+    // human-readable address — never the long maps URL.
     const overlaidLocation = isOnline
-      ? meta.online_platform || original.event_location || "Online"
-      : event.location || original.event_location || "";
+      ? meta.online_platform || "Online"
+      : event.location || "";
     const overlaidLocationUrl = isOnline
-      ? meta.online_url || original.event_location_url || ""
-      : meta.location_url || original.event_location_url || "";
+      ? meta.online_url || ""
+      : meta.location_url || "";
 
     newContent[lang] = {
       ...original,
-      event_title: eventTitle(event, lang),
-      event_description: eventDescription(event, lang) || original.event_description || "",
+      event_title: resolvedTitle,
+      event_description: resolvedDescription, // blank when event has none — no placeholder fallback
       event_location: overlaidLocation,
       event_location_url: overlaidLocationUrl,
-      event_start_datetime: event.event_date || original.event_start_datetime || "",
-      event_end_datetime: event.event_end_date || original.event_end_datetime || "",
-      event_organizer_name: meta.organizer_name || original.event_organizer_name || "",
-      event_organizer_email: meta.organizer_email || original.event_organizer_email || "",
+      event_start_datetime: event.event_date || "",
+      event_end_datetime: event.event_end_date || "",
+      event_organizer_name: meta.organizer_name || "",
+      event_organizer_email: meta.organizer_email || "",
 
       // Online-vs-physical signals
       event_is_online: isOnline ? "1" : "",
@@ -74,17 +83,34 @@ export function overlayEventOnTemplate(
       event_online_platform: meta.online_platform || "",
 
       // Rich extras — propagated through so the layout and invite body
-      // can surface every field the editor filled in.
-      event_organizer_phone: meta.organizer_phone || original.event_organizer_phone || "",
-      event_organizer_website: meta.organizer_website || original.event_organizer_website || "",
-      event_timezone: meta.timezone || original.event_timezone || "",
-      event_agenda: meta.agenda || original.event_agenda || "",
-      event_what_to_bring: meta.what_to_bring || original.event_what_to_bring || "",
-      event_parking_info: meta.parking_info || original.event_parking_info || "",
-      event_dress_code: meta.dress_code || original.event_dress_code || "",
-      event_audience: meta.audience || original.event_audience || "",
-      event_language_of_event: meta.event_language || original.event_language_of_event || "",
-      event_price_info: meta.price_info || original.event_price_info || "",
+      // can surface every field the editor filled in. Template defaults are
+      // intentionally NOT used as a fallback here: when an event is linked,
+      // the event row is the single source of truth and an empty value
+      // means "show nothing" (no leaking placeholder text).
+      event_organizer_phone: meta.organizer_phone || "",
+      event_organizer_website: meta.organizer_website || "",
+      event_timezone: meta.timezone || "",
+      event_agenda: meta.agenda || "",
+      event_what_to_bring: meta.what_to_bring || "",
+      event_parking_info: meta.parking_info || "",
+      event_dress_code: meta.dress_code || "",
+      event_audience: meta.audience || "",
+      event_language_of_event: meta.event_language || "",
+      event_price_info: meta.price_info || "",
+
+      // New rich-extras string fields
+      event_refreshments: meta.refreshments || "",
+      event_hashtag: meta.hashtag || "",
+      event_certificate_info: meta.certificate_info || "",
+      event_cta_label: meta.cta_label || "",
+      event_cta_url: meta.cta_url || "",
+      event_intro_video_url: meta.intro_video_url || "",
+      event_livestream_url: meta.livestream_url || "",
+      event_recording_url: meta.recording_url || "",
+      event_registration_url: meta.registration_url || "",
+      event_registration_deadline: meta.registration_deadline || "",
+      event_capacity: meta.capacity ? String(meta.capacity) : "",
+      event_registered_count: meta.registered_count ? String(meta.registered_count) : "",
     };
   }
 

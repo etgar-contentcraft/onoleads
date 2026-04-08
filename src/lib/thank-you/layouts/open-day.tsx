@@ -26,7 +26,6 @@ import {
   ClockIcon,
   WhatsAppIcon,
   LAYOUT_ANIMATIONS,
-  type LayoutContext,
   type LayoutComponent,
 } from "./shared";
 import {
@@ -37,6 +36,18 @@ import {
   parseIso,
   type CalendarEvent,
 } from "@/lib/thank-you/calendar-invite";
+import {
+  EventIntroVideo,
+  EventCapacityCounter,
+  EventHighlights,
+  EventSchedule,
+  EventSpeakers,
+  EventFaq,
+  EventTestimonials,
+  EventGallery,
+  EventFeaturedPrograms,
+  EventTags,
+} from "@/lib/thank-you/event-rich-sections";
 
 interface CountdownParts {
   days: number;
@@ -431,6 +442,96 @@ export const OpenDayLayout: LayoutComponent = ({ ctx }) => {
 
   const links = socialLinks(ctx);
 
+  // ── Rich content labels for the sections we render from ctx.eventMeta ──
+  // Every surface is localized per language. Text is kept short so it fits
+  // the small pill heading above each section.
+  const richLabels = useMemo(() => {
+    if (lang === "en") {
+      return {
+        introVideo: "Watch the intro",
+        capacityTitle: "Seats",
+        capacitySeats: "spots left",
+        capacityAlmostFull: "Almost full!",
+        highlightsPill: "Highlights",
+        highlightsTitle: "What you'll get",
+        scheduleTitle: "Schedule",
+        scheduleSubtitle: "Full event timeline",
+        speakersTitle: "Speakers",
+        speakersSubtitle: "Meet your presenters",
+        faqTitle: "FAQ",
+        faqSubtitle: "Got a question?",
+        testimonialsTitle: "Testimonials",
+        testimonialsSubtitle: "Past attendees speak",
+        galleryTitle: "Gallery",
+        gallerySubtitle: "Moments from past events",
+        programsTitle: "Featured programs",
+        programsSubtitle: "You'll hear about these",
+        registrationDeadline: "Registration deadline",
+        livestream: "Watch livestream",
+        recording: "Watch recording",
+        refreshments: "Refreshments",
+        certificate: "Certificate",
+      };
+    }
+    if (lang === "ar") {
+      return {
+        introVideo: "شاهد المقدمة",
+        capacityTitle: "المقاعد",
+        capacitySeats: "مقاعد متبقية",
+        capacityAlmostFull: "ممتلئ تقريبا!",
+        highlightsPill: "أبرز الأحداث",
+        highlightsTitle: "ما ستحصل عليه",
+        scheduleTitle: "الجدول",
+        scheduleSubtitle: "الجدول الكامل للفعالية",
+        speakersTitle: "المتحدثون",
+        speakersSubtitle: "تعرف على المقدمين",
+        faqTitle: "الأسئلة الشائعة",
+        faqSubtitle: "هل لديك سؤال؟",
+        testimonialsTitle: "التوصيات",
+        testimonialsSubtitle: "آراء المشاركين السابقين",
+        galleryTitle: "المعرض",
+        gallerySubtitle: "لحظات من الفعاليات السابقة",
+        programsTitle: "البرامج المميزة",
+        programsSubtitle: "ستسمع عن هذه البرامج",
+        registrationDeadline: "الموعد النهائي للتسجيل",
+        livestream: "شاهد البث المباشر",
+        recording: "شاهد التسجيل",
+        refreshments: "المرطبات",
+        certificate: "شهادة",
+      };
+    }
+    return {
+      introVideo: "צפו בסרטון",
+      capacityTitle: "מקומות",
+      capacitySeats: "מקומות נותרו",
+      capacityAlmostFull: "כמעט מלא!",
+      highlightsPill: "מה מחכה לכם",
+      highlightsTitle: "מה תקבלו באירוע",
+      scheduleTitle: "סדר היום",
+      scheduleSubtitle: "הלו״ז המלא של האירוע",
+      speakersTitle: "מרצים",
+      speakersSubtitle: "הכירו את המרצים שלנו",
+      faqTitle: "שאלות ותשובות",
+      faqSubtitle: "יש לכם שאלה?",
+      testimonialsTitle: "ממליצים",
+      testimonialsSubtitle: "מה משתתפים קודמים אומרים",
+      galleryTitle: "גלריה",
+      gallerySubtitle: "רגעים מאירועים קודמים",
+      programsTitle: "חוגים מוצגים",
+      programsSubtitle: "תלמדו על התכניות הבאות",
+      registrationDeadline: "מועד אחרון להרשמה",
+      livestream: "לצפייה בשידור חי",
+      recording: "לצפייה בהקלטה",
+      refreshments: "כיבוד",
+      certificate: "תעודה",
+    };
+  }, [lang]);
+
+  // Convenience alias — rich structured content lives on `ctx.eventMeta`.
+  // We deliberately DO NOT fall back to template strings: when an event is
+  // linked, the event row is the single source of truth.
+  const meta = ctx.eventMeta;
+
   return (
     <div
       dir={isRtl ? "rtl" : "ltr"}
@@ -448,7 +549,7 @@ export const OpenDayLayout: LayoutComponent = ({ ctx }) => {
       )}
 
       <div
-        className="w-full max-w-2xl text-center"
+        className="w-full max-w-5xl text-center"
         style={{ animation: "ty-fade-in-up 0.7s ease-out both" }}
       >
         {/* Success badge */}
@@ -661,6 +762,197 @@ export const OpenDayLayout: LayoutComponent = ({ ctx }) => {
               accent={accent}
               isRtl={isRtl}
             />
+          </div>
+        )}
+
+        {/* ── Rich content sections (only rendered when linked event has data) ──
+            Every section below returns null when its source array/field is
+            missing, so sparse events stay clean and rich events look
+            spectacular. We pass `variant="dark"` because the layout uses a
+            dark hero; the same components serve the landing page with
+            `variant="light"`. */}
+        {meta && (
+          <div className="mt-12 text-start">
+            {/* Tags — hashtag pills, shown first as quick topical context */}
+            <EventTags items={meta.tags} variant="dark" accent={accent} />
+
+            {/* Capacity counter — progress bar with "almost full" warning */}
+            <EventCapacityCounter
+              capacity={meta.capacity}
+              registered={meta.registered_count}
+              variant="dark"
+              accent={accent}
+              labels={{
+                title: richLabels.capacityTitle,
+                seats: richLabels.capacitySeats,
+                almostFull: richLabels.capacityAlmostFull,
+              }}
+            />
+
+            {/* Intro video — YouTube / Vimeo / mp4 */}
+            <EventIntroVideo
+              url={meta.intro_video_url}
+              variant="dark"
+              accent={accent}
+              title={richLabels.introVideo}
+            />
+
+            {/* Highlights — "what you'll get" grid */}
+            <EventHighlights
+              items={meta.highlights}
+              variant="dark"
+              accent={accent}
+              title={richLabels.highlightsPill}
+              subtitle={richLabels.highlightsTitle}
+            />
+
+            {/* Schedule timeline — vertical spine with icon bubbles */}
+            <EventSchedule
+              items={meta.schedule}
+              variant="dark"
+              accent={accent}
+              title={richLabels.scheduleTitle}
+              subtitle={richLabels.scheduleSubtitle}
+            />
+
+            {/* Speakers grid — with photos / initials fallback */}
+            <EventSpeakers
+              items={meta.speakers}
+              variant="dark"
+              accent={accent}
+              title={richLabels.speakersTitle}
+              subtitle={richLabels.speakersSubtitle}
+            />
+
+            {/* FAQ accordion */}
+            <EventFaq
+              items={meta.faq}
+              variant="dark"
+              accent={accent}
+              title={richLabels.faqTitle}
+              subtitle={richLabels.faqSubtitle}
+            />
+
+            {/* Testimonials */}
+            <EventTestimonials
+              items={meta.testimonials}
+              variant="dark"
+              accent={accent}
+              title={richLabels.testimonialsTitle}
+              subtitle={richLabels.testimonialsSubtitle}
+            />
+
+            {/* Gallery — photos from past events */}
+            <EventGallery
+              items={meta.gallery}
+              variant="dark"
+              accent={accent}
+              title={richLabels.galleryTitle}
+              subtitle={richLabels.gallerySubtitle}
+            />
+
+            {/* Featured programs / partner badges */}
+            <EventFeaturedPrograms
+              items={meta.featured_programs}
+              variant="dark"
+              accent={accent}
+              title={richLabels.programsTitle}
+              subtitle={richLabels.programsSubtitle}
+            />
+
+            {/* Quick-action secondary links — livestream, recording, custom CTA,
+                registration deadline, refreshments/certificate info. Rendered
+                as a compact grid of labeled cards so they stay visible
+                without pushing the primary CTA below the fold. */}
+            {(meta.livestream_url ||
+              meta.recording_url ||
+              meta.cta_url ||
+              meta.registration_deadline ||
+              meta.refreshments ||
+              meta.certificate_info) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-10 max-w-3xl mx-auto">
+                {meta.livestream_url && (
+                  <a
+                    href={meta.livestream_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-xl p-4 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                  >
+                    <div
+                      className="text-[10px] uppercase tracking-widest font-bold mb-1"
+                      style={{ color: accent }}
+                    >
+                      🔴 {richLabels.livestream}
+                    </div>
+                    <div className="text-white/80 text-sm break-all">{meta.livestream_url}</div>
+                  </a>
+                )}
+                {meta.recording_url && (
+                  <a
+                    href={meta.recording_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-xl p-4 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
+                  >
+                    <div
+                      className="text-[10px] uppercase tracking-widest font-bold mb-1"
+                      style={{ color: accent }}
+                    >
+                      🎥 {richLabels.recording}
+                    </div>
+                    <div className="text-white/80 text-sm break-all">{meta.recording_url}</div>
+                  </a>
+                )}
+                {meta.registration_deadline && (
+                  <div className="rounded-xl p-4 bg-white/5 border border-white/10">
+                    <div
+                      className="text-[10px] uppercase tracking-widest font-bold mb-1"
+                      style={{ color: accent }}
+                    >
+                      ⏳ {richLabels.registrationDeadline}
+                    </div>
+                    <div className="text-white/80 text-sm">{meta.registration_deadline}</div>
+                  </div>
+                )}
+                {meta.refreshments && (
+                  <div className="rounded-xl p-4 bg-white/5 border border-white/10">
+                    <div
+                      className="text-[10px] uppercase tracking-widest font-bold mb-1"
+                      style={{ color: accent }}
+                    >
+                      ☕ {richLabels.refreshments}
+                    </div>
+                    <div className="text-white/80 text-sm">{meta.refreshments}</div>
+                  </div>
+                )}
+                {meta.certificate_info && (
+                  <div className="rounded-xl p-4 bg-white/5 border border-white/10">
+                    <div
+                      className="text-[10px] uppercase tracking-widest font-bold mb-1"
+                      style={{ color: accent }}
+                    >
+                      🏅 {richLabels.certificate}
+                    </div>
+                    <div className="text-white/80 text-sm">{meta.certificate_info}</div>
+                  </div>
+                )}
+                {meta.cta_url && meta.cta_label && (
+                  <a
+                    href={meta.cta_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-xl p-4 text-center font-extrabold sm:col-span-2 transition-transform hover:scale-[1.02]"
+                    style={{
+                      background: accent,
+                      color: "#111",
+                      boxShadow: `0 0 30px ${accent}55`,
+                    }}
+                  >
+                    {meta.cta_label} →
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         )}
 

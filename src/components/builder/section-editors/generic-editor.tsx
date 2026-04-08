@@ -508,8 +508,14 @@ function TestimonialsEditorFields({ content, onChange }: { content: GenericConte
             </div>
             <Textarea value={item.quote_en || ""} onChange={(e) => updateItem(index, { ...item, quote_en: e.target.value })} placeholder="Ono changed my direction..." rows={2} className="text-xs" />
           </div>
-          <F label="תמונה (URL)" tip="תמונת פרופיל. מידות: 200×200px לפחות, ריבועית. JPG/PNG/WebP.">
-            <Input value={item.image_url || ""} onChange={(e) => updateItem(index, { ...item, image_url: e.target.value })} placeholder="https://..." className="h-8 text-xs" />
+          <F label="תמונת פרופיל" tip="תמונת פרופיל של הסטודנט/ית. ריבועית, לפחות 400×400px.">
+            <ImageUploadField
+              value={item.image_url || ""}
+              onChange={(url) => updateItem(index, { ...item, image_url: url })}
+              recommendedSize="400×400"
+              hint="תמונה ריבועית"
+              previewAspect="aspect-square"
+            />
           </F>
           <F label="סרטון YouTube (אופציונלי)" tip="קישור YouTube לעדות וידאו. הסרטון יוצג מעל הציטוט בכרטיס.">
             <Input value={item.video_url || ""} onChange={(e) => updateItem(index, { ...item, video_url: e.target.value })} placeholder="https://youtube.com/watch?v=..." className="h-8 text-xs" />
@@ -828,8 +834,14 @@ function AboutEditorFields({ content, onChange }: { content: GenericContent; onC
         <Textarea value={(content.description_he as string) || ""} onChange={(e) => onChange({ ...content, description_he: e.target.value })} dir="rtl" rows={4} placeholder="תיאור קצר של התוכנית..." />
       </F>
 
-      <F label="תמונה (URL)" tip="תמונה שמוצגת בצד ה-About. מידות: 600×450px לפחות.">
-        <Input value={(content.image_url as string) || ""} onChange={(e) => onChange({ ...content, image_url: e.target.value })} placeholder="https://..." />
+      <F label="תמונה" tip="תמונה שמוצגת בצד ה-About. מידות מומלצות: 1200×900px, פורמט JPG/WebP.">
+        <ImageUploadField
+          value={(content.image_url as string) || ""}
+          onChange={(url) => onChange({ ...content, image_url: url })}
+          recommendedSize="1200×900"
+          hint="JPG/WebP · תמונה אופקית"
+          previewAspect="aspect-[4/3]"
+        />
       </F>
 
       <F label="סרטון YouTube (אופציונלי)" tip="קישור YouTube. אם מוזן — יוצג במקום התמונה.">

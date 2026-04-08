@@ -12,6 +12,7 @@ import { getLayout } from "@/lib/thank-you/layouts/registry";
 import { firstName, type LayoutContext } from "@/lib/thank-you/layouts/shared";
 import { pickField, type ThankYouTemplate } from "@/lib/types/thank-you-templates";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
+import type { EventMeta } from "@/lib/types/events";
 
 interface ThankYouRendererProps {
   template: ThankYouTemplate;
@@ -20,6 +21,12 @@ interface ThankYouRendererProps {
   pageSlug?: string;
   language?: string;
   logoUrl?: string;
+  /**
+   * Raw EventMeta from the linked event row — forwarded to layouts so rich
+   * structured fields (speakers, schedule, FAQ) can be rendered without
+   * going through the string-based template content blob.
+   */
+  eventMeta?: EventMeta;
 }
 
 export function ThankYouRenderer({
@@ -29,6 +36,7 @@ export function ThankYouRenderer({
   pageSlug,
   language = "he",
   logoUrl,
+  eventMeta,
 }: ThankYouRendererProps) {
   const [displayName, setDisplayName] = useState("");
 
@@ -72,6 +80,9 @@ export function ThankYouRenderer({
     // URL fallback chain: page override > template default
     calendarUrl: settings.calendar_url || templateCalendarUrl || undefined,
     videoUrl: settings.video_url || templateVideoUrl || undefined,
+
+    // Rich event meta (speakers, schedule, FAQ, etc.) when the page links to an event
+    eventMeta,
   };
 
   const Layout = getLayout(template.layout_id);

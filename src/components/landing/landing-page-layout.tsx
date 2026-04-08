@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import type { Language, PageSection, Program } from "@/lib/types/database";
+import type { EventRow } from "@/lib/types/events";
 import { useUrlParams } from "@/hooks/use-url-params";
 import { replaceDynamicContent } from "@/lib/dynamic-text";
 import { CtaModalProvider, CtaModal, FloatingCtaButton, useCtaModal } from "./cta-modal";
@@ -117,6 +118,11 @@ interface LandingPageLayoutProps {
   pageInterestAreas?: PageInterestArea[];
   /** Optional "I don't know" option shown first in the interest dropdown */
   unknownOption?: { text: string; mapsToName: string };
+  /** Map of event rows keyed by event_id — used by event sections that
+   *  reference a row in the events table via content.event_id. Fetched in
+   *  the server route so every event section on the page gets its rich data
+   *  without running client-side queries. */
+  eventsMap?: Record<string, EventRow>;
 }
 
 // ============================================================================
@@ -314,6 +320,7 @@ function renderSection(
   programId?: string,
   urlParams?: URLSearchParams,
   pageSlug?: string,
+  eventsMap?: Record<string, EventRow>,
 ) {
   const rawContent = (section.content || {}) as Record<string, unknown>;
   const content = urlParams ? replaceDynamicContent(rawContent, urlParams) : rawContent;
@@ -358,8 +365,15 @@ function renderSection(
       return <MapSection content={content} language={language} />;
     case "countdown":
       return <CountdownSection content={content} language={language} />;
-    case "event":
-      return <EventSection content={content} language={language} />;
+    case "event": {
+      // When the section references an existing event (content.event_id), the
+      // server-side loader pre-fetched the row and put it in eventsMap. Pass
+      // it down so the section can render rich structured content (speakers,
+      // schedule, FAQ, gallery, etc.) from a single source of truth.
+      const eventId = typeof content.event_id === "string" ? content.event_id : undefined;
+      const event = eventId && eventsMap ? eventsMap[eventId] || null : null;
+      return <EventSection content={content} language={language} event={event} />;
+    }
     case "form":
       return <FormSection content={content} language={language} pageId={pageId} programId={programId} pageSlug={pageSlug} />;
     case "program_outcomes":
@@ -500,6 +514,7 @@ function InnerLayout({
   campaigns,
   pageInterestAreas,
   unknownOption,
+  eventsMap,
 }: LandingPageLayoutProps) {
   const isRtl = language === "he" || language === "ar";
   const urlParams = useUrlParams();
@@ -628,7 +643,7 @@ function InnerLayout({
         {mainSections.map((section, index) => (
           <div key={section.id}>
             <SectionErrorBoundary sectionType={section.section_type}>
-              {renderSection(section, language, pageId, programId, urlParams, pageSlug)}
+              {renderSection(section, language, pageId, programId, urlParams, pageSlug, eventsMap)}
             </SectionErrorBoundary>
             {/* After hero, inject auto-generated sections */}
             {index === heroIndex && filteredAutoSections.length > 0 && (
