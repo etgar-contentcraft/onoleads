@@ -34,6 +34,7 @@ const LAYOUT_LABELS: Record<TyLayoutId, string> = {
   urgency_cohort: "דחיפות מחזור",
   multi_channel: "רב-ערוצי",
   simple_thanks: "תודה בסיסי",
+  open_day: "יום פתוח",
 };
 
 const LAYOUT_IDS: TyLayoutId[] = [
@@ -48,6 +49,7 @@ const LAYOUT_IDS: TyLayoutId[] = [
   "urgency_cohort",
   "multi_channel",
   "simple_thanks",
+  "open_day",
 ];
 
 export default function TyTemplatesDashboard() {

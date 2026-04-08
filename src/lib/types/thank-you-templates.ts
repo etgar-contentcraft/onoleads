@@ -25,7 +25,8 @@ export type TyLayoutId =
   | "social_proof"
   | "urgency_cohort"
   | "multi_channel"
-  | "simple_thanks";
+  | "simple_thanks"
+  | "open_day";
 
 /**
  * Editable content fields for a single language.
@@ -52,9 +53,11 @@ export interface TyContentFields {
   // ── Calendar booking ─────────────────────────────────────────────────
   calendar_cta?: string;
   calendar_label?: string;       // "Book a call" header
+  calendar_url?: string;         // Per-template default booking URL (Calendly, etc.)
 
   // ── Video welcome ────────────────────────────────────────────────────
   video_label?: string;
+  video_url?: string;            // Per-template default video URL (YouTube, Vimeo, mp4)
 
   // ── Social media follows ─────────────────────────────────────────────
   social_label?: string;         // "Follow us"
@@ -100,7 +103,31 @@ export interface TyContentFields {
   // ── Multi-channel connect (used by multi_channel layout) ─────────────
   channels_label?: string;       // "Choose how to connect"
   phone_cta?: string;
+  phone_number?: string;         // Per-template default phone (overrides whatsapp-as-phone)
   email_cta?: string;
+  email_address?: string;        // Per-template default email (replaces hardcoded info@ono.ac.il)
+
+  // ── Open day / event (used by open_day layout) ──────────────────────
+  /** Main event title (used both in the UI and inside the generated calendar invite) */
+  event_title?: string;
+  /** Short description (shown on the page and written into the invite body) */
+  event_description?: string;
+  /** Physical address or "Online" — shown on the page and in the invite location field */
+  event_location?: string;
+  /** Google Maps / directions link — shown as a pin icon button */
+  event_location_url?: string;
+  /** Event start in ISO 8601 (e.g. "2026-05-15T18:00:00+03:00") */
+  event_start_datetime?: string;
+  /** Event end in ISO 8601. If blank, defaults to start + 2 hours when generating invites. */
+  event_end_datetime?: string;
+  /** Organizer name shown inside the invite */
+  event_organizer_name?: string;
+  /** Organizer email used in the invite ORGANIZER field */
+  event_organizer_email?: string;
+  /** Label shown above the "add to calendar" menu button (e.g. "הוסיפו ליומן") */
+  add_to_calendar_label?: string;
+  /** Short note shown under the countdown (e.g. "המקום נשמר לכם") */
+  event_reserved_note?: string;
 }
 
 /** Per-language content map */

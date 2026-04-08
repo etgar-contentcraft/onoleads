@@ -894,6 +894,12 @@ export const MultiChannelLayout: LayoutComponent = ({ ctx }) => {
   const calendarCta = field(c, lang, "calendar_cta", ctx.displayName);
   const backLink = field(c, lang, "back_link", ctx.displayName);
 
+  // Phone: template content wins; if blank, fall back to the WhatsApp number so
+  // existing data keeps working. Email: template content wins; if blank, use the
+  // Ono default as a safe fallback instead of hardcoding everywhere.
+  const phoneNumber = field(c, lang, "phone_number", ctx.displayName) || ctx.whatsappNumber || "";
+  const emailAddress = field(c, lang, "email_address", ctx.displayName) || "info@ono.ac.il";
+
   const links = socialLinks(ctx);
 
   return (
@@ -945,9 +951,9 @@ export const MultiChannelLayout: LayoutComponent = ({ ctx }) => {
             </a>
           )}
 
-          {phoneCta && ctx.whatsappNumber && (
+          {phoneCta && phoneNumber && (
             <a
-              href={`tel:${ctx.whatsappNumber}`}
+              href={`tel:${phoneNumber.replace(/[^0-9+]/g, "")}`}
               className="flex items-center gap-4 p-5 rounded-2xl bg-white border-2 border-gray-100 transition-all hover:shadow-lg"
               style={{ borderColor: undefined }}
               onMouseEnter={(e) => (e.currentTarget.style.borderColor = accent)}
@@ -961,14 +967,14 @@ export const MultiChannelLayout: LayoutComponent = ({ ctx }) => {
               </div>
               <div className={`flex-1 ${isRtl ? "text-right" : "text-left"}`}>
                 <div className="font-bold text-gray-900">{phoneCta}</div>
-                <div className="text-xs text-gray-500">{ctx.whatsappNumber}</div>
+                <div className="text-xs text-gray-500" dir="ltr">{phoneNumber}</div>
               </div>
             </a>
           )}
 
-          {emailCta && (
+          {emailCta && emailAddress && (
             <a
-              href="mailto:info@ono.ac.il"
+              href={`mailto:${emailAddress}`}
               className="flex items-center gap-4 p-5 rounded-2xl bg-white border-2 border-gray-100 hover:border-blue-400 transition-all hover:shadow-lg"
             >
               <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
@@ -976,7 +982,7 @@ export const MultiChannelLayout: LayoutComponent = ({ ctx }) => {
               </div>
               <div className={`flex-1 ${isRtl ? "text-right" : "text-left"}`}>
                 <div className="font-bold text-gray-900">{emailCta}</div>
-                <div className="text-xs text-gray-500">info@ono.ac.il</div>
+                <div className="text-xs text-gray-500" dir="ltr">{emailAddress}</div>
               </div>
             </a>
           )}

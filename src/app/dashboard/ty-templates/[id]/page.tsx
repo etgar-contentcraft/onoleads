@@ -65,11 +65,15 @@ const FIELD_GROUPS: Array<{ label: string; fields: Array<{ key: keyof TyContentF
     fields: [
       { key: "calendar_label", label: "כותרת מקטע היומן" },
       { key: "calendar_cta", label: "טקסט הכפתור" },
+      { key: "calendar_url", label: "קישור יומן (Calendly וכד׳) — ברירת מחדל לתבנית" },
     ],
   },
   {
     label: "וידאו",
-    fields: [{ key: "video_label", label: "כותרת מקטע הווידאו" }],
+    fields: [
+      { key: "video_label", label: "כותרת מקטע הווידאו" },
+      { key: "video_url", label: "קישור וידאו (YouTube / Vimeo / mp4) — ברירת מחדל לתבנית" },
+    ],
   },
   {
     label: "רשתות חברתיות",
@@ -136,7 +140,25 @@ const FIELD_GROUPS: Array<{ label: string; fields: Array<{ key: keyof TyContentF
     fields: [
       { key: "channels_label", label: "כותרת המקטע" },
       { key: "phone_cta", label: "טקסט כפתור טלפון" },
+      { key: "phone_number", label: "מספר טלפון (אם ריק – יילקח מספר ה-WhatsApp)" },
       { key: "email_cta", label: "טקסט כפתור אימייל" },
+      { key: "email_address", label: "כתובת אימייל" },
+    ],
+  },
+  {
+    label: "יום פתוח / אירוע (לתבנית Open Day)",
+    fields: [
+      { key: "event_title", label: "כותרת האירוע (תופיע גם בתוך הזימון ליומן)" },
+      { key: "event_description", label: "תיאור האירוע (ייכנס לגוף הזימון)", multiline: true },
+      { key: "event_location", label: "מיקום (כתובת פיזית או 'Online')" },
+      { key: "event_location_url", label: "קישור למפה / לינק לאירוע מקוון" },
+      { key: "event_start_datetime", label: "מועד התחלה — ISO 8601 (למשל 2026-05-15T18:00:00+03:00)" },
+      { key: "event_end_datetime", label: "מועד סיום — ISO 8601 (אופציונלי, ברירת מחדל: התחלה + שעתיים)" },
+      { key: "event_organizer_name", label: "שם המארגן (לתוך הזימון)" },
+      { key: "event_organizer_email", label: "אימייל מארגן (לתוך הזימון)" },
+      { key: "add_to_calendar_label", label: "טקסט כפתור 'הוסיפו ליומן'" },
+      { key: "event_reserved_note", label: "הערה תחת הספירה לאחור (למשל 'המקום נשמר לכם')" },
+      { key: "countdown_label", label: "תווית מעל הספירה לאחור" },
     ],
   },
 ];

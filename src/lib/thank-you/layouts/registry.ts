@@ -12,6 +12,7 @@ import type { TyLayoutId } from "@/lib/types/thank-you-templates";
 import type { LayoutComponent } from "./shared";
 import { ClassicDarkLayout } from "./classic-dark";
 import { SimpleThanksLayout } from "./simple-thanks";
+import { OpenDayLayout } from "./open-day";
 import {
   CalendarFocusLayout,
   CelebrationLayout,
@@ -36,6 +37,7 @@ export const LAYOUT_REGISTRY: Record<TyLayoutId, LayoutComponent> = {
   urgency_cohort: UrgencyCohortLayout,
   multi_channel: MultiChannelLayout,
   simple_thanks: SimpleThanksLayout,
+  open_day: OpenDayLayout,
 };
 
 /** Get the layout component for a given layout_id, falling back to classic_dark */

@@ -10,7 +10,7 @@
 import { useEffect, useState } from "react";
 import { getLayout } from "@/lib/thank-you/layouts/registry";
 import { firstName, type LayoutContext } from "@/lib/thank-you/layouts/shared";
-import type { ThankYouTemplate } from "@/lib/types/thank-you-templates";
+import { pickField, type ThankYouTemplate } from "@/lib/types/thank-you-templates";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 
 interface ThankYouRendererProps {
@@ -41,6 +41,12 @@ export function ThankYouRenderer({
     }
   }, []);
 
+  // Resolve URL fields with fallback chain: per-page setting (override) → template content default → empty.
+  // We prefer per-page overrides when set, so a single template can be reused across multiple pages
+  // with page-specific videos/calendars, while still shipping a sensible default from the template itself.
+  const templateVideoUrl = pickField(template.content, language, "video_url");
+  const templateCalendarUrl = pickField(template.content, language, "calendar_url");
+
   const ctx: LayoutContext = {
     template,
     language,
@@ -63,8 +69,9 @@ export function ThankYouRenderer({
     showReferral: settings.show_referral,
     showCalendar: settings.show_calendar,
     showVideo: settings.show_video,
-    calendarUrl: settings.calendar_url,
-    videoUrl: settings.video_url,
+    // URL fallback chain: page override > template default
+    calendarUrl: settings.calendar_url || templateCalendarUrl || undefined,
+    videoUrl: settings.video_url || templateVideoUrl || undefined,
   };
 
   const Layout = getLayout(template.layout_id);
