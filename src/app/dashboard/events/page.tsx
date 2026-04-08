@@ -114,6 +114,78 @@ function toDateInput(iso: string | null | undefined): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/** Convert ISO date string to a "HH:mm" value for <input type="time">. */
+function toTimeInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/**
+ * Split-field date+time picker.
+ *
+ * Why not `<input type="datetime-local">`? Some browsers (Safari/Firefox on
+ * Windows, Chromium variants) emit an `onChange("")` event when the popup
+ * closes without a confirmed selection, which wipes the controlled value.
+ * By splitting into two independent inputs and only updating the parent ISO
+ * when we have BOTH a valid date AND time, we prevent accidental clears.
+ * Empty onChange events are silently ignored.
+ */
+function DateTimePicker({
+  value,
+  onChange,
+}: {
+  value: string | null | undefined;
+  onChange: (iso: string) => void;
+}) {
+  // Local mirror so date/time can be edited independently without nuking
+  // each other when one of them is temporarily invalid/empty.
+  const [localDate, setLocalDate] = useState(() => toDateInput(value));
+  const [localTime, setLocalTime] = useState(() => toTimeInput(value) || "10:00");
+
+  // Sync from external changes (e.g. duplicate event shifts the date by +7d)
+  useEffect(() => {
+    const nextDate = toDateInput(value);
+    const nextTime = toTimeInput(value);
+    if (nextDate) setLocalDate(nextDate);
+    if (nextTime) setLocalTime(nextTime);
+  }, [value]);
+
+  /** Combine date + time into an ISO string and propagate up. */
+  const commit = (date: string, time: string) => {
+    if (!date || !time) return; // need BOTH to form a valid ISO
+    const iso = fromDatetimeLocal(`${date}T${time}`);
+    if (iso) onChange(iso);
+  };
+
+  return (
+    <div className="grid grid-cols-[1fr_110px] gap-2">
+      <Input
+        type="date"
+        value={localDate}
+        onChange={(e) => {
+          const v = e.target.value;
+          setLocalDate(v);
+          commit(v, localTime);
+        }}
+        dir="ltr"
+      />
+      <Input
+        type="time"
+        value={localTime}
+        onChange={(e) => {
+          const v = e.target.value;
+          setLocalTime(v);
+          commit(localDate, v);
+        }}
+        dir="ltr"
+      />
+    </div>
+  );
+}
+
 /** Format an ISO timestamp for display in the Hebrew admin list. */
 function formatDisplayDate(iso: string | null): string {
   if (!iso) return "—";
@@ -355,21 +427,30 @@ export default function EventsDashboard() {
         </section>
       )}
 
-      {/* Create/Edit dialog */}
+      {/* Create/Edit dialog — full screen so rich editors have breathing room */}
       <Dialog open={editing !== null} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir="rtl">
-          <DialogHeader>
-            <DialogTitle>{editing?.id ? "עריכת אירוע" : "אירוע חדש"}</DialogTitle>
+        <DialogContent
+          className="max-w-[98vw] sm:max-w-[98vw] w-[98vw] h-[96vh] max-h-[96vh] p-0 flex flex-col overflow-hidden"
+          dir="rtl"
+        >
+          <DialogHeader className="px-6 py-4 border-b border-[#F0F0F0] shrink-0">
+            <DialogTitle className="text-base font-bold text-[#2A2628]">
+              {editing?.id ? "עריכת אירוע" : "אירוע חדש"}
+            </DialogTitle>
           </DialogHeader>
 
-          {editing && (
-            <EventEditorForm
-              value={editing.data}
-              onChange={(data) => setEditing({ ...editing, data })}
-            />
-          )}
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            {editing && (
+              <div className="max-w-5xl mx-auto">
+                <EventEditorForm
+                  value={editing.data}
+                  onChange={(data) => setEditing({ ...editing, data })}
+                />
+              </div>
+            )}
+          </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 px-6 py-4 border-t border-[#F0F0F0] shrink-0">
             <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>
               ביטול
             </Button>
@@ -768,23 +849,22 @@ function EventEditorForm({
           />
         </div>
 
-        {/* Date + end date */}
+        {/* Date + end date — split date+time picker avoids the browser's
+            "wipe on blur" behaviour that single datetime-local inputs suffer from. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">מועד התחלה *</Label>
-            <Input
-              type="datetime-local"
-              value={toDatetimeLocal(value.event_date)}
-              onChange={(e) => update({ event_date: fromDatetimeLocal(e.target.value) })}
-              required
+            <DateTimePicker
+              value={value.event_date}
+              onChange={(iso) => update({ event_date: iso })}
             />
+            <p className="text-[10px] text-[#9A969A] mt-1">בחרו תאריך בלוח השנה ושעה בנפרד — שני הערכים נשמרים עצמאית</p>
           </div>
           <div>
             <Label className="text-xs">מועד סיום (ברירת מחדל +2 שעות)</Label>
-            <Input
-              type="datetime-local"
-              value={toDatetimeLocal(value.event_end_date)}
-              onChange={(e) => update({ event_end_date: fromDatetimeLocal(e.target.value) })}
+            <DateTimePicker
+              value={value.event_end_date}
+              onChange={(iso) => update({ event_end_date: iso })}
             />
           </div>
         </div>
@@ -946,37 +1026,52 @@ function EventEditorForm({
           empty={{ time: "", title: "", description: "", icon: "talk" }}
           addLabel="הוסף סעיף ללוח הזמנים"
           renderItem={(item, idx, updateItem) => (
-            <div className="space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-[90px_1fr_140px] gap-2">
-                <Input
-                  value={item.time}
-                  onChange={(e) => updateItem({ ...item, time: e.target.value })}
-                  placeholder="18:00"
-                />
-                <Input
-                  value={item.title}
-                  onChange={(e) => updateItem({ ...item, title: e.target.value })}
-                  placeholder="קבלה ורישום"
-                />
-                <select
-                  value={item.icon || "talk"}
-                  onChange={(e) => updateItem({ ...item, icon: e.target.value })}
-                  className="h-10 px-3 rounded-md border border-gray-200 bg-white text-sm"
-                >
-                  <option value="checkin">רישום</option>
-                  <option value="talk">הרצאה</option>
-                  <option value="workshop">סדנה</option>
-                  <option value="tour">סיור</option>
-                  <option value="break">הפסקה</option>
-                  <option value="meal">ארוחה</option>
-                  <option value="network">נטוורקינג</option>
-                </select>
+            <div className="space-y-3">
+              {/* Labeled grid so each field is self-explanatory */}
+              <div className="grid grid-cols-1 sm:grid-cols-[110px_1fr_160px] gap-3">
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-semibold text-[#716C70]">⏰ שעה</Label>
+                  <Input
+                    type="time"
+                    value={item.time}
+                    onChange={(e) => updateItem({ ...item, time: e.target.value })}
+                    placeholder="18:00"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-semibold text-[#716C70]">📌 כותרת הפעילות</Label>
+                  <Input
+                    value={item.title}
+                    onChange={(e) => updateItem({ ...item, title: e.target.value })}
+                    placeholder="קבלה ורישום"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-semibold text-[#716C70]">🏷 סוג</Label>
+                  <select
+                    value={item.icon || "talk"}
+                    onChange={(e) => updateItem({ ...item, icon: e.target.value })}
+                    className="h-10 w-full px-3 rounded-md border border-gray-200 bg-white text-sm"
+                  >
+                    <option value="checkin">📝 רישום</option>
+                    <option value="talk">🎤 הרצאה</option>
+                    <option value="workshop">🛠 סדנה</option>
+                    <option value="tour">🚶 סיור</option>
+                    <option value="break">☕ הפסקה</option>
+                    <option value="meal">🍽 ארוחה</option>
+                    <option value="network">🤝 נטוורקינג</option>
+                  </select>
+                </div>
               </div>
-              <Input
-                value={item.description || ""}
-                onChange={(e) => updateItem({ ...item, description: e.target.value })}
-                placeholder="תיאור קצר (אופציונלי)"
-              />
+              <div className="space-y-1">
+                <Label className="text-[10px] font-semibold text-[#716C70]">📝 תיאור קצר (אופציונלי)</Label>
+                <Input
+                  value={item.description || ""}
+                  onChange={(e) => updateItem({ ...item, description: e.target.value })}
+                  placeholder="הסבר קצר על מה שיקרה בזמן הזה"
+                />
+              </div>
             </div>
           )}
         />

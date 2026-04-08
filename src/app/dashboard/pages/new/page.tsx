@@ -31,8 +31,11 @@ import {
   Check,
   Loader2,
   Sparkles,
+  MapPin,
 } from "lucide-react";
 import Link from "next/link";
+import type { EventRow } from "@/lib/types/events";
+import { eventTitle } from "@/lib/types/events";
 
 interface Template {
   id: string;
@@ -47,6 +50,23 @@ interface Program {
   name_he: string;
   degree_type: string;
   faculty?: { name_he: string } | null;
+}
+
+/**
+ * Format an ISO event date into a compact Hebrew display string
+ * e.g. "2026-05-12T17:00:00Z" → "12/05/2026 17:00"
+ */
+function formatEventDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Templates that support linking to an existing event row. */
+function isEventTemplate(type?: string): boolean {
+  return type === "event" || type === "sales_event";
 }
 
 const TEMPLATE_ICONS: Record<string, React.ElementType> = {
@@ -77,19 +97,21 @@ export default function NewPageWizard() {
   const [step, setStep] = useState(1);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
+  const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
   // Form state
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [selectedProgram, setSelectedProgram] = useState<string>("standalone");
+  const [selectedEventId, setSelectedEventId] = useState<string>("standalone");
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [language, setLanguage] = useState("he");
 
   useEffect(() => {
     async function fetchData() {
-      const [templatesRes, programsRes] = await Promise.all([
+      const [templatesRes, programsRes, eventsRes] = await Promise.all([
         supabase
           .from("templates")
           .select("*")
@@ -100,14 +122,32 @@ export default function NewPageWizard() {
           .select("id, name_he, degree_type, faculty:faculties(name_he)")
           .eq("is_active", true)
           .order("name_he"),
+        supabase
+          .from("events")
+          .select("*")
+          .eq("is_active", true)
+          .order("event_date", { ascending: true }),
       ]);
 
       if (templatesRes.data) setTemplates(templatesRes.data);
       if (programsRes.data) setPrograms(programsRes.data as unknown as Program[]);
+      if (eventsRes.data) setEvents(eventsRes.data as EventRow[]);
       setLoading(false);
     }
     fetchData();
   }, []);
+
+  // When the user selects an event, prefill the title automatically so step 3
+  // shows a meaningful default they can still edit.
+  useEffect(() => {
+    if (selectedEventId && selectedEventId !== "standalone") {
+      const ev = events.find((e) => e.id === selectedEventId);
+      if (ev && !title) {
+        setTitle(eventTitle(ev, language));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEventId, events]);
 
   // Auto-generate English slug from title (transliterates Hebrew automatically)
   useEffect(() => {
@@ -159,14 +199,34 @@ export default function NewPageWizard() {
 
     // Create default sections from template
     if (newPage && selectedTemplate.section_schema && Array.isArray(selectedTemplate.section_schema)) {
-      const sections = (selectedTemplate.section_schema as Record<string, unknown>[]).map((section, index) => ({
-        page_id: newPage.id,
-        section_type: (section as { type?: string }).type || "unknown",
-        sort_order: index,
-        is_visible: true,
-        content: (section as { default_content?: unknown }).default_content || {},
-        styles: (section as { default_styles?: unknown }).default_styles || {},
-      }));
+      // If the user picked an existing event, every event-type section in this
+      // template should link to it. The landing page renderer batch-fetches
+      // these ids and passes live event data to the section, so there's no
+      // content duplication — the page becomes a view over the event row.
+      const hasLinkedEvent =
+        isEventTemplate(selectedTemplate.type) &&
+        selectedEventId !== "standalone" &&
+        !!selectedEventId;
+
+      const sections = (selectedTemplate.section_schema as Record<string, unknown>[]).map((section, index) => {
+        const sectionType = (section as { type?: string }).type || "unknown";
+        const defaultContent = ((section as { default_content?: unknown }).default_content || {}) as Record<string, unknown>;
+        // Auto-link event sections to the chosen event so the page renders
+        // straight from the event row without further editor intervention.
+        const content =
+          hasLinkedEvent && sectionType === "event"
+            ? { ...defaultContent, event_id: selectedEventId }
+            : defaultContent;
+
+        return {
+          page_id: newPage.id,
+          section_type: sectionType,
+          sort_order: index,
+          is_visible: true,
+          content,
+          styles: (section as { default_styles?: unknown }).default_styles || {},
+        };
+      });
 
       if (sections.length > 0) {
         await supabase.from("page_sections").insert(sections);
@@ -177,10 +237,14 @@ export default function NewPageWizard() {
   };
 
   const canGoToStep2 = selectedTemplate !== null;
+  // Step 2 requires a program choice for degree templates. For event
+  // templates, the user can always continue (linking to an event is optional).
   const canGoToStep3 =
     selectedTemplate !== null &&
     (selectedTemplate.type !== "degree_program" || selectedProgram !== "");
   const canCreate = title.trim() !== "" && slug.trim() !== "";
+
+  const selectedEvent = events.find((e) => e.id === selectedEventId) || null;
 
   if (loading) {
     return (
@@ -243,7 +307,13 @@ export default function NewPageWizard() {
                 step === s ? "text-[#4A4648] font-medium" : "text-[#9A969A]"
               }`}
             >
-              {s === 1 ? "בחירת תבנית" : s === 2 ? "קישור לתוכנית" : "הגדרות"}
+              {s === 1
+                ? "בחירת תבנית"
+                : s === 2
+                ? isEventTemplate(selectedTemplate?.type)
+                  ? "בחירת אירוע"
+                  : "קישור לתוכנית"
+                : "הגדרות"}
             </span>
             {s < 3 && <div className="w-8 h-px bg-[#E5E5E5] mx-1" />}
           </div>
@@ -369,8 +439,161 @@ export default function NewPageWizard() {
         </div>
       )}
 
-      {/* Step 2: Link to Program */}
-      {step === 2 && (
+      {/* Step 2: Link to Program OR Event (depends on template type) */}
+      {step === 2 && isEventTemplate(selectedTemplate?.type) && (
+        <div className="space-y-4">
+          <h2 className="text-base font-medium text-[#4A4648]">בחירת אירוע</h2>
+          <p className="text-sm text-[#9A969A]">
+            בחרו את האירוע שעליו יתבסס דף הנחיתה. הפרטים של האירוע — תאריך, מקום, מרצים, לוח זמנים ו-FAQ — ייטענו אוטומטית למקטעי האירוע שבתבנית.
+          </p>
+
+          {/* Standalone / new event option */}
+          <Card
+            className={`cursor-pointer border-2 transition-all ${
+              selectedEventId === "standalone"
+                ? "border-[#B8D900] bg-[#F0F7CC]"
+                : "border-transparent hover:border-[#E5E5E5]"
+            } shadow-sm`}
+            onClick={() => setSelectedEventId("standalone")}
+          >
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F5F5F5] flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-[#4A4648]" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-[#4A4648]">דף ללא קישור לאירוע</p>
+                  <p className="text-xs text-[#9A969A]">מלאו את פרטי האירוע ידנית בתוך הבילדר</p>
+                </div>
+                {selectedEventId === "standalone" && (
+                  <Check className="w-5 h-5 text-[#B8D900] mr-auto" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Existing events list */}
+          {events.length > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-xs font-medium text-[#716C70]">אירועים קיימים ({events.length})</p>
+                <Link
+                  href="/dashboard/events"
+                  target="_blank"
+                  className="text-[11px] text-[#B8D900] hover:underline"
+                >
+                  ניהול אירועים
+                </Link>
+              </div>
+              <div className="max-h-[420px] overflow-y-auto space-y-2 pr-1">
+                {events.map((ev) => {
+                  const isSelected = selectedEventId === ev.id;
+                  return (
+                    <Card
+                      key={ev.id}
+                      className={`cursor-pointer border-2 transition-all ${
+                        isSelected
+                          ? "border-[#B8D900] bg-[#F0F7CC]"
+                          : "border-transparent hover:border-[#E5E5E5]"
+                      } shadow-sm`}
+                      onClick={() => setSelectedEventId(ev.id)}
+                    >
+                      <CardContent className="pt-3 pb-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0">
+                            <CalendarDays className="w-4 h-4 text-[#3B82F6]" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-[#4A4648] truncate">
+                              {eventTitle(ev, "he")}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                              <span className="text-[11px] text-[#9A969A]">
+                                {formatEventDate(ev.event_date)}
+                              </span>
+                              {ev.location && (
+                                <span className="text-[11px] text-[#9A969A] flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" />
+                                  <span className="truncate max-w-[180px]">{ev.location}</span>
+                                </span>
+                              )}
+                            </div>
+                            {ev.description_he && (
+                              <p className="text-[11px] text-[#B0B0B0] mt-1 line-clamp-1">
+                                {ev.description_he}
+                              </p>
+                            )}
+                          </div>
+                          {isSelected && (
+                            <Check className="w-5 h-5 text-[#B8D900] shrink-0 mt-0.5" />
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 rounded-lg border border-dashed border-[#E5E5E5] bg-[#FAFAFA]">
+              <CalendarDays className="w-8 h-8 mx-auto text-[#D0D0D0] mb-2" />
+              <p className="text-sm text-[#716C70]">אין אירועים פעילים במערכת</p>
+              <Link
+                href="/dashboard/events"
+                target="_blank"
+                className="text-xs text-[#B8D900] hover:underline mt-1 inline-block"
+              >
+                צרו אירוע ראשון ←
+              </Link>
+            </div>
+          )}
+
+          {/* Selected event preview */}
+          {selectedEvent && (
+            <div className="rounded-lg border border-[#B8D900]/40 bg-[#F8FBE8] p-4 space-y-2">
+              <p className="text-[11px] font-semibold text-[#7a9200] uppercase tracking-wide">
+                הדף ייבנה על בסיס האירוע הזה
+              </p>
+              <p className="text-sm font-medium text-[#4A4648]">
+                {eventTitle(selectedEvent, "he")}
+              </p>
+              {selectedEvent.description_he && (
+                <p className="text-xs text-[#716C70] line-clamp-2">{selectedEvent.description_he}</p>
+              )}
+              <div className="flex flex-wrap gap-3 text-[11px] text-[#716C70]">
+                <span>📅 {formatEventDate(selectedEvent.event_date)}</span>
+                {selectedEvent.location && <span>📍 {selectedEvent.location}</span>}
+                {selectedEvent.meta?.speakers && selectedEvent.meta.speakers.length > 0 && (
+                  <span>🎤 {selectedEvent.meta.speakers.length} מרצים</span>
+                )}
+                {selectedEvent.meta?.schedule && selectedEvent.meta.schedule.length > 0 && (
+                  <span>⏱ {selectedEvent.meta.schedule.length} בלוקי לו״ז</span>
+                )}
+                {selectedEvent.meta?.faq && selectedEvent.meta.faq.length > 0 && (
+                  <span>❓ {selectedEvent.meta.faq.length} שאלות</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
+              <ArrowRight className="w-4 h-4" />
+              הקודם
+            </Button>
+            <Button
+              onClick={() => setStep(3)}
+              className="gap-2 bg-[#B8D900] text-[#4A4648] hover:bg-[#9AB800]"
+            >
+              הבא
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 2: Link to Program (non-event templates) */}
+      {step === 2 && !isEventTemplate(selectedTemplate?.type) && (
         <div className="space-y-4">
           <h2 className="text-base font-medium text-[#4A4648]">קישור לתוכנית</h2>
           <p className="text-sm text-[#9A969A]">
@@ -518,7 +741,11 @@ export default function NewPageWizard() {
                   <p>
                     קישור:{" "}
                     <span className="text-[#4A4648] font-medium">
-                      {selectedProgram === "standalone"
+                      {isEventTemplate(selectedTemplate?.type)
+                        ? selectedEvent
+                          ? eventTitle(selectedEvent, "he")
+                          : "דף עצמאי (ללא אירוע)"
+                        : selectedProgram === "standalone"
                         ? "דף עצמאי"
                         : programs.find((p) => p.id === selectedProgram)?.name_he ?? "-"}
                     </span>

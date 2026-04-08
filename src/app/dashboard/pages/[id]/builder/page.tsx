@@ -73,6 +73,8 @@ import {
 import { sanitizeSlug } from "@/lib/utils/slug";
 import { extractYoutubeId } from "@/lib/utils/youtube";
 import { scheduleRevalidate, revalidateNow } from "@/lib/admin/revalidate";
+import type { EventRow } from "@/lib/types/events";
+import { eventTitle } from "@/lib/types/events";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -936,6 +938,233 @@ function ImageField({ label, fieldKey, recommendedSize, draft, set }: ImageField
         <div className="rounded-lg overflow-hidden border border-[#E5E5E5] h-28 bg-[#F3F4F6]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={url} alt="preview" className="w-full h-full object-cover" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Event picker — two-mode event editor for "event" sections.
+// Mode 1: link to an existing event row (single source of truth from the
+// Events dashboard). Mode 2: write inline fields for one-off pages.
+// ---------------------------------------------------------------------------
+
+/**
+ * Format an ISO timestamp as "YYYY-MM-DD HH:mm" for the event dropdown.
+ * Locale-safe so the select options are readable in RTL.
+ */
+function prettyEventDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch {
+    return iso;
+  }
+}
+
+/**
+ * EventPickerBlock — the top of the event section editor.
+ *
+ * When an event is linked (content.event_id is set) it hides the manual
+ * fields and shows a read-only preview card. When not linked, the caller
+ * renders the legacy inline fields below this block.
+ *
+ * Inline fields are cleared when switching to linked mode, and event_id
+ * is cleared when switching back to manual mode — so the two modes can
+ * never drift and render conflicting data.
+ */
+function EventPickerBlock({
+  draft,
+  set,
+  onClearManualFields,
+}: {
+  draft: Record<string, unknown>;
+  set: (key: string, value: unknown) => void;
+  /** Called when switching TO linked mode so legacy fields don't linger. */
+  onClearManualFields: () => void;
+}) {
+  const [events, setEvents] = useState<EventRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load active events once when the panel mounts
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("events")
+        .select("*")
+        .eq("is_active", true)
+        .order("event_date", { ascending: true });
+      if (!cancelled) {
+        setEvents((data || []) as EventRow[]);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const linkedEventId = (draft.event_id as string) || "";
+  const isLinked = !!linkedEventId;
+  const linkedEvent = events.find((e) => e.id === linkedEventId);
+
+  return (
+    <div className="space-y-3">
+      {/* Mode toggle */}
+      <div className="rounded-xl border-2 border-[#B8D900]/40 bg-gradient-to-br from-[#B8D900]/10 to-[#B8D900]/5 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Link2 className="w-4 h-4 text-[#2A2628]" />
+          <p className="text-xs font-bold text-[#2A2628]">מקור הנתונים של האירוע</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (!isLinked) return;
+              set("event_id", undefined);
+            }}
+            className={`rounded-lg px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+              !isLinked
+                ? "bg-white border-2 border-[#B8D900] text-[#2A2628] shadow-sm"
+                : "bg-white/50 border border-[#D0D0D0] text-[#716C70] hover:bg-white"
+            }`}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            עריכה ידנית
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (isLinked) return;
+              onClearManualFields();
+              // Pre-select the first upcoming event so the dropdown isn't empty
+              const firstId = events[0]?.id;
+              if (firstId) set("event_id", firstId);
+              else set("event_id", ""); // flip into linked mode even if list is empty
+            }}
+            className={`rounded-lg px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+              isLinked
+                ? "bg-white border-2 border-[#B8D900] text-[#2A2628] shadow-sm"
+                : "bg-white/50 border border-[#D0D0D0] text-[#716C70] hover:bg-white"
+            }`}
+          >
+            <Link2 className="w-3.5 h-3.5" />
+            קישור לאירוע קיים
+          </button>
+        </div>
+        <p className="text-[11px] text-[#716C70] leading-relaxed">
+          {isLinked
+            ? "המקטע מקושר לאירוע מרשימת האירועים — עריכת האירוע ב\u00A0Events dashboard תתעדכן אוטומטית בכל העמודים."
+            : "כל פרטי האירוע מוזנים ישירות במקטע. למצב זה אין שיתוף בין עמודים."}
+        </p>
+      </div>
+
+      {/* Linked-mode dropdown + preview */}
+      {isLinked && (
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-[#716C70]">בחרו אירוע מהמאגר</Label>
+            {loading ? (
+              <div className="flex items-center gap-2 text-xs text-[#9A969A] py-3 px-3 rounded-lg border border-dashed border-[#E0E0E0] bg-[#FAFAFA]">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                טוען אירועים...
+              </div>
+            ) : events.length === 0 ? (
+              <div className="p-4 rounded-lg border-2 border-dashed border-amber-300 bg-amber-50 text-xs text-amber-900">
+                <p className="font-semibold mb-1">עדיין אין אירועים פעילים במאגר.</p>
+                <a
+                  href="/dashboard/events"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-bold text-amber-900 underline hover:text-amber-700"
+                >
+                  יצרו אירוע חדש ב-Events dashboard
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            ) : (
+              <select
+                value={linkedEventId}
+                onChange={(e) => set("event_id", e.target.value)}
+                className="w-full h-10 rounded-md border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#B8D900] focus:border-[#B8D900]"
+              >
+                <option value="">— בחרו אירוע —</option>
+                {events.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {eventTitle(ev, "he")} — {prettyEventDate(ev.event_date)}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* Preview card */}
+          {linkedEvent && (
+            <div className="rounded-xl border border-[#E0E0E0] bg-[#FAFAFA] p-4 space-y-2">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-[#9A969A]">
+                תצוגה מקדימה של האירוע
+              </p>
+              <h4 className="text-sm font-bold text-[#2A2628]">
+                {eventTitle(linkedEvent, "he")}
+              </h4>
+              {linkedEvent.description_he && (
+                <p className="text-xs text-[#716C70] leading-relaxed line-clamp-2">
+                  {linkedEvent.description_he}
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-[#716C70] pt-1">
+                <div>
+                  <span className="text-[#9A969A]">📅 תאריך:</span>{" "}
+                  {prettyEventDate(linkedEvent.event_date)}
+                </div>
+                <div>
+                  <span className="text-[#9A969A]">📍 מיקום:</span>{" "}
+                  {linkedEvent.meta?.is_online
+                    ? `🎥 ${linkedEvent.meta.online_platform || "אונליין"}`
+                    : linkedEvent.location || "—"}
+                </div>
+                {linkedEvent.meta?.speakers && linkedEvent.meta.speakers.length > 0 && (
+                  <div>
+                    <span className="text-[#9A969A]">🎤 דוברים:</span>{" "}
+                    {linkedEvent.meta.speakers.length}
+                  </div>
+                )}
+                {linkedEvent.meta?.schedule && linkedEvent.meta.schedule.length > 0 && (
+                  <div>
+                    <span className="text-[#9A969A]">📋 לו״ז:</span>{" "}
+                    {linkedEvent.meta.schedule.length} סעיפים
+                  </div>
+                )}
+                {linkedEvent.meta?.faq && linkedEvent.meta.faq.length > 0 && (
+                  <div>
+                    <span className="text-[#9A969A]">❓ FAQ:</span>{" "}
+                    {linkedEvent.meta.faq.length}
+                  </div>
+                )}
+                {linkedEvent.meta?.capacity && (
+                  <div>
+                    <span className="text-[#9A969A]">👥 קיבולת:</span>{" "}
+                    {linkedEvent.meta.capacity}
+                  </div>
+                )}
+              </div>
+              <a
+                href="/dashboard/events"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#B8D900] hover:underline pt-1"
+              >
+                <ExternalLink className="w-3 h-3" />
+                עריכת פרטי האירוע ב-Events dashboard
+              </a>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -2189,75 +2418,109 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
           </div>
         );
 
-      case "event":
-        /* Editor for event pages — data stored in custom_styles on the page,
-           but exposed here when the section_type is "event". */
+      case "event": {
+        /* Event section editor:
+           - Top: mode toggle — link to an existing event row (preferred) OR
+             edit inline fields for a one-off page.
+           - Bottom: when NOT linked, show the legacy manual fields.
+           When linked, all visible data on the page is pulled from the event
+           row at render time, so there's no need for inline fields. */
+        const isLinked = !!draft.event_id;
+        /** Clear all manual fields when switching to linked mode. */
+        const clearManualEventFields = () => {
+          const manualKeys = [
+            "heading_he", "heading_en", "heading_ar",
+            "description_he", "description_en", "description_ar",
+            "event_date", "event_time", "event_type",
+            "venue", "google_maps_url", "zoom_link", "parking_info",
+            "programs_featured", "schedule", "speakers", "faq",
+          ];
+          setDraft((prev) => {
+            const next = { ...prev };
+            for (const key of manualKeys) delete next[key];
+            return next;
+          });
+        };
         return (
           <div className="space-y-4">
-            {/* lk() saves to the correct language field (_en / _he / _ar) */}
-            <Field label="כותרת האירוע" fieldKey={lk("heading")} placeholder="יום פתוח" draft={draft} set={set} />
-            <TextareaField label="תיאור" fieldKey={lk("description")} placeholder="פרטים על האירוע..." draft={draft} set={set} />
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="תאריך (ISO)" fieldKey="event_date" placeholder="2026-04-15T17:00:00" dir="ltr" draft={draft} set={set} />
-              <Field label="שעה לתצוגה" fieldKey="event_time" placeholder="17:00" dir="ltr" draft={draft} set={set} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-[#716C70]">סוג אירוע</Label>
-              <div className="flex gap-2">
-                {(["event_physical", "event_zoom"] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => set("event_type", t)}
-                    className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
-                      (draft.event_type || "event_physical") === t
-                        ? "bg-[#B8D900]/20 border-[#B8D900] text-[#2A2628]"
-                        : "border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900]/50"
-                    }`}
-                  >
-                    {t === "event_physical" ? "פיזי - קמפוס" : "זום - אונליין"}
-                  </button>
-                ))}
+            <EventPickerBlock
+              draft={draft}
+              set={set}
+              onClearManualFields={clearManualEventFields}
+            />
+
+            {!isLinked && (
+              <div className="space-y-4 pt-2 border-t border-dashed border-[#E5E5E5]">
+                <p className="text-[11px] text-[#9A969A] leading-relaxed">
+                  פרטי האירוע הבאים יישמרו ישירות על המקטע (מצב ידני).
+                </p>
+                {/* lk() saves to the correct language field (_en / _he / _ar) */}
+                <Field label="כותרת האירוע" fieldKey={lk("heading")} placeholder="יום פתוח" draft={draft} set={set} />
+                <TextareaField label="תיאור" fieldKey={lk("description")} placeholder="פרטים על האירוע..." draft={draft} set={set} />
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="תאריך (YYYY-MM-DD)" fieldKey="event_date" placeholder="2026-04-15" dir="ltr" draft={draft} set={set} />
+                  <Field label="שעה (HH:mm)" fieldKey="event_time" placeholder="17:00" dir="ltr" draft={draft} set={set} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-[#716C70]">סוג אירוע</Label>
+                  <div className="flex gap-2">
+                    {(["event_physical", "event_zoom"] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => set("event_type", t)}
+                        className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                          (draft.event_type || "event_physical") === t
+                            ? "bg-[#B8D900]/20 border-[#B8D900] text-[#2A2628]"
+                            : "border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900]/50"
+                        }`}
+                      >
+                        {t === "event_physical" ? "פיזי - קמפוס" : "זום - אונליין"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Field label="כתובת מקום (לאירוע פיזי)" fieldKey="venue" placeholder="רחוב האוניברסיטה 2, קריית אונו" draft={draft} set={set} />
+                <Field label="קישור Google Maps" fieldKey="google_maps_url" placeholder="https://maps.google.com/..." dir="ltr" draft={draft} set={set} />
+                <Field label="קישור Zoom (לאירוע מקוון)" fieldKey="zoom_link" placeholder="https://zoom.us/j/..." dir="ltr" draft={draft} set={set} />
+                <Field label="מידע חניה" fieldKey="parking_info" placeholder="חניה חינם בחניון הקמפוס" draft={draft} set={set} />
+                <StringListField label="תוכניות מוצגות" fieldKey="programs_featured" placeholder="משפטים, מנהל עסקים..." draft={draft} set={set} />
+                <ObjectListField
+                  label="לוח זמנים"
+                  fieldKey="schedule"
+                  fields={[
+                    { key: "time", label: "שעה (למשל 17:00)" },
+                    { key: "title", label: "שם הסשן" },
+                  ]}
+                  draft={draft}
+                  set={set}
+                />
+                <ObjectListField
+                  label="דוברים"
+                  fieldKey="speakers"
+                  fields={[
+                    { key: "name", label: "שם" },
+                    { key: "role", label: "תפקיד" },
+                    { key: "image_url", label: "תמונה", type: "image" },
+                  ]}
+                  draft={draft}
+                  set={set}
+                />
+                <ObjectListField
+                  label="שאלות נפוצות"
+                  fieldKey="faq"
+                  fields={[
+                    { key: "question", label: "שאלה" },
+                    { key: "answer", label: "תשובה", type: "textarea" },
+                  ]}
+                  draft={draft}
+                  set={set}
+                />
               </div>
-            </div>
-            <Field label="כתובת מקום (לאירוע פיזי)" fieldKey="venue" placeholder="רחוב האוניברסיטה 2, קריית אונו" draft={draft} set={set} />
-            <Field label="קישור Google Maps" fieldKey="google_maps_url" placeholder="https://maps.google.com/..." dir="ltr" draft={draft} set={set} />
-            <Field label="קישור Zoom (לאירוע מקוון)" fieldKey="zoom_link" placeholder="https://zoom.us/j/..." dir="ltr" draft={draft} set={set} />
-            <Field label="מידע חניה" fieldKey="parking_info" placeholder="חניה חינם בחניון הקמפוס" draft={draft} set={set} />
-            <StringListField label="תוכניות מוצגות" fieldKey="programs_featured" placeholder="משפטים, מנהל עסקים..." draft={draft} set={set} />
-            <ObjectListField
-              label="לוח זמנים"
-              fieldKey="schedule"
-              fields={[
-                { key: "time", label: "שעה (למשל 17:00)" },
-                { key: "title", label: "שם הסשן" },
-              ]}
-              draft={draft}
-              set={set}
-            />
-            <ObjectListField
-              label="דוברים"
-              fieldKey="speakers"
-              fields={[
-                { key: "name", label: "שם" },
-                { key: "role", label: "תפקיד" },
-                { key: "image_url", label: "תמונה", type: "image" },
-              ]}
-              draft={draft}
-              set={set}
-            />
-            <ObjectListField
-              label="שאלות נפוצות"
-              fieldKey="faq"
-              fields={[
-                { key: "question", label: "שאלה" },
-                { key: "answer", label: "תשובה", type: "textarea" },
-              ]}
-              draft={draft}
-              set={set}
-            />
+            )}
           </div>
         );
+      }
 
       case "program_outcomes":
         return (
