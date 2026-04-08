@@ -370,6 +370,8 @@ export default function PageSettingsPage() {
   const [globalSettings, setGlobalSettings] = useState<GlobalSettings>(EMPTY_GLOBAL);
   const [overrides, setOverrides] = useState<PageOverrides>({});
   const [tySettings, setTySettings] = useState<ThankYouPageSettings>({ ...ONO_TY_DEFAULTS });
+  const [tyTemplates, setTyTemplates] = useState<Array<{ id: string; name_he: string; layout_id: string; is_default: boolean }>>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [newSlug, setNewSlug] = useState("");
   const [slugError, setSlugError] = useState("");
   const [interestAreas, setInterestAreas] = useState<InterestArea[]>([]);
@@ -392,12 +394,21 @@ export default function PageSettingsPage() {
   // Load global settings + page overrides
   const load = useCallback(async () => {
     setLoading(true);
-    const [globalRes, pageRes, areasRes, assignedRes] = await Promise.all([
+    const [globalRes, pageRes, areasRes, assignedRes, tyTemplatesRes] = await Promise.all([
       supabase.from("settings").select("key, value"),
       supabase.from("pages").select("title_he, slug, custom_styles").eq("id", pageId).single(),
       supabase.from("interest_areas").select("*").eq("is_active", true).order("sort_order"),
       supabase.from("page_interest_areas").select("interest_area_id").eq("page_id", pageId),
+      supabase
+        .from("thank_you_templates")
+        .select("id, name_he, layout_id, is_default")
+        .eq("is_active", true)
+        .order("is_default", { ascending: false }),
     ]);
+
+    if (tyTemplatesRes.data) {
+      setTyTemplates(tyTemplatesRes.data as Array<{ id: string; name_he: string; layout_id: string; is_default: boolean }>);
+    }
 
     if (areasRes.data) setInterestAreas(areasRes.data as InterestArea[]);
     if (assignedRes.data) setSelectedAreaIds(assignedRes.data.map((r) => r.interest_area_id));
@@ -424,9 +435,12 @@ export default function PageSettingsPage() {
       const ps = (cs.page_settings || {}) as PageOverrides;
       setOverrides(ps);
 
-      // Load per-page TY settings if present
-      const tyRaw = (cs.ty_settings || null) as Partial<ThankYouPageSettings> | null;
-      if (tyRaw) setTySettings({ ...ONO_TY_DEFAULTS, ...tyRaw });
+      // Load per-page TY settings if present (new key: ty_settings, legacy: thank_you_settings)
+      const tyRaw = (cs.ty_settings || cs.thank_you_settings || null) as Partial<ThankYouPageSettings> & { template_id?: string } | null;
+      if (tyRaw) {
+        setTySettings({ ...ONO_TY_DEFAULTS, ...tyRaw });
+        setSelectedTemplateId(tyRaw.template_id || "");
+      }
     }
 
     setLoading(false);
@@ -475,13 +489,20 @@ export default function PageSettingsPage() {
       .eq("id", pageId)
       .single();
     const currentCs = ((existing?.custom_styles) || {}) as Record<string, unknown>;
+    // Persist template_id alongside other TY settings so /ty route can pick it up.
+    const tySettingsWithTemplate = {
+      ...tySettings,
+      ...(selectedTemplateId ? { template_id: selectedTemplateId } : { template_id: undefined }),
+    };
     const { error: pageError } = await supabase
       .from("pages")
       .update({
         custom_styles: {
           ...currentCs,
           page_settings: overrides,
-          ty_settings: tySettings,
+          ty_settings: tySettingsWithTemplate,
+          // Mirror to legacy key so the old reader keeps working too
+          thank_you_settings: tySettingsWithTemplate,
         },
       })
       .eq("id", pageId);
@@ -1097,15 +1118,47 @@ export default function PageSettingsPage() {
           <CardDescription>דורס את הגדרות עמוד התודה הגלובליות לעמוד זה בלבד. ריק = יירש גלובלי.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Template selector */}
+          <div>
+            <Label className="text-sm font-semibold text-[#2a2628]">תבנית עמוד התודה</Label>
+            <p className="text-[11px] text-[#9A969A] mb-2">
+              בוחרים איזו תבנית תוצג לאחר מילוי הטופס. בחירה ריקה = תבנית ברירת המחדל הגלובלית.
+            </p>
+            <select
+              value={selectedTemplateId}
+              onChange={(e) => setSelectedTemplateId(e.target.value)}
+              className="w-full h-10 px-3 rounded-md border border-[#E5E5E5] bg-white text-sm"
+              dir="rtl"
+            >
+              <option value="">השתמש בברירת המחדל הגלובלית</option>
+              {tyTemplates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name_he}
+                  {t.is_default ? " (ברירת מחדל)" : ""}
+                </option>
+              ))}
+            </select>
+            <div className="mt-2 flex items-center gap-3">
+              <a
+                href="/dashboard/ty-templates"
+                className="text-xs font-medium text-[#B8D900] hover:underline flex items-center gap-1"
+              >
+                ניהול תבניות עמוד תודה <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
+
+          <Separator />
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium text-[#2a2628]">כותרת ראשית</Label>
+              <Label className="text-sm font-medium text-[#2a2628]">כותרת ראשית (דריסה)</Label>
               <Input value={tySettings.heading_he || ""} onChange={(e) => setTySettings((p) => ({ ...p, heading_he: e.target.value }))}
                 placeholder="תודה! קיבלנו את פרטיך" className="mt-1.5 h-9" dir="rtl" />
               <p className="text-[11px] text-[#9A969A] mt-1">השתמשו ב-[שם] להצגת שם הלקוח</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-[#2a2628]">כותרת משנה</Label>
+              <Label className="text-sm font-medium text-[#2a2628]">כותרת משנה (דריסה)</Label>
               <Input value={tySettings.subheading_he || ""} onChange={(e) => setTySettings((p) => ({ ...p, subheading_he: e.target.value }))}
                 placeholder="יועץ לימודים ייצור איתך קשר בקרוב" className="mt-1.5 h-9" dir="rtl" />
             </div>

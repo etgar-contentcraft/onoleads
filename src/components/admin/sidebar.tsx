@@ -34,6 +34,7 @@ import {
   Antenna,
   History,
   ImagePlus,
+  CheckCircle2,
 } from "lucide-react";
 import { useAdminLanguage } from "@/contexts/admin-language-context";
 import type { TranslationKey } from "@/lib/i18n/admin-translations";
@@ -81,6 +82,7 @@ const navGroups: NavGroup[] = [
       { labelKey: "nav_logos",            href: "/dashboard/logos",           icon: ImagePlus },
       { labelKey: "nav_faculty",          href: "/dashboard/faculty",         icon: GraduationCap },
       { labelKey: "nav_templates",        href: "/dashboard/templates",       icon: LayoutTemplate },
+      { labelKey: "nav_ty_templates",     href: "/dashboard/ty-templates",    icon: CheckCircle2 },
       { labelKey: "nav_interest_areas",   href: "/dashboard/interest-areas",  icon: Tag },
       { labelKey: "nav_shared_sections",  href: "/dashboard/shared-sections", icon: Globe },
     ],

@@ -14,9 +14,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ThankYouPage } from "@/components/landing/thank-you-page";
+import { ThankYouRenderer } from "@/components/landing/thank-you-renderer";
 import { TyPixelFire } from "@/components/landing/ty-pixel-fire";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
+import type { ThankYouTemplate } from "@/lib/types/thank-you-templates";
 import type { PixelConfig } from "@/lib/analytics/pixel-manager";
 import { CONSENT_MODE_INIT_SCRIPT } from "@/lib/analytics/pixel-manager";
 import type { Metadata } from "next";
@@ -83,6 +85,7 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
   let pageLogoUrl = "";
   let programName = "";
   let language = "he";
+  let pageTemplateId: string | null = null;
 
   if (slug) {
     const { data: page } = await supabase
@@ -93,7 +96,11 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
 
     if (page) {
       const cs = (page.custom_styles || {}) as Record<string, unknown>;
-      pageTySettings = (cs.thank_you_settings || {}) as Partial<ThankYouPageSettings>;
+      // The settings page writes to `ty_settings`; older code read `thank_you_settings`.
+      // Read both, preferring the newer key, to keep every historical write live.
+      pageTySettings = (cs.ty_settings || cs.thank_you_settings || {}) as Partial<ThankYouPageSettings>;
+      // Extract per-page template selection (set via builder PageSettings dialog)
+      pageTemplateId = (pageTySettings as { template_id?: string }).template_id || null;
       const pageSettingsObj = (cs.page_settings as Record<string, string>) || {};
       pageWhatsapp = pageSettingsObj.whatsapp_number || "";
       pageLogoUrl = pageSettingsObj.logo_url || "";
@@ -129,6 +136,27 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
       globalWaRow?.value ||
       "",
   };
+
+  // ── Resolve template: page selection > global default ─────────────────────
+  let template: ThankYouTemplate | null = null;
+  if (pageTemplateId) {
+    const { data } = await adminClient
+      .from("thank_you_templates")
+      .select("*")
+      .eq("id", pageTemplateId)
+      .eq("is_active", true)
+      .maybeSingle();
+    template = (data as ThankYouTemplate) || null;
+  }
+  if (!template) {
+    const { data } = await adminClient
+      .from("thank_you_templates")
+      .select("*")
+      .eq("is_default", true)
+      .eq("is_active", true)
+      .maybeSingle();
+    template = (data as ThankYouTemplate) || null;
+  }
 
   // ── Custom redirect ───────────────────────────────────────────────────────
   if (settings.custom_redirect_url) {
@@ -167,13 +195,25 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
         {/* Fire Lead pixel event on all configured platforms.
             Must render inside <body> so scripts can inject into <head>. */}
         <TyPixelFire config={pixelConfig} />
-        <ThankYouPage
-          programName={programName}
-          settings={settings}
-          pageSlug={slug}
-          language={language}
-          logoUrl={resolvedLogoUrl}
-        />
+        {template ? (
+          <ThankYouRenderer
+            template={template}
+            settings={settings}
+            programName={programName}
+            pageSlug={slug}
+            language={language}
+            logoUrl={resolvedLogoUrl}
+          />
+        ) : (
+          // Fallback to legacy renderer if no templates exist (e.g. fresh DB)
+          <ThankYouPage
+            programName={programName}
+            settings={settings}
+            pageSlug={slug}
+            language={language}
+            logoUrl={resolvedLogoUrl}
+          />
+        )}
       </body>
     </html>
   );
