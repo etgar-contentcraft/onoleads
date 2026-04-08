@@ -128,6 +128,36 @@ export interface TyContentFields {
   add_to_calendar_label?: string;
   /** Short note shown under the countdown (e.g. "המקום נשמר לכם") */
   event_reserved_note?: string;
+
+  // ── Online vs physical event metadata (propagated from events table) ──
+  /** "1" when the event is virtual (join URL instead of address). */
+  event_is_online?: string;
+  /** Join URL for online events (Zoom / Teams / YouTube live). */
+  event_online_url?: string;
+  /** Platform label (e.g. "Zoom"). */
+  event_online_platform?: string;
+
+  // ── Rich extras for the calendar invite body ─────────────────────────
+  /** Organizer phone — shown on the page and inside the invite description. */
+  event_organizer_phone?: string;
+  /** Organizer website. */
+  event_organizer_website?: string;
+  /** Timezone label (e.g. "Asia/Jerusalem"). */
+  event_timezone?: string;
+  /** Event agenda / schedule — multiline text. */
+  event_agenda?: string;
+  /** "What to bring" note. */
+  event_what_to_bring?: string;
+  /** Parking / accessibility note. */
+  event_parking_info?: string;
+  /** Dress code hint. */
+  event_dress_code?: string;
+  /** Target audience label. */
+  event_audience?: string;
+  /** Language the event will be held in. */
+  event_language_of_event?: string;
+  /** Price / free flag text. */
+  event_price_info?: string;
 }
 
 /** Per-language content map */

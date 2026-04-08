@@ -22,6 +22,8 @@ import { TyPixelFire } from "@/components/landing/ty-pixel-fire";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
 import { ONO_TY_DEFAULTS } from "@/lib/types/thank-you";
 import type { ThankYouTemplate } from "@/lib/types/thank-you-templates";
+import type { EventRow } from "@/lib/types/events";
+import { overlayEventOnTemplate } from "@/lib/thank-you/event-overlay";
 import type { PixelConfig } from "@/lib/analytics/pixel-manager";
 import { CONSENT_MODE_INIT_SCRIPT } from "@/lib/analytics/pixel-manager";
 import type { Metadata } from "next";
@@ -170,6 +172,23 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
       .eq("is_active", true)
       .maybeSingle();
     template = (data as ThankYouTemplate) || null;
+  }
+
+  // ── Optional: resolve linked event + overlay onto template ──────────────
+  // If the page is linked to an event (via /dashboard/events), fetch the
+  // event row and overlay its fields on top of the template content before
+  // rendering. This lets editors maintain event details in one place and
+  // have them appear on every page that references the event.
+  if (settings.event_id && template && template.layout_id === "open_day") {
+    const { data: eventRow } = await adminClient
+      .from("events")
+      .select("*")
+      .eq("id", settings.event_id)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (eventRow) {
+      template = overlayEventOnTemplate(template, eventRow as EventRow);
+    }
   }
 
   // ── Custom redirect ───────────────────────────────────────────────────────

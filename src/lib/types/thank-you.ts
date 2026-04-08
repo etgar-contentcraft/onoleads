@@ -39,6 +39,15 @@ export interface ThankYouPageSettings {
   // ── Custom redirect ───────────────────────────────────────────────────────
   /** If set, skip /ty entirely and redirect here after form submit. */
   custom_redirect_url?: string;
+
+  // ── Linked event (central events table) ──────────────────────────────────
+  /**
+   * UUID of a row in the `events` table. When set and the selected template
+   * is `open_day`, the event's details (title, description, location, dates,
+   * organizer) override the template's default content before rendering.
+   * Managed via the Events dashboard at /dashboard/events.
+   */
+  event_id?: string;
 }
 
 /** Ono's default thank-you page settings (used when no global/per-page settings are configured) */

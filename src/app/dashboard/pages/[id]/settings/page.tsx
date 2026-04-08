@@ -373,6 +373,10 @@ export default function PageSettingsPage() {
   const [tySettings, setTySettings] = useState<ThankYouPageSettings>({ ...ONO_TY_DEFAULTS });
   const [tyTemplates, setTyTemplates] = useState<Array<{ id: string; name_he: string; layout_id: string; is_default: boolean }>>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  // Central events catalog — used by the `open_day` template to pull live
+  // event data (title, date, location, etc.) from a single source.
+  const [eventsList, setEventsList] = useState<Array<{ id: string; name_he: string; event_date: string; is_active: boolean }>>([]);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [newSlug, setNewSlug] = useState("");
   const [slugError, setSlugError] = useState("");
   const [interestAreas, setInterestAreas] = useState<InterestArea[]>([]);
@@ -395,7 +399,7 @@ export default function PageSettingsPage() {
   // Load global settings + page overrides
   const load = useCallback(async () => {
     setLoading(true);
-    const [globalRes, pageRes, areasRes, assignedRes, tyTemplatesRes] = await Promise.all([
+    const [globalRes, pageRes, areasRes, assignedRes, tyTemplatesRes, eventsRes] = await Promise.all([
       supabase.from("settings").select("key, value"),
       supabase.from("pages").select("title_he, slug, custom_styles").eq("id", pageId).single(),
       supabase.from("interest_areas").select("*").eq("is_active", true).order("sort_order"),
@@ -405,10 +409,18 @@ export default function PageSettingsPage() {
         .select("id, name_he, layout_id, is_default")
         .eq("is_active", true)
         .order("is_default", { ascending: false }),
+      supabase
+        .from("events")
+        .select("id, name_he, event_date, is_active")
+        .order("event_date", { ascending: true }),
     ]);
 
     if (tyTemplatesRes.data) {
       setTyTemplates(tyTemplatesRes.data as Array<{ id: string; name_he: string; layout_id: string; is_default: boolean }>);
+    }
+
+    if (eventsRes.data) {
+      setEventsList(eventsRes.data as Array<{ id: string; name_he: string; event_date: string; is_active: boolean }>);
     }
 
     if (areasRes.data) setInterestAreas(areasRes.data as InterestArea[]);
@@ -441,6 +453,7 @@ export default function PageSettingsPage() {
       if (tyRaw) {
         setTySettings({ ...ONO_TY_DEFAULTS, ...tyRaw });
         setSelectedTemplateId(tyRaw.template_id || "");
+        setSelectedEventId(tyRaw.event_id || "");
       }
     }
 
@@ -490,10 +503,12 @@ export default function PageSettingsPage() {
       .eq("id", pageId)
       .single();
     const currentCs = ((existing?.custom_styles) || {}) as Record<string, unknown>;
-    // Persist template_id alongside other TY settings so /ty route can pick it up.
+    // Persist template_id + event_id alongside other TY settings so /ty
+    // route can pick them up on render.
     const tySettingsWithTemplate = {
       ...tySettings,
       ...(selectedTemplateId ? { template_id: selectedTemplateId } : { template_id: undefined }),
+      ...(selectedEventId ? { event_id: selectedEventId } : { event_id: undefined }),
     };
     const { error: pageError } = await supabase
       .from("pages")
@@ -1164,6 +1179,10 @@ export default function PageSettingsPage() {
               "classic_dark";
             const info = getLayoutFieldInfo(effectiveLayoutId);
             const showSection = (s: string) => info.sections.includes(s as never);
+            // Event linking is only meaningful for the open_day layout today.
+            // When shown, it lets the editor link this page to a central event
+            // row so date/location/organizer details come from one source.
+            const showEventLink = effectiveLayoutId === "open_day";
 
             return (
               <>
@@ -1190,6 +1209,51 @@ export default function PageSettingsPage() {
                     </p>
                   )}
                 </div>
+
+                {/* Event linking — only for open_day layout */}
+                {showEventLink && (
+                  <>
+                    <Separator />
+                    <div>
+                      <Label className="text-sm font-semibold text-[#2a2628]">קישור לאירוע מתוך "אירועים"</Label>
+                      <p className="text-[11px] text-[#9A969A] mb-2">
+                        בחרו אירוע שנוצר במסך &quot;אירועים&quot; — כל הפרטים (כותרת, תאריך, מיקום, מארגן,
+                        ספירה לאחור, קובץ ליומן) ייטענו אוטומטית במקום ערכי ברירת המחדל של התבנית.
+                      </p>
+                      <select
+                        value={selectedEventId}
+                        onChange={(e) => setSelectedEventId(e.target.value)}
+                        className="w-full h-10 px-3 rounded-md border border-[#E5E5E5] bg-white text-sm"
+                        dir="rtl"
+                      >
+                        <option value="">ללא אירוע (השתמש בערכים של התבנית)</option>
+                        {eventsList.map((ev) => {
+                          const formattedDate = ev.event_date
+                            ? new Date(ev.event_date).toLocaleDateString("he-IL", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                              })
+                            : "—";
+                          return (
+                            <option key={ev.id} value={ev.id} disabled={!ev.is_active}>
+                              {ev.name_he} — {formattedDate}
+                              {!ev.is_active ? " (מושבת)" : ""}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <div className="mt-2 flex items-center gap-3">
+                        <a
+                          href="/dashboard/events"
+                          className="text-xs font-medium text-[#B8D900] hover:underline flex items-center gap-1"
+                        >
+                          ניהול אירועים <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {(showSection("heading") || showSection("subheading")) && (
                   <>

@@ -280,6 +280,21 @@ export const OpenDayLayout: LayoutComponent = ({ ctx }) => {
     field(c, lang, "add_to_calendar_label", ctx.displayName) ||
     (lang === "en" ? "Add to calendar" : lang === "ar" ? "أضف إلى التقويم" : "הוסיפו ליומן");
   const reservedNote = field(c, lang, "event_reserved_note", ctx.displayName);
+
+  // ── Online vs physical event + rich invite extras ────────────────────
+  const eventIsOnline = field(c, lang, "event_is_online", ctx.displayName) === "1";
+  const eventOnlineUrl = field(c, lang, "event_online_url", ctx.displayName);
+  const eventOnlinePlatform = field(c, lang, "event_online_platform", ctx.displayName);
+  const organizerPhone = field(c, lang, "event_organizer_phone", ctx.displayName);
+  const organizerWebsite = field(c, lang, "event_organizer_website", ctx.displayName);
+  const eventTimezone = field(c, lang, "event_timezone", ctx.displayName);
+  const eventAgenda = field(c, lang, "event_agenda", ctx.displayName);
+  const eventWhatToBring = field(c, lang, "event_what_to_bring", ctx.displayName);
+  const eventParkingInfo = field(c, lang, "event_parking_info", ctx.displayName);
+  const eventDressCode = field(c, lang, "event_dress_code", ctx.displayName);
+  const eventAudience = field(c, lang, "event_audience", ctx.displayName);
+  const eventLanguageOfEvent = field(c, lang, "event_language_of_event", ctx.displayName);
+  const eventPriceInfo = field(c, lang, "event_price_info", ctx.displayName);
   const whatsappCta = field(c, lang, "whatsapp_cta", ctx.displayName);
   const whatsappMsg = field(c, lang, "whatsapp_msg", ctx.displayName);
   const backLink = field(c, lang, "back_link", ctx.displayName);
@@ -291,26 +306,117 @@ export const OpenDayLayout: LayoutComponent = ({ ctx }) => {
       ? "يبدأ الحدث خلال"
       : "הפעילות מתחילה בעוד");
 
+  // ── Localized labels for the invite DESCRIPTION extras section ──────
+  const extraLabels = useMemo(
+    () =>
+      lang === "en"
+        ? {
+            agenda: "Agenda",
+            whatToBring: "What to bring",
+            parkingInfo: "Parking / Accessibility",
+            dressCode: "Dress code",
+            audience: "Who should attend",
+            eventLanguage: "Event language",
+            priceInfo: "Price",
+            organizerPhone: "Organizer phone",
+            organizerWebsite: "Organizer website",
+            onlineJoin: "Join online",
+            directions: "Directions",
+            timezone: "Timezone",
+            when: "When",
+          }
+        : lang === "ar"
+        ? {
+            agenda: "جدول الأعمال",
+            whatToBring: "ما يجب إحضاره",
+            parkingInfo: "موقف سيارات / إمكانية الوصول",
+            dressCode: "قواعد اللباس",
+            audience: "الجمهور المستهدف",
+            eventLanguage: "لغة الفعالية",
+            priceInfo: "السعر",
+            organizerPhone: "هاتف المنظم",
+            organizerWebsite: "موقع المنظم",
+            onlineJoin: "انضم عبر الإنترنت",
+            directions: "الاتجاهات",
+            timezone: "المنطقة الزمنية",
+            when: "الموعد",
+          }
+        : {
+            agenda: "סדר היום",
+            whatToBring: "מה להביא",
+            parkingInfo: "חניה ונגישות",
+            dressCode: "קוד לבוש",
+            audience: "קהל יעד",
+            eventLanguage: "שפת האירוע",
+            priceInfo: "מחיר",
+            organizerPhone: "טלפון המארגן",
+            organizerWebsite: "אתר המארגן",
+            onlineJoin: "הצטרפו אונליין",
+            directions: "הוראות הגעה",
+            timezone: "אזור זמן",
+            when: "מתי",
+          },
+    [lang],
+  );
+
   // ── Build the CalendarEvent object that powers all add-to-calendar actions ──
   const calendarEvent = useMemo<CalendarEvent>(() => {
+    // Pull the landing page URL so attendees can get back to the source.
+    const pageUrl =
+      typeof window !== "undefined" && ctx.pageSlug
+        ? `${window.location.origin}/lp/${ctx.pageSlug}`
+        : undefined;
     return {
       title: eventTitle || ctx.programName || "Open Day",
       description: eventDescription,
-      location: eventLocation,
+      location: eventIsOnline ? eventOnlinePlatform || "Online" : eventLocation,
       startIso: eventStart,
       endIso: eventEnd || undefined,
       organizerName: organizerName || "Ono Academic College",
       organizerEmail: organizerEmail || "info@ono.ac.il",
+      url: pageUrl,
+      extras: {
+        timezone: eventTimezone,
+        agenda: eventAgenda,
+        whatToBring: eventWhatToBring,
+        parkingInfo: eventParkingInfo,
+        dressCode: eventDressCode,
+        audience: eventAudience,
+        eventLanguage: eventLanguageOfEvent,
+        priceInfo: eventPriceInfo,
+        organizerPhone: organizerPhone,
+        organizerWebsite: organizerWebsite,
+        onlineUrl: eventIsOnline ? eventOnlineUrl : undefined,
+        onlinePlatform: eventIsOnline ? eventOnlinePlatform : undefined,
+        directionsUrl: !eventIsOnline ? eventLocationUrl : undefined,
+        labels: extraLabels,
+      },
     };
   }, [
     eventTitle,
     eventDescription,
     eventLocation,
+    eventLocationUrl,
     eventStart,
     eventEnd,
     organizerName,
     organizerEmail,
     ctx.programName,
+    ctx.pageSlug,
+    eventIsOnline,
+    eventOnlineUrl,
+    eventOnlinePlatform,
+    eventTimezone,
+    eventAgenda,
+    eventWhatToBring,
+    eventParkingInfo,
+    eventDressCode,
+    eventAudience,
+    eventLanguageOfEvent,
+    eventPriceInfo,
+    organizerPhone,
+    organizerWebsite,
+    extraLabels,
   ]);
 
   const eventStartDate = parseIso(eventStart);
@@ -365,7 +471,7 @@ export const OpenDayLayout: LayoutComponent = ({ ctx }) => {
         )}
 
         {/* Event details block */}
-        {(eventTitle || eventStartHuman || eventLocation) && (
+        {(eventTitle || eventStartHuman || eventLocation || eventIsOnline) && (
           <div
             className="rounded-2xl p-6 mb-8 text-start"
             style={{
@@ -374,12 +480,22 @@ export const OpenDayLayout: LayoutComponent = ({ ctx }) => {
             }}
           >
             {eventTitle && (
-              <h2
-                className="text-xl md:text-2xl font-extrabold mb-3"
-                style={{ color: accent }}
-              >
-                {eventTitle}
-              </h2>
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <h2
+                  className="text-xl md:text-2xl font-extrabold"
+                  style={{ color: accent }}
+                >
+                  {eventTitle}
+                </h2>
+                {eventIsOnline && (
+                  <span
+                    className="shrink-0 text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded-md"
+                    style={{ background: `${accent}22`, color: accent, border: `1px solid ${accent}55` }}
+                  >
+                    {lang === "en" ? "ONLINE" : lang === "ar" ? "عبر الإنترنت" : "אונליין"}
+                  </span>
+                )}
+              </div>
             )}
             {eventStartHuman && (
               <div className="flex items-center gap-3 text-white/90 mb-2">
@@ -387,27 +503,135 @@ export const OpenDayLayout: LayoutComponent = ({ ctx }) => {
                 <span className="text-sm md:text-base">{eventStartHuman}</span>
               </div>
             )}
-            {eventLocation && (
-              <div className="flex items-center gap-3 text-white/90 mb-2">
-                <CalendarIcon className="w-5 h-5 shrink-0" style={{ color: accent }} />
-                {eventLocationUrl ? (
+
+            {/* Location line — online shows platform + join link, physical shows address */}
+            {eventIsOnline ? (
+              eventOnlineUrl && (
+                <div className="flex items-center gap-3 text-white/90 mb-2">
+                  <CalendarIcon className="w-5 h-5 shrink-0" style={{ color: accent }} />
                   <a
-                    href={eventLocationUrl}
+                    href={eventOnlineUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm md:text-base underline hover:text-white"
                   >
-                    {eventLocation}
+                    {eventOnlinePlatform
+                      ? `${lang === "en" ? "Join via" : lang === "ar" ? "انضم عبر" : "הצטרפו דרך"} ${eventOnlinePlatform}`
+                      : lang === "en"
+                      ? "Join online"
+                      : lang === "ar"
+                      ? "انضم عبر الإنترنت"
+                      : "הצטרפו אונליין"}
                   </a>
-                ) : (
-                  <span className="text-sm md:text-base">{eventLocation}</span>
-                )}
-              </div>
+                </div>
+              )
+            ) : (
+              eventLocation && (
+                <div className="flex items-center gap-3 text-white/90 mb-2">
+                  <CalendarIcon className="w-5 h-5 shrink-0" style={{ color: accent }} />
+                  {eventLocationUrl ? (
+                    <a
+                      href={eventLocationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm md:text-base underline hover:text-white"
+                    >
+                      {eventLocation}
+                    </a>
+                  ) : (
+                    <span className="text-sm md:text-base">{eventLocation}</span>
+                  )}
+                </div>
+              )
             )}
+
             {eventDescription && (
               <p className="text-white/70 text-sm mt-3 leading-relaxed whitespace-pre-line">
                 {eventDescription}
               </p>
+            )}
+
+            {/* Rich extras — only rendered when the linked event filled them in. */}
+            {(eventAgenda ||
+              eventWhatToBring ||
+              eventParkingInfo ||
+              eventDressCode ||
+              eventAudience ||
+              eventLanguageOfEvent ||
+              eventPriceInfo ||
+              organizerPhone ||
+              organizerWebsite) && (
+              <div className="mt-4 pt-4 border-t border-white/10 space-y-2 text-white/75 text-sm">
+                {eventAgenda && (
+                  <div>
+                    <div className="text-[11px] uppercase tracking-widest text-white/50">
+                      {extraLabels.agenda}
+                    </div>
+                    <p className="whitespace-pre-line mt-1">{eventAgenda}</p>
+                  </div>
+                )}
+                {eventWhatToBring && (
+                  <div>
+                    <div className="text-[11px] uppercase tracking-widest text-white/50">
+                      {extraLabels.whatToBring}
+                    </div>
+                    <p className="whitespace-pre-line mt-1">{eventWhatToBring}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-white/70">
+                  {eventAudience && (
+                    <div>
+                      <span className="text-white/50">{extraLabels.audience}: </span>
+                      {eventAudience}
+                    </div>
+                  )}
+                  {eventLanguageOfEvent && (
+                    <div>
+                      <span className="text-white/50">{extraLabels.eventLanguage}: </span>
+                      {eventLanguageOfEvent}
+                    </div>
+                  )}
+                  {eventDressCode && (
+                    <div>
+                      <span className="text-white/50">{extraLabels.dressCode}: </span>
+                      {eventDressCode}
+                    </div>
+                  )}
+                  {eventPriceInfo && (
+                    <div>
+                      <span className="text-white/50">{extraLabels.priceInfo}: </span>
+                      {eventPriceInfo}
+                    </div>
+                  )}
+                  {eventParkingInfo && !eventIsOnline && (
+                    <div className="sm:col-span-2">
+                      <span className="text-white/50">{extraLabels.parkingInfo}: </span>
+                      {eventParkingInfo}
+                    </div>
+                  )}
+                  {organizerPhone && (
+                    <div>
+                      <span className="text-white/50">{extraLabels.organizerPhone}: </span>
+                      <a href={`tel:${organizerPhone}`} className="underline hover:text-white">
+                        {organizerPhone}
+                      </a>
+                    </div>
+                  )}
+                  {organizerWebsite && (
+                    <div>
+                      <span className="text-white/50">{extraLabels.organizerWebsite}: </span>
+                      <a
+                        href={organizerWebsite}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-white break-all"
+                      >
+                        {organizerWebsite}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         )}

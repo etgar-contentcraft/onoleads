@@ -29,6 +29,7 @@ import {
   LayoutTemplate,
   Users2,
   Megaphone,
+  CalendarDays,
   Sparkles,
   Tag,
   Antenna,
@@ -70,6 +71,7 @@ const navGroups: NavGroup[] = [
     labelHe: "שיווק",
     items: [
       { labelKey: "nav_programs",  href: "/dashboard/programs",     icon: BookOpen },
+      { labelKey: "nav_events",    href: "/dashboard/events",       icon: CalendarDays },
       { labelKey: "nav_campaigns", href: "/dashboard/campaigns",    icon: Megaphone },
       { labelKey: "nav_seo",       href: "/dashboard/seo",          icon: Search },
       { labelKey: "nav_ai_import", href: "/dashboard/ai-import",    icon: Sparkles },
