@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
+import { richTextHtml } from "@/lib/rich-text/render";
 
 interface BenefitItem {
   icon?: string;
@@ -171,7 +172,10 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
                 </div>
                 <h3 className="font-heading font-bold text-lg text-[#2a2628] mb-2 leading-snug">{title}</h3>
                 {desc && (
-                  <p className="font-heebo text-[#716C70] text-sm leading-relaxed">{desc}</p>
+                  <div
+                    className="prose prose-sm max-w-none font-heebo text-[#716C70] text-sm leading-relaxed prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline"
+                    dangerouslySetInnerHTML={richTextHtml(desc)}
+                  />
                 )}
               </div>
             );

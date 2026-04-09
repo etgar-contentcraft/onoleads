@@ -10,6 +10,7 @@ import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
 import { extractYoutubeId } from "@/lib/utils/youtube";
+import { richTextHtml } from "@/lib/rich-text/render";
 
 interface AboutSectionProps {
   content: Record<string, unknown>;
@@ -68,12 +69,11 @@ export function AboutSection({ content, language }: AboutSectionProps) {
             </div>
 
             {description && (
-              <p
-                className="font-heebo text-[#716C70] text-base md:text-lg leading-[1.9] mb-8 opacity-0"
+              <div
+                className="prose prose-sm max-w-none font-heebo text-[#716C70] text-base md:text-lg leading-[1.8] prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline mb-8 opacity-0"
                 style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.15s forwards" : "none" }}
-              >
-                {description}
-              </p>
+                dangerouslySetInnerHTML={richTextHtml(description)}
+              />
             )}
 
             {/* USP Bullets with green checkmarks */}

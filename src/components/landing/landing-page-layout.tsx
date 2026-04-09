@@ -41,6 +41,9 @@ const ProgramOutcomesSection = dynamic(() => import("./sections/program-outcomes
 const AccordionSection = dynamic(() => import("./sections/accordion-section").then(mod => ({ default: mod.AccordionSection })));
 const ContactInfoSection = dynamic(() => import("./sections/contact-info-section").then(mod => ({ default: mod.ContactInfoSection })));
 const CustomHtmlSection = dynamic(() => import("./sections/custom-html-section").then(mod => ({ default: mod.CustomHtmlSection })));
+const TextBlockSection = dynamic(() => import("./sections/text-block-section").then(mod => ({ default: mod.TextBlockSection })));
+const PartnersSection = dynamic(() => import("./sections/partners-section").then(mod => ({ default: mod.PartnersSection })));
+const ProgramsListSection = dynamic(() => import("./sections/programs-list-section").then(mod => ({ default: mod.ProgramsListSection })));
 
 import { SectionErrorBoundary } from "./section-error-boundary";
 import { SocialProofToast } from "./social-proof-toast";
@@ -123,6 +126,9 @@ interface LandingPageLayoutProps {
    *  the server route so every event section on the page gets its rich data
    *  without running client-side queries. */
   eventsMap?: Record<string, EventRow>;
+  /** Map of program rows keyed by program_id — used by programs_list sections
+   *  that reference rows in the programs table via item.program_id. */
+  programsMap?: Record<string, ProgramMapEntry>;
 }
 
 // ============================================================================
@@ -313,6 +319,18 @@ function StickyHeader({
 // Section Renderer
 // ============================================================================
 
+/** Lightweight program shape for programs_list section resolution. */
+export interface ProgramMapEntry {
+  id: string;
+  name_he: string;
+  name_en: string | null;
+  name_ar: string | null;
+  description_he: string | null;
+  description_en: string | null;
+  image_url: string | null;
+  slug: string | null;
+}
+
 function renderSection(
   section: PageSection,
   language: Language,
@@ -321,6 +339,7 @@ function renderSection(
   urlParams?: URLSearchParams,
   pageSlug?: string,
   eventsMap?: Record<string, EventRow>,
+  programsMap?: Record<string, ProgramMapEntry>,
 ) {
   const rawContent = (section.content || {}) as Record<string, unknown>;
   const content = urlParams ? replaceDynamicContent(rawContent, urlParams) : rawContent;
@@ -384,6 +403,12 @@ function renderSection(
       return <ContactInfoSection content={content} language={language} />;
     case "custom_html":
       return <CustomHtmlSection content={content} language={language} />;
+    case "text_block":
+      return <TextBlockSection content={content} language={language} />;
+    case "partners":
+      return <PartnersSection content={content} language={language} />;
+    case "programs_list":
+      return <ProgramsListSection content={content} language={language} programsMap={programsMap} />;
     default:
       return null;
   }
@@ -515,6 +540,7 @@ function InnerLayout({
   pageInterestAreas,
   unknownOption,
   eventsMap,
+  programsMap,
 }: LandingPageLayoutProps) {
   const isRtl = language === "he" || language === "ar";
   const urlParams = useUrlParams();
@@ -643,7 +669,7 @@ function InnerLayout({
         {mainSections.map((section, index) => (
           <div key={section.id}>
             <SectionErrorBoundary sectionType={section.section_type}>
-              {renderSection(section, language, pageId, programId, urlParams, pageSlug, eventsMap)}
+              {renderSection(section, language, pageId, programId, urlParams, pageSlug, eventsMap, programsMap)}
             </SectionErrorBoundary>
             {/* After hero, inject auto-generated sections */}
             {index === heroIndex && filteredAutoSections.length > 0 && (

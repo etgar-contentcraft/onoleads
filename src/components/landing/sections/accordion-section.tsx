@@ -11,6 +11,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
+import { richTextHtml } from "@/lib/rich-text/render";
 
 interface AccordionItem {
   title_he: string;
@@ -150,9 +151,10 @@ export function AccordionSection({ content, language }: AccordionSectionProps) {
                 >
                   <div className="overflow-hidden">
                     <div className="px-5 md:px-6 pb-6">
-                      <p className="font-heebo text-[#716C70] text-base leading-[1.8] whitespace-pre-line">
-                        {body}
-                      </p>
+                      <div
+                        className="prose prose-sm max-w-none font-heebo text-[#716C70] leading-[1.8] prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline"
+                        dangerouslySetInnerHTML={richTextHtml(body)}
+                      />
                     </div>
                   </div>
                 </div>

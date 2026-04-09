@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
+import { richTextHtml } from "@/lib/rich-text/render";
 
 interface FaqItem {
   question_he: string;
@@ -151,7 +152,10 @@ export function FaqSection({ content, language }: FaqSectionProps) {
                 >
                   <div className="overflow-hidden">
                     <div className={`px-5 md:px-6 pb-6 ${isRtl ? "pr-10" : "pl-10"}`}>
-                      <p className="font-heebo text-[#716C70] text-base leading-[1.8]">{answer}</p>
+                      <div
+                        className="prose prose-sm max-w-none font-heebo text-[#716C70] leading-[1.8] prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline"
+                        dangerouslySetInnerHTML={richTextHtml(answer)}
+                      />
                     </div>
                   </div>
                 </div>

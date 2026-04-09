@@ -11,6 +11,7 @@ import Image from "next/image";
 import type { Language } from "@/lib/types/database";
 import { useCtaModal } from "../cta-modal";
 import { extractYoutubeId, DEFAULT_OVERLAY_OPACITY } from "@/lib/utils/youtube";
+import { richTextHtml } from "@/lib/rich-text/render";
 
 interface CtaSectionProps {
   content: Record<string, unknown>;
@@ -134,12 +135,11 @@ export function CtaSection({ content, language }: CtaSectionProps) {
 
         {/* Description */}
         {description && (
-          <p
-            className={`font-heebo text-lg md:text-xl mb-10 max-w-xl mx-auto opacity-0 ${bgImage || youtubeId ? "text-white/70" : "text-[#2a2628]/60"}`}
+          <div
+            className={`prose prose-sm max-w-none font-heebo text-lg md:text-xl mb-10 max-w-xl mx-auto opacity-0 prose-headings:font-heading prose-a:underline ${bgImage || youtubeId ? "text-white/70 prose-headings:text-white prose-a:text-white" : "text-[#2a2628]/60 prose-headings:text-[#2a2628] prose-a:text-[#B8D900]"}`}
             style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.15s forwards" : "none" }}
-          >
-            {description}
-          </p>
+            dangerouslySetInnerHTML={richTextHtml(description)}
+          />
         )}
 
         {/* Buttons */}

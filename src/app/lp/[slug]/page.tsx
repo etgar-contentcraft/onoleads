@@ -200,6 +200,34 @@ const getPageData = cache(async function getPageData(slug: string) {
     }
   }
 
+  // ── Fetch linked programs referenced by programs_list sections ─────────
+  // Mirror of the eventsMap pattern above: batch-fetch all unique program_ids
+  // so the ProgramsListSection can resolve hybrid override fields.
+  const programIds = new Set<string>();
+  for (const section of sections) {
+    if (section.section_type === "programs_list") {
+      const sectionItems = (section.content as Record<string, unknown>)?.items;
+      if (Array.isArray(sectionItems)) {
+        for (const item of sectionItems as { program_id?: string }[]) {
+          if (typeof item.program_id === "string" && item.program_id) {
+            programIds.add(item.program_id);
+          }
+        }
+      }
+    }
+  }
+  const programsMap: Record<string, { id: string; name_he: string; name_en: string | null; name_ar: string | null; description_he: string | null; description_en: string | null; image_url: string | null; slug: string | null }> = {};
+  if (programIds.size > 0) {
+    const { data: progRows } = await adminClient
+      .from("programs")
+      .select("id, name_he, name_en, name_ar, description_he, description_en, image_url, slug")
+      .in("id", Array.from(programIds))
+      .eq("is_active", true);
+    for (const row of (progRows || []) as { id: string; name_he: string; name_en: string | null; name_ar: string | null; description_he: string | null; description_en: string | null; image_url: string | null; slug: string | null }[]) {
+      programsMap[row.id] = row;
+    }
+  }
+
   // Filter active campaigns (check dates and is_active flag)
   const now = new Date().toISOString();
   const campaigns = ((campaignsRes.data || []) as { campaign: PopupCampaign | null }[])
@@ -239,6 +267,7 @@ const getPageData = cache(async function getPageData(slug: string) {
     pageInterestAreas,
     unknownOption,
     eventsMap,
+    programsMap,
   };
 });
 
@@ -536,7 +565,7 @@ export default async function LandingPage({ params }: PageProps) {
     notFound();
   }
 
-  const { page, sections, program, settings, campaigns, pageInterestAreas, unknownOption, eventsMap } = data;
+  const { page, sections, program, settings, campaigns, pageInterestAreas, unknownOption, eventsMap, programsMap } = data;
   const language = (page.language || "he") as Language;
   const isRtl = language === "he" || language === "ar";
 
@@ -577,6 +606,7 @@ export default async function LandingPage({ params }: PageProps) {
         pageInterestAreas={pageInterestAreas}
         unknownOption={unknownOption}
         eventsMap={eventsMap}
+        programsMap={programsMap}
       />
     </>
   );

@@ -70,11 +70,17 @@ import {
   Link2,
   Zap,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { sanitizeSlug } from "@/lib/utils/slug";
 import { extractYoutubeId } from "@/lib/utils/youtube";
 import { scheduleRevalidate, revalidateNow } from "@/lib/admin/revalidate";
 import type { EventRow } from "@/lib/types/events";
 import { eventTitle } from "@/lib/types/events";
+
+const RichTextEditor = dynamic(
+  () => import("@/components/builder/rich-text/rich-text-editor").then((m) => ({ default: m.RichTextEditor })),
+  { ssr: false, loading: () => <div className="h-[120px] rounded-lg border border-[#E5E5E5] bg-[#FAFAFA] animate-pulse" /> }
+);
 
 // ---------------------------------------------------------------------------
 // Types
@@ -256,6 +262,27 @@ const SECTION_LIBRARY: SectionLibraryItem[] = [
     descriptionHe: "יוצר דחיפות — קבוע לתאריך מסוים או evergreen לכל מבקר",
     color: "bg-rose-100 text-rose-600",
     iconPath: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+  },
+  {
+    type: "text_block",
+    nameHe: "בלוק טקסט",
+    descriptionHe: "כותרת + טקסט עשיר + CTA אופציונלי",
+    color: "bg-slate-100 text-slate-600",
+    iconPath: "M4 6h16M4 12h16M4 18h7",
+  },
+  {
+    type: "partners",
+    nameHe: "שותפים ולוגואים",
+    descriptionHe: "רצועת לוגואים של שותפים ומשתפי פעולה",
+    color: "bg-fuchsia-100 text-fuchsia-600",
+    iconPath: "M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4",
+  },
+  {
+    type: "programs_list",
+    nameHe: "רשימת תארים",
+    descriptionHe: "אקורדיון תארים עם תמונה, טקסט עשיר ולינק",
+    color: "bg-emerald-100 text-emerald-600",
+    iconPath: "M12 14l9-5-9-5-9 5 9 5zm0 7l9-5-9-5-9 5 9 5zm0-7l9-5-9-5-9 5 9 5z",
   },
 ];
 
@@ -487,6 +514,43 @@ function getDefaultContent(type: string): Record<string, unknown> {
         html_he: "<div class=\"text-center\"><h2 class=\"text-3xl font-bold\">תוכן מותאם אישית</h2><p class=\"mt-4\">ערכו את ה-HTML כאן.</p></div>",
         html_en: "",
         padding_y: 48,
+      };
+    case "text_block":
+      return {
+        heading_he: "כותרת",
+        heading_en: "Heading",
+        body_he: "",
+        body_en: "",
+        background: "white",
+        text_color: "auto",
+        alignment: "center",
+        width: "normal",
+        heading_size: "h2",
+        padding: "normal",
+        cta_enabled: false,
+        cta_text_he: "השאירו פרטים",
+        cta_text_en: "Get Info",
+        cta_style: "button",
+      };
+    case "partners":
+      return {
+        heading_he: "",
+        heading_en: "",
+        items: [],
+        logo_height: 64,
+        background: "white",
+        show_separator_line: false,
+        alignment: "center",
+      };
+    case "programs_list":
+      return {
+        heading_he: "התוכניות שלנו",
+        heading_en: "Our Programs",
+        items: [],
+        expand_mode: "single",
+        cta_enabled: false,
+        cta_text_he: "השאירו פרטים",
+        cta_text_en: "Get Info",
       };
     default:
       return {};
@@ -2616,6 +2680,153 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
                 className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#B8D900]"
               />
             </div>
+          </div>
+        );
+
+      case "text_block":
+        return (
+          <div className="space-y-4">
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "Heading" : "כותרת"} draft={draft} set={set} />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Body Text" : "גוף הטקסט"}</Label>
+              <RichTextEditor
+                value={(draft[lk("body")] as string) || ""}
+                onChange={(html: string) => set(lk("body"), html)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Background" : "רקע"}</Label>
+                <select className="w-full h-9 rounded-md border border-[#E5E5E5] bg-white px-3 text-sm" value={(draft.background as string) || "white"} onChange={(e) => set("background", e.target.value)}>
+                  <option value="white">{isEn ? "White" : "לבן"}</option>
+                  <option value="dark">{isEn ? "Dark" : "כהה"}</option>
+                  <option value="brand">{isEn ? "Brand Green" : "ירוק מותגי"}</option>
+                  <option value="custom">{isEn ? "Custom Color" : "צבע מותאם"}</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Alignment" : "יישור"}</Label>
+                <select className="w-full h-9 rounded-md border border-[#E5E5E5] bg-white px-3 text-sm" value={(draft.alignment as string) || "center"} onChange={(e) => set("alignment", e.target.value)}>
+                  <option value="right">{isEn ? "Right" : "ימין"}</option>
+                  <option value="center">{isEn ? "Center" : "מרכז"}</option>
+                  <option value="left">{isEn ? "Left" : "שמאל"}</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Width" : "רוחב"}</Label>
+                <select className="w-full h-9 rounded-md border border-[#E5E5E5] bg-white px-3 text-sm" value={(draft.width as string) || "normal"} onChange={(e) => set("width", e.target.value)}>
+                  <option value="narrow">{isEn ? "Narrow" : "צר"}</option>
+                  <option value="normal">{isEn ? "Normal" : "רגיל"}</option>
+                  <option value="wide">{isEn ? "Wide" : "רחב"}</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Heading Size" : "גודל כותרת"}</Label>
+                <select className="w-full h-9 rounded-md border border-[#E5E5E5] bg-white px-3 text-sm" value={(draft.heading_size as string) || "h2"} onChange={(e) => set("heading_size", e.target.value)}>
+                  <option value="h2">H2</option>
+                  <option value="h3">H3</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Padding" : "ריווח"}</Label>
+                <select className="w-full h-9 rounded-md border border-[#E5E5E5] bg-white px-3 text-sm" value={(draft.padding as string) || "normal"} onChange={(e) => set("padding", e.target.value)}>
+                  <option value="compact">{isEn ? "Compact" : "צפוף"}</option>
+                  <option value="normal">{isEn ? "Normal" : "רגיל"}</option>
+                  <option value="spacious">{isEn ? "Spacious" : "מרווח"}</option>
+                </select>
+              </div>
+            </div>
+            {(draft.background as string) === "custom" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Custom Background Color" : "צבע רקע מותאם"}</Label>
+                <Input type="color" value={(draft.background_custom as string) || "#1e1a2e"} onChange={(e) => set("background_custom", e.target.value)} className="h-9 w-20" />
+              </div>
+            )}
+            <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "Get Info" : "השאירו פרטים"} />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">{isEn ? "CTA Style" : "סגנון כפתור"}</Label>
+              <select className="w-full h-9 rounded-md border border-[#E5E5E5] bg-white px-3 text-sm" value={(draft.cta_style as string) || "button"} onChange={(e) => set("cta_style", e.target.value)}>
+                <option value="button">{isEn ? "Button" : "כפתור"}</option>
+                <option value="link">{isEn ? "Text Link" : "קישור טקסטואלי"}</option>
+              </select>
+            </div>
+          </div>
+        );
+
+      case "partners":
+        return (
+          <div className="space-y-4">
+            <Field label={isEn ? "Heading (optional)" : "כותרת (אופציונלי)"} fieldKey={lk("heading")} placeholder="" draft={draft} set={set} />
+            <Field label={isEn ? "Subheading (optional)" : "כותרת משנה (אופציונלי)"} fieldKey={lk("subheading")} placeholder={isEn ? "In partnership with..." : "בשיתוף פעולה עם..."} draft={draft} set={set} />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">
+                {isEn ? `Logo Height: ${(draft.logo_height as number) ?? 64}px` : `גובה לוגו: ${(draft.logo_height as number) ?? 64}px`}
+              </Label>
+              <input type="range" min={40} max={120} step={4} value={(draft.logo_height as number) ?? 64} onChange={(e) => set("logo_height", parseInt(e.target.value, 10))} className="w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#B8D900]" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Background" : "רקע"}</Label>
+                <select className="w-full h-9 rounded-md border border-[#E5E5E5] bg-white px-3 text-sm" value={(draft.background as string) || "white"} onChange={(e) => set("background", e.target.value)}>
+                  <option value="white">{isEn ? "White" : "לבן"}</option>
+                  <option value="gray">{isEn ? "Gray" : "אפור"}</option>
+                  <option value="transparent">{isEn ? "Transparent" : "שקוף"}</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Alignment" : "פריסה"}</Label>
+                <select className="w-full h-9 rounded-md border border-[#E5E5E5] bg-white px-3 text-sm" value={(draft.alignment as string) || "center"} onChange={(e) => set("alignment", e.target.value)}>
+                  <option value="center">{isEn ? "Center" : "מרכז"}</option>
+                  <option value="space-between">{isEn ? "Spread" : "מרווח"}</option>
+                </select>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={draft.show_separator_line === true} onChange={(e) => set("show_separator_line", e.target.checked)} className="accent-[#B8D900]" />
+              <span className="text-xs text-[#716C70]">{isEn ? "Show separator line above" : "הצג קו הפרדה מעל"}</span>
+            </label>
+            <ObjectListField
+              label={isEn ? "Partner Logos" : "לוגואים"}
+              fieldKey="items"
+              fields={[
+                { key: "image_url", label: isEn ? "Logo URL" : "URL לוגו", type: "image" },
+                { key: "name", label: isEn ? "Name (alt text)" : "שם (alt text)" },
+                { key: "link_url", label: isEn ? "Link URL (optional)" : "קישור (אופציונלי)" },
+                { key: lk("caption"), label: isEn ? "Caption (optional)" : "כיתוב (אופציונלי)" },
+              ]}
+              draft={draft}
+              set={set}
+            />
+          </div>
+        );
+
+      case "programs_list":
+        return (
+          <div className="space-y-4">
+            <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "Our Programs" : "התוכניות שלנו"} draft={draft} set={set} />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Expand Mode" : "מצב פתיחה"}</Label>
+              <select className="w-full h-9 rounded-md border border-[#E5E5E5] bg-white px-3 text-sm" value={(draft.expand_mode as string) || "single"} onChange={(e) => set("expand_mode", e.target.value)}>
+                <option value="single">{isEn ? "One at a time" : "פריט אחד בכל פעם"}</option>
+                <option value="multiple">{isEn ? "Multiple open" : "מספר פריטים פתוחים"}</option>
+              </select>
+            </div>
+            <ObjectListField
+              label={isEn ? "Programs" : "תוכניות"}
+              fieldKey="items"
+              fields={[
+                { key: lk("title"), label: isEn ? "Title" : "כותרת" },
+                { key: lk("body"), label: isEn ? "Body (rich text)" : "תוכן (טקסט עשיר)", type: "textarea" },
+                { key: "image_url", label: isEn ? "Image URL" : "URL תמונה", type: "image" },
+                { key: "link_url", label: isEn ? "Link URL (optional)" : "קישור (אופציונלי)" },
+                { key: lk("link_text"), label: isEn ? "Link Text" : "טקסט הקישור" },
+              ]}
+              draft={draft}
+              set={set}
+            />
+            <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "Get Info" : "השאירו פרטים"} />
           </div>
         );
 
