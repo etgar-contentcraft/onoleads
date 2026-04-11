@@ -92,11 +92,11 @@ export function StickyCtaBar({
     <div
       dir={isRtl ? "rtl" : "ltr"}
       className={`
-        fixed left-0 right-0 z-[45]
+        fixed left-0 right-0 z-[48]
         ${isTop ? HEADER_OFFSET_CLASS : "bottom-0 pb-[env(safe-area-inset-bottom)]"}
         animate-slide-in-bar
         flex items-center justify-between
-        px-4 py-2 shadow-lg
+        px-4 py-2.5 shadow-lg
         transition-transform duration-500 ease-out
       `}
       style={{ backgroundColor: content.bg_color }}
@@ -148,7 +148,7 @@ export function StickyCtaBar({
         <button
           type="button"
           onClick={handleCtaClick}
-          className="font-heading rounded-full px-5 py-1.5 text-sm font-bold text-white shadow-md hover:brightness-110 transition-all duration-200 cursor-pointer"
+          className="font-heading rounded-full px-5 py-2.5 text-sm font-bold text-white shadow-md hover:brightness-110 transition-all duration-200 cursor-pointer"
           style={{ backgroundColor: content.accent_color }}
         >
           {content[`cta_text_${language}` as keyof typeof content] as string || content.cta_text_he}

@@ -107,7 +107,7 @@ export function ProgramOutcomesSection({ content, language }: ProgramOutcomesSec
           </h2>
           {subheading && (
             <p
-              className="mt-4 text-[#716C70] font-heebo text-base md:text-lg max-w-2xl mx-auto opacity-0"
+              className="mt-4 text-[#5A5658] font-heebo text-base md:text-lg max-w-2xl mx-auto opacity-0"
               style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.15s forwards" : "none" }}
             >
               {subheading}
@@ -146,7 +146,7 @@ export function ProgramOutcomesSection({ content, language }: ProgramOutcomesSec
                   </h3>
                 </div>
                 {description && (
-                  <p className="font-heebo text-[#716C70] text-sm leading-[1.7] mt-2">
+                  <p className="font-heebo text-[#5A5658] text-sm leading-[1.7] mt-2">
                     {description}
                   </p>
                 )}

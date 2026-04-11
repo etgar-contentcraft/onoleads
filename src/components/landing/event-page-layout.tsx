@@ -298,12 +298,12 @@ function RegistrationForm({ pageId, eventTitle, isZoom = false, dir = "rtl" }: R
         <h3 className="font-heading text-2xl font-extrabold text-[#2a2628] mb-2">
           {isZoom ? "נרשמתם בהצלחה!" : "הרשמתם אושרה!"}
         </h3>
-        <p className="text-[#716C70] text-base mb-1">
+        <p className="text-[#5A5658] text-base mb-1">
           {isZoom
             ? "קישור הזום יישלח אליכם לפני האירוע"
             : "יועץ לימודים יחזור אליכם לאישור ההגעה"}
         </p>
-        <p className="text-[#716C70]/60 text-sm">הקריה האקדמית אונו</p>
+        <p className="text-[#5A5658]/60 text-sm">הקריה האקדמית אונו</p>
       </div>
     );
   }
@@ -335,7 +335,7 @@ function RegistrationForm({ pageId, eventTitle, isZoom = false, dir = "rtl" }: R
           onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
           placeholder="שם מלא *"
           autoComplete="name"
-          className="w-full h-13 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3.5 text-[#2a2628] text-base placeholder:text-[#716C70]/50 focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 transition-all"
+          className="w-full h-13 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3.5 text-[#2a2628] text-base placeholder:text-[#5A5658]/50 focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 transition-all"
           aria-required="true"
           aria-invalid={!!errors.full_name}
         />
@@ -351,7 +351,7 @@ function RegistrationForm({ pageId, eventTitle, isZoom = false, dir = "rtl" }: R
           placeholder="טלפון *"
           dir="ltr"
           autoComplete="tel"
-          className="w-full h-13 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3.5 text-[#2a2628] text-base placeholder:text-[#716C70]/50 text-left focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 transition-all"
+          className="w-full h-13 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3.5 text-[#2a2628] text-base placeholder:text-[#5A5658]/50 text-left focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 transition-all"
           aria-required="true"
           aria-invalid={!!errors.phone}
         />
@@ -367,14 +367,14 @@ function RegistrationForm({ pageId, eventTitle, isZoom = false, dir = "rtl" }: R
           placeholder="אימייל"
           dir="ltr"
           autoComplete="email"
-          className="w-full h-13 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3.5 text-[#2a2628] text-base placeholder:text-[#716C70]/50 text-left focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 transition-all"
+          className="w-full h-13 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3.5 text-[#2a2628] text-base placeholder:text-[#5A5658]/50 text-left focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 transition-all"
           aria-invalid={!!errors.email}
         />
         {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email}</p>}
       </div>
 
       {/* Privacy notice */}
-      <p className="text-[#716C70]/60 text-xs leading-relaxed">
+      <p className="text-[#5A5658]/60 text-xs leading-relaxed">
         בלחיצה על הכפתור אני מסכים/ה ל
         <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-[#B8D900] hover:underline mx-1">תנאי השימוש</a>
         ול
@@ -403,7 +403,7 @@ function RegistrationForm({ pageId, eventTitle, isZoom = false, dir = "rtl" }: R
       </button>
 
       {/* Trust badges */}
-      <div className="flex items-center justify-center gap-5 text-[#716C70]/50 text-xs">
+      <div className="flex items-center justify-center gap-5 text-[#5A5658]/50 text-xs">
         <span className="flex items-center gap-1">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -460,7 +460,7 @@ function EventFaqAccordion({ items }: { items: { question: string; answer: strin
                 </span>
               </div>
               <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ml-4 ${isOpen ? "bg-[#B8D900] rotate-180" : "bg-gray-100 group-hover:bg-[#B8D900]/15"}`}>
-                <svg className={`w-4 h-4 ${isOpen ? "text-[#2a2628]" : "text-[#716C70]"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <svg className={`w-4 h-4 ${isOpen ? "text-[#2a2628]" : "text-[#5A5658]"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
@@ -468,7 +468,7 @@ function EventFaqAccordion({ items }: { items: { question: string; answer: strin
             <div className={`grid transition-all duration-300 ease-in-out ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
               <div className="overflow-hidden">
                 <div className="px-5 md:px-6 pb-6 pr-10">
-                  <p className="font-heebo text-[#716C70] text-base leading-[1.8]">{item.answer}</p>
+                  <p className="font-heebo text-[#5A5658] text-base leading-[1.8]">{item.answer}</p>
                 </div>
               </div>
             </div>
@@ -678,7 +678,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
               <div key={i} className="group p-7 rounded-2xl border border-gray-100 hover:border-[#B8D900]/30 hover:shadow-[0_4px_30px_rgba(184,217,0,0.1)] transition-all duration-300 bg-white">
                 <div className="text-4xl mb-4">{item.icon}</div>
                 <h3 className="font-heading font-bold text-[#2a2628] text-lg mb-2">{item.title}</h3>
-                <p className="text-[#716C70] text-sm leading-relaxed">{item.desc}</p>
+                <p className="text-[#5A5658] text-sm leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -748,7 +748,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
                     </div>
                     <div>
                       <p className="font-heading font-bold text-[#2a2628] text-lg mb-1">כתובת הקמפוס</p>
-                      <p className="text-[#716C70] text-base">{eventMeta.venue}</p>
+                      <p className="text-[#5A5658] text-base">{eventMeta.venue}</p>
                     </div>
                   </div>
 
@@ -763,7 +763,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
                       </div>
                       <div>
                         <p className="font-heading font-bold text-[#2a2628] text-base mb-1">חניה</p>
-                        <p className="text-[#716C70] text-sm">{eventMeta.parking_info}</p>
+                        <p className="text-[#5A5658] text-sm">{eventMeta.parking_info}</p>
                       </div>
                     </div>
                   )}
@@ -856,7 +856,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
                     </div>
                   )}
                   <p className="font-heading font-bold text-[#2a2628] text-base">{speaker.name}</p>
-                  <p className="text-[#716C70] text-sm mt-1">{speaker.role}</p>
+                  <p className="text-[#5A5658] text-sm mt-1">{speaker.role}</p>
                 </div>
               ))}
             </div>
@@ -1128,7 +1128,7 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
               <div key={i} className="group p-7 rounded-2xl border border-gray-100 hover:border-[#B8D900]/30 hover:shadow-[0_4px_30px_rgba(184,217,0,0.1)] transition-all duration-300 bg-white">
                 <div className="text-4xl mb-4">{item.icon}</div>
                 <h3 className="font-heading font-bold text-[#2a2628] text-lg mb-2">{item.title}</h3>
-                <p className="text-[#716C70] text-sm leading-relaxed">{item.desc}</p>
+                <p className="text-[#5A5658] text-sm leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -1194,7 +1194,7 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
                 <path d="M16.8 11.4L21 8v8l-4.2-3.4v2.1a3.5 3.5 0 01-3.5 3.5H5.5A3.5 3.5 0 012 13.7V10a3.5 3.5 0 013.5-3.5h7.8a3.5 3.5 0 013.5 3.5v1.4z"/>
               </svg>
               <h3 className="font-heading font-bold text-[#2a2628] text-xl mb-2">Zoom</h3>
-              <p className="text-[#716C70] text-sm mb-5">האפליקציה הורדה חינמית וקלה לשימוש</p>
+              <p className="text-[#5A5658] text-sm mb-5">האפליקציה הורדה חינמית וקלה לשימוש</p>
               <a
                 href="https://zoom.us/download"
                 target="_blank"

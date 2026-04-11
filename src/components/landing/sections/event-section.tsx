@@ -305,7 +305,7 @@ export default function EventSection({ content, language, event }: EventSectionP
               </h2>
             )}
             {data.description && (
-              <p className="text-[#716C70] text-lg max-w-2xl mx-auto whitespace-pre-line">
+              <p className="text-[#5A5658] text-lg max-w-2xl mx-auto whitespace-pre-line">
                 {data.description}
               </p>
             )}
@@ -433,7 +433,7 @@ export default function EventSection({ content, language, event }: EventSectionP
         <EventTags items={data.tags} variant="light" accent={ACCENT} />
 
         {(data.registrationDeadline || (data.parkingInfo && !data.isOnline)) && (
-          <div className="flex flex-wrap justify-center gap-6 text-sm text-[#716C70] mb-10">
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-[#5A5658] mb-10">
             {data.registrationDeadline && (
               <div>
                 <span className="font-semibold">{l.registerDeadline}:</span> {data.registrationDeadline}

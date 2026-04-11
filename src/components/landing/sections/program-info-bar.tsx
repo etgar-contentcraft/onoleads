@@ -118,7 +118,7 @@ export function ProgramInfoBar({ content, language }: ProgramInfoBarProps) {
                 <div className="w-11 h-11 rounded-xl bg-[#B8D900]/10 flex items-center justify-center text-[#9ab800] mb-1 group-hover:bg-[#B8D900] group-hover:text-[#2a2628] transition-all duration-300">
                   {ICONS[item.icon] || ICONS.degree}
                 </div>
-                <span className="font-heebo text-xs text-[#716C70] font-medium">{item.label}</span>
+                <span className="font-heebo text-xs text-[#5A5658] font-medium">{item.label}</span>
                 <span className="font-heading text-sm md:text-base font-bold text-[#2a2628]">{item.value}</span>
               </div>
             ))}

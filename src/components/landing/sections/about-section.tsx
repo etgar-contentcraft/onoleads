@@ -70,7 +70,7 @@ export function AboutSection({ content, language }: AboutSectionProps) {
 
             {description && (
               <div
-                className="prose prose-sm max-w-none font-heebo text-[#716C70] text-base md:text-lg leading-[1.8] prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline mb-8 opacity-0"
+                className="prose prose-sm max-w-none font-heebo text-[#5A5658] text-base md:text-lg leading-[1.8] prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline mb-8 opacity-0"
                 style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.15s forwards" : "none" }}
                 dangerouslySetInnerHTML={richTextHtml(description)}
               />
@@ -163,7 +163,7 @@ export function AboutSection({ content, language }: AboutSectionProps) {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
                     </svg>
                   </div>
-                  <p className="text-[#716C70] text-sm font-medium font-heebo">
+                  <p className="text-[#5A5658] text-sm font-medium font-heebo">
                     {isRtl ? "הקריה האקדמית אונו" : "Ono Academic College"}
                   </p>
                 </div>

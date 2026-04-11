@@ -142,7 +142,7 @@ export function ContactInfoSection({ content, language }: ContactInfoSectionProp
           </h2>
           {subheading && (
             <p
-              className="mt-4 text-[#716C70] font-heebo text-base md:text-lg max-w-2xl mx-auto opacity-0"
+              className="mt-4 text-[#5A5658] font-heebo text-base md:text-lg max-w-2xl mx-auto opacity-0"
               style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
             >
               {subheading}
@@ -158,7 +158,7 @@ export function ContactInfoSection({ content, language }: ContactInfoSectionProp
                 <div className="w-12 h-12 rounded-full bg-[#B8D900]/15 text-[#2a2628] flex items-center justify-center mb-4">
                   {item.icon}
                 </div>
-                <p className="text-[11px] uppercase tracking-widest text-[#9A969A] font-heebo font-semibold mb-1">
+                <p className="text-xs uppercase tracking-widest text-[#7A7678] font-heebo font-semibold mb-1">
                   {item.label}
                 </p>
                 <p className="font-heading text-base font-bold text-[#2a2628] leading-snug break-words">

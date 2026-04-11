@@ -287,7 +287,7 @@ function TestimonialCard({
         )}
         <div>
           <p className="font-heading font-bold text-[#2a2628] text-base">{item.name || ""}</p>
-          <p className="font-heebo text-sm text-[#716C70]">{role}</p>
+          <p className="font-heebo text-sm text-[#5A5658]">{role}</p>
         </div>
       </div>
     </div>

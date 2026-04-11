@@ -200,7 +200,7 @@ export function FacultySection({ content, language }: FacultySectionProps) {
 
                 {/* Title / bio */}
                 {title && (
-                  <p className="font-heebo text-[#716C70] text-xs leading-relaxed max-w-[180px] mx-auto mb-2">
+                  <p className="font-heebo text-[#5A5658] text-xs leading-relaxed max-w-[180px] mx-auto mb-2">
                     {title}
                   </p>
                 )}
@@ -217,7 +217,7 @@ export function FacultySection({ content, language }: FacultySectionProps) {
                       <a
                         href={`tel:${member.phone}`}
                         title={member.phone}
-                        className="text-[#716C70] hover:text-[#B8D900] transition-colors"
+                        className="text-[#5A5658] hover:text-[#B8D900] transition-colors p-2 -m-1 rounded-full hover:bg-[#B8D900]/10"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Phone className="w-4 h-4" />
@@ -227,7 +227,7 @@ export function FacultySection({ content, language }: FacultySectionProps) {
                       <a
                         href={`mailto:${member.email}`}
                         title={member.email}
-                        className="text-[#716C70] hover:text-[#B8D900] transition-colors"
+                        className="text-[#5A5658] hover:text-[#B8D900] transition-colors p-2 -m-1 rounded-full hover:bg-[#B8D900]/10"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Mail className="w-4 h-4" />
@@ -239,7 +239,7 @@ export function FacultySection({ content, language }: FacultySectionProps) {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="LinkedIn"
-                        className="text-[#716C70] hover:text-[#B8D900] transition-colors"
+                        className="text-[#5A5658] hover:text-[#B8D900] transition-colors p-2 -m-1 rounded-full hover:bg-[#B8D900]/10"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <LinkedInIcon className="w-4 h-4" />
@@ -251,7 +251,7 @@ export function FacultySection({ content, language }: FacultySectionProps) {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Facebook"
-                        className="text-[#716C70] hover:text-[#B8D900] transition-colors"
+                        className="text-[#5A5658] hover:text-[#B8D900] transition-colors p-2 -m-1 rounded-full hover:bg-[#B8D900]/10"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <FacebookIcon className="w-4 h-4" />
@@ -263,7 +263,7 @@ export function FacultySection({ content, language }: FacultySectionProps) {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Instagram"
-                        className="text-[#716C70] hover:text-[#B8D900] transition-colors"
+                        className="text-[#5A5658] hover:text-[#B8D900] transition-colors p-2 -m-1 rounded-full hover:bg-[#B8D900]/10"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <InstagramIcon className="w-4 h-4" />
@@ -275,7 +275,7 @@ export function FacultySection({ content, language }: FacultySectionProps) {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="אתר אישי"
-                        className="text-[#716C70] hover:text-[#B8D900] transition-colors"
+                        className="text-[#5A5658] hover:text-[#B8D900] transition-colors p-2 -m-1 rounded-full hover:bg-[#B8D900]/10"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Globe className="w-4 h-4" />

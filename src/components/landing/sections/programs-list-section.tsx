@@ -188,7 +188,7 @@ export function ProgramsListSection({ content, language, programsMap = {} }: Pro
                   >
                     <svg
                       className={`w-4 h-4 transition-colors ${
-                        opened ? "text-[#2a2628]" : "text-[#716C70]"
+                        opened ? "text-[#2a2628]" : "text-[#5A5658]"
                       }`}
                       fill="none"
                       viewBox="0 0 24 24"
@@ -218,7 +218,7 @@ export function ProgramsListSection({ content, language, programsMap = {} }: Pro
                       {/* Rich text body */}
                       {body && (
                         <div
-                          className="prose prose-sm max-w-none font-heebo text-[#716C70] leading-[1.8] prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline"
+                          className="prose prose-sm max-w-none font-heebo text-[#5A5658] leading-[1.8] prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline"
                           dangerouslySetInnerHTML={richTextHtml(body)}
                         />
                       )}

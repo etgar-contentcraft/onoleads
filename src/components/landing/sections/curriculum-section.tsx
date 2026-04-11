@@ -148,7 +148,7 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
                         ? "bg-[#B8D900] text-[#2a2628] shadow-[0_0_20px_rgba(184,217,0,0.4)]"
                         : isCompleted
                           ? "bg-[#B8D900]/80 text-[#2a2628]"
-                          : "bg-white text-[#716C70] border-gray-200"
+                          : "bg-white text-[#5A5658] border-gray-200"
                     }`}
                   >
                     <span className="font-heading font-bold text-sm">{index + 1}</span>
@@ -172,14 +172,14 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
                           <span className="font-heading font-bold text-[#2a2628] text-base md:text-lg">
                             {year.label}
                           </span>
-                          <span className="text-xs text-[#716C70] font-heebo">
+                          <span className="text-xs text-[#5A5658] font-heebo">
                             {year.courses.length} {isRtl ? "קורסים" : "courses"}
                           </span>
                         </div>
                         <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
                           isOpen ? "bg-[#B8D900] rotate-180" : "bg-gray-100 group-hover:bg-[#B8D900]/20"
                         }`}>
-                          <svg className={`w-4 h-4 ${isOpen ? "text-[#2a2628]" : "text-[#716C70]"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <svg className={`w-4 h-4 ${isOpen ? "text-[#2a2628]" : "text-[#5A5658]"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                           </svg>
                         </div>

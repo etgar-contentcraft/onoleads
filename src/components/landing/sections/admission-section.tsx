@@ -135,7 +135,7 @@ function TrackCard({
 
       {/* Optional bottom note */}
       {track.note_he && (
-        <p className="mt-5 pt-4 border-t border-gray-100 font-heebo text-xs text-[#716C70] leading-relaxed">
+        <p className="mt-5 pt-4 border-t border-gray-100 font-heebo text-xs text-[#5A5658] leading-relaxed">
           {track.note_he}
         </p>
       )}

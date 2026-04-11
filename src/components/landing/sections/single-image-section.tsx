@@ -92,7 +92,7 @@ export function SingleImageSection({ content, language }: SingleImageSectionProp
           />
 
           {caption && (
-            <figcaption className="mt-4 text-center text-sm text-[#716C70] font-heebo leading-relaxed">
+            <figcaption className="mt-4 text-center text-sm text-[#5A5658] font-heebo leading-relaxed">
               {caption}
             </figcaption>
           )}

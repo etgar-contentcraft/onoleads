@@ -65,7 +65,7 @@ export function MediaBlock({
           width={800}
           height={objectFit === "contain" ? 450 : 600}
           className={`w-full h-auto object-${objectFit}`}
-          unoptimized
+          sizes="(max-width: 768px) 100vw, 800px"
         />
       </div>
     );

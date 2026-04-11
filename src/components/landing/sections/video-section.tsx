@@ -185,7 +185,7 @@ function VideoCard({
           {video.title_he}
         </h3>
         {video.duration_he && (
-          <span className="shrink-0 font-heebo text-xs text-[#716C70] bg-gray-100 rounded-md px-2 py-1 mt-0.5">
+          <span className="shrink-0 font-heebo text-xs text-[#5A5658] bg-gray-100 rounded-md px-2 py-1 mt-0.5">
             {video.duration_he}
           </span>
         )}
@@ -276,7 +276,7 @@ export function VideoSection({ content, language }: VideoSectionProps) {
             )}
             {description && (
               <p
-                className="mt-4 font-heebo text-[#716C70] text-base md:text-lg leading-relaxed opacity-0"
+                className="mt-4 font-heebo text-[#5A5658] text-base md:text-lg leading-relaxed opacity-0"
                 style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.2s forwards" : "none" }}
               >
                 {description}
@@ -326,7 +326,7 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                   {activeVideo.title_he}
                 </h3>
                 {activeVideo.duration_he && (
-                  <span className="shrink-0 font-heebo text-sm text-[#716C70] bg-gray-100 rounded-lg px-3 py-1 mt-0.5">
+                  <span className="shrink-0 font-heebo text-sm text-[#5A5658] bg-gray-100 rounded-lg px-3 py-1 mt-0.5">
                     {activeVideo.duration_he}
                   </span>
                 )}
@@ -379,13 +379,13 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                     <div className="flex-1 min-w-0">
                       <p
                         className={`font-heading font-bold text-sm leading-snug line-clamp-2 transition-colors ${
-                          i === activeIndex ? "text-[#2a2628]" : "text-[#716C70] group-hover:text-[#2a2628]"
+                          i === activeIndex ? "text-[#2a2628]" : "text-[#5A5658] group-hover:text-[#2a2628]"
                         }`}
                       >
                         {video.title_he}
                       </p>
                       {video.duration_he && (
-                        <span className="mt-1 inline-block font-heebo text-xs text-[#716C70]">
+                        <span className="mt-1 inline-block font-heebo text-xs text-[#5A5658]">
                           {video.duration_he}
                         </span>
                       )}

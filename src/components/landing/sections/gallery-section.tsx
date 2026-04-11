@@ -70,7 +70,7 @@ function Lightbox({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 animate-fade-in"
+      className="fixed inset-0 z-[105] flex items-center justify-center bg-black/95 animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-label={language === "he" || language === "ar" ? "תמונה מוגדלת" : "Enlarged image"}
@@ -175,7 +175,7 @@ function Lightbox({
               aria-label={`תמונה ${i + 1}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={thumbSrc} alt="" className="w-full h-full object-cover" />
+              <img src={thumbSrc} alt="" className="w-full h-full object-cover" loading="lazy" />
             </button>
           );
         })}

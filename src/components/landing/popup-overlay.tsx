@@ -659,7 +659,7 @@ export function PopupOverlay({
       {/* Body */}
       {content.body_he && (
         <p
-          className={`font-heebo text-sm mb-4 leading-relaxed ${isBackgroundLayout ? "text-white/80" : "text-[#716C70]"}`}
+          className={`font-heebo text-sm mb-4 leading-relaxed ${isBackgroundLayout ? "text-white/80" : "text-[#5A5658]"}`}
         >
           {content.body_he}
         </p>
@@ -759,7 +759,7 @@ export function PopupOverlay({
                   ? "מילוי הפרטים מהווה הסכמה לשימוש במידע לפי "
                   : "Submitting constitutes consent per "}
                 <a href={privacyUrls.privacy} target="_blank" rel="noopener noreferrer"
-                  className="underline hover:text-[#716C70] transition-colors">
+                  className="underline hover:text-[#5A5658] transition-colors">
                   {isRtl ? "מדיניות הפרטיות" : "our privacy policy"}
                 </a>
                 {isRtl ? " ולקבלת פניות בקשר ללימודים." : " and to receive study-related communications."}
@@ -811,7 +811,7 @@ export function PopupOverlay({
           <p className="font-heading text-lg font-bold text-[#2a2628]">
             {isRtl ? "הפרטים נשלחו בהצלחה!" : "Details sent successfully!"}
           </p>
-          <p className="font-heebo text-[#716C70] text-sm mt-1">
+          <p className="font-heebo text-[#5A5658] text-sm mt-1">
             {isRtl ? "ניצור איתכם קשר בהקדם" : "We will contact you soon"}
           </p>
         </div>
@@ -828,7 +828,7 @@ export function PopupOverlay({
 
       {/* Dismiss */}
       <button onClick={onDismiss}
-        className={`w-full py-2 mt-3 text-xs transition-colors ${isBackgroundLayout ? "text-white/50 hover:text-white/70" : "text-[#9A969A] hover:text-[#716C70]"}`}>
+        className={`w-full py-2 mt-3 text-xs transition-colors ${isBackgroundLayout ? "text-white/50 hover:text-white/70" : "text-[#9A969A] hover:text-[#5A5658]"}`}>
         {content.dismiss_text_he}
       </button>
     </div>

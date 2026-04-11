@@ -83,7 +83,7 @@ export function PartnersSection({ content, language }: PartnersSectionProps) {
             </h2>
             {subheading && (
               <p
-                className="text-sm text-[#716C70] mt-2 opacity-0"
+                className="text-sm text-[#5A5658] mt-2 opacity-0"
                 style={{ animation: inView ? "fade-in-up 0.5s ease-out 0.1s forwards" : "none" }}
               >
                 {subheading}
@@ -117,7 +117,7 @@ export function PartnersSection({ content, language }: PartnersSectionProps) {
                   />
                 </div>
                 {caption && (
-                  <span className="text-xs text-[#716C70] text-center max-w-[140px] leading-tight">
+                  <span className="text-xs text-[#5A5658] text-center max-w-[140px] leading-tight">
                     {caption}
                   </span>
                 )}

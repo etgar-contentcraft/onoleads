@@ -82,7 +82,7 @@ function AnimatedStat({ item, language, inView, index }: { item: StatItem; langu
       <div className="w-10 h-0.5 bg-[#B8D900]/30 rounded-full mb-3" />
 
       {/* Label */}
-      <span className="font-heebo text-sm md:text-base text-white/60 font-medium leading-snug">
+      <span className="font-heebo text-sm md:text-base text-white/80 font-medium leading-snug">
         {label}
       </span>
     </div>

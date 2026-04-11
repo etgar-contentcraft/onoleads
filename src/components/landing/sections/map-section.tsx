@@ -175,7 +175,7 @@ export function MapSection({ content, language }: MapSectionProps) {
                     </p>
                   )}
                   {address && (
-                    <p className="font-heebo text-[#716C70] text-base leading-relaxed">
+                    <p className="font-heebo text-[#5A5658] text-base leading-relaxed">
                       {address}
                     </p>
                   )}
@@ -196,7 +196,7 @@ export function MapSection({ content, language }: MapSectionProps) {
                     </p>
                   )}
                   {address && (
-                    <p className="font-heebo text-[#716C70] text-sm mt-0.5 leading-relaxed">
+                    <p className="font-heebo text-[#5A5658] text-sm mt-0.5 leading-relaxed">
                       {address}
                     </p>
                   )}
@@ -274,7 +274,7 @@ export function MapSection({ content, language }: MapSectionProps) {
               </div>
               {/* Venue name caption below photo */}
               {venueName && (
-                <p className="mt-3 font-heebo text-[#716C70] text-xs text-center">
+                <p className="mt-3 font-heebo text-[#5A5658] text-xs text-center">
                   {venueName}
                 </p>
               )}

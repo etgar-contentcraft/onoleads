@@ -173,7 +173,7 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
                 <h3 className="font-heading font-bold text-lg text-[#2a2628] mb-2 leading-snug">{title}</h3>
                 {desc && (
                   <div
-                    className="prose prose-sm max-w-none font-heebo text-[#716C70] text-sm leading-relaxed prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline"
+                    className="prose prose-sm max-w-none font-heebo text-[#5A5658] text-sm leading-relaxed prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline"
                     dangerouslySetInnerHTML={richTextHtml(desc)}
                   />
                 )}

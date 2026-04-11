@@ -24,7 +24,7 @@ const config: Config = {
         },
       },
       animation: {
-        "slide-in-bar": "slide-in-bar 0.4s ease-out forwards",
+        "slide-in-bar": "slide-in-bar 0.35s ease-out forwards",
       },
     },
   },

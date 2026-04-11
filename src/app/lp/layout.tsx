@@ -26,12 +26,14 @@ const rubik = Rubik({
 });
 
 /* Alternative fonts — available when pages override the default font.
- * Kept minimal weights since they're secondary. */
+ * preload: false so they only download when the CSS variable is actually used,
+ * avoiding ~120KB of unnecessary font data on pages using the default font. */
 const assistant = Assistant({
   subsets: ["hebrew", "latin"],
   weight: ["400", "600", "700"],
   variable: "--font-assistant",
   display: "swap",
+  preload: false,
 });
 
 const notoSansHebrew = Noto_Sans_Hebrew({
@@ -39,6 +41,7 @@ const notoSansHebrew = Noto_Sans_Hebrew({
   weight: ["400", "600", "700"],
   variable: "--font-noto-sans-hebrew",
   display: "swap",
+  preload: false,
 });
 
 const frankRuhlLibre = Frank_Ruhl_Libre({
@@ -46,6 +49,7 @@ const frankRuhlLibre = Frank_Ruhl_Libre({
   weight: ["400", "700"],
   variable: "--font-frank-ruhl",
   display: "swap",
+  preload: false,
 });
 
 export default function LpLayout({ children }: { children: React.ReactNode }) {
