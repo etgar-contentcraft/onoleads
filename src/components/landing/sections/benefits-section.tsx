@@ -139,7 +139,7 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
           >
             <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
             <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
-              {isRtl ? "היתרונות שלנו" : "Our Advantages"}
+              {language === "ar" ? "مزايانا" : language === "he" ? "היתרונות שלנו" : "Our Advantages"}
             </span>
             <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
           </div>

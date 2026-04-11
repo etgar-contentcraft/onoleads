@@ -94,7 +94,7 @@ export function PartnersSection({ content, language }: PartnersSectionProps) {
 
         {/* Logo strip */}
         <div
-          className={`flex flex-wrap items-center gap-8 md:gap-12 ${justifyClass} opacity-0`}
+          className={`flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8 lg:gap-12 ${justifyClass} opacity-0`}
           style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.15s forwards" : "none" }}
         >
           {items.map((item, index) => {
@@ -107,7 +107,7 @@ export function PartnersSection({ content, language }: PartnersSectionProps) {
               <div className="flex flex-col items-center gap-2 shrink-0">
                 <div
                   className="flex items-center justify-center"
-                  style={{ height: `${logoHeight}px` }}
+                  style={{ height: `clamp(48px, 8vw, ${logoHeight}px)` }}
                 >
                   <img
                     src={item.image_url}

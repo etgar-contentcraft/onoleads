@@ -14,6 +14,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "@/lib/types/database";
 import { richTextHtml } from "@/lib/rich-text/render";
+import { MediaBlock } from "../media-block";
 import { useCtaModal } from "../cta-modal";
 import type { ProgramMapEntry } from "../landing-page-layout";
 
@@ -26,6 +27,7 @@ interface ProgramListItem {
   body_en?: string;
   body_ar?: string;
   image_url?: string;
+  video_url?: string;
   link_url?: string;
   link_text_he?: string;
   link_text_en?: string;
@@ -206,17 +208,12 @@ export function ProgramsListSection({ content, language, programsMap = {} }: Pro
                 >
                   <div className="overflow-hidden">
                     <div className="px-5 md:px-6 pb-6 space-y-4">
-                      {/* Image */}
-                      {image && (
-                        <div className="rounded-xl overflow-hidden">
-                          <img
-                            src={image}
-                            alt={title}
-                            className="w-full h-auto max-h-[280px] object-cover"
-                            loading="lazy"
-                          />
-                        </div>
-                      )}
+                      {/* Image or YouTube video */}
+                      <MediaBlock
+                        video_url={item.video_url}
+                        image_url={image || undefined}
+                        alt={title}
+                      />
 
                       {/* Rich text body */}
                       {body && (

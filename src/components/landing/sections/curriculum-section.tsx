@@ -17,8 +17,11 @@ interface CurriculumSemester {
 }
 
 interface CurriculumYear {
-  year_label: string;
-  courses: string[];
+  year_label?: string;
+  title_he?: string;
+  title_en?: string;
+  title_ar?: string;
+  courses: string[] | string;
 }
 
 interface CurriculumSectionProps {
@@ -29,16 +32,29 @@ interface CurriculumSectionProps {
 /**
  * Normalizes content into a unified year/label + courses structure.
  * Supports:
- *  - content.years: [{year_label, courses: string[]}]
- *  - content.semesters: [{title_he, courses: [{name_he}]}]
+ *  - content.years: [{title_he/title_en/title_ar, courses: string (comma-separated)}] (new builder format)
+ *  - content.years: [{year_label, courses: string[]}] (legacy / AI-import format)
+ *  - content.semesters: [{title_he, courses: [{name_he}]}] (legacy semester format)
  */
 function normalizeYears(content: Record<string, unknown>, language: Language): { label: string; courses: string[] }[] {
   const years = content.years as CurriculumYear[] | undefined;
   if (years && Array.isArray(years) && years.length > 0) {
-    return years.map((y) => ({
-      label: y.year_label,
-      courses: y.courses || [],
-    }));
+    return years.map((y) => {
+      /* Label: prefer localized title from builder, fall back to Hebrew, then legacy year_label */
+      const label =
+        (y[`title_${language}` as keyof CurriculumYear] as string) ||
+        y.title_he ||
+        y.year_label ||
+        "";
+
+      /* Courses: builder saves a comma-separated string; legacy format uses string[] */
+      const raw = y.courses || [];
+      const courses = typeof raw === "string"
+        ? raw.split(",").map((c) => c.trim()).filter(Boolean)
+        : raw;
+
+      return { label, courses };
+    });
   }
 
   const semesters = content.semesters as CurriculumSemester[] | undefined;

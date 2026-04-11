@@ -11,9 +11,9 @@
  * two other sections to break up long copy with a visual.
  */
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { Language } from "@/lib/types/database";
+import { MediaBlock } from "@/components/landing/media-block";
 
 interface SingleImageSectionProps {
   content: Record<string, unknown>;
@@ -61,9 +61,13 @@ export function SingleImageSection({ content, language }: SingleImageSectionProp
     return () => obs.disconnect();
   }, []);
 
-  /* Bail out cleanly when no image is configured — keeps the page from
+  /* YouTube video URL — optional. When set, MediaBlock renders a 16:9
+     responsive iframe instead of the static image. */
+  const videoUrl = (content.video_url as string) || "";
+
+  /* Bail out cleanly when no media is configured — keeps the page from
      showing an empty white block while the editor sets up the section. */
-  if (!imageUrl.trim()) return null;
+  if (!imageUrl.trim() && !videoUrl.trim()) return null;
 
   return (
     <section
@@ -77,26 +81,15 @@ export function SingleImageSection({ content, language }: SingleImageSectionProp
           className="opacity-0"
           style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
         >
-          {/* The image itself.
-              Uses next/image with `unoptimized` so admins can paste any URL
-              (including non-whitelisted external hosts) without configuring
-              next.config.js. The width/height defaults are large enough that
-              the actual rendered size is controlled by the parent's max-width. */}
-          <div
-            className={`relative overflow-hidden ${rounded ? "rounded-2xl" : ""} ${
-              shadow ? "shadow-[0_8px_30px_rgba(0,0,0,0.08)]" : ""
-            }`}
-          >
-            <Image
-              src={imageUrl}
-              alt={altText}
-              width={1600}
-              height={900}
-              className="w-full h-auto"
-              unoptimized
-              priority={false}
-            />
-          </div>
+          {/* Renders a YouTube 16:9 iframe when video_url is set,
+              otherwise a static next/image. MediaBlock handles both cases. */}
+          <MediaBlock
+            video_url={videoUrl}
+            image_url={imageUrl}
+            alt={altText}
+            className={`${shadow ? "shadow-[0_8px_30px_rgba(0,0,0,0.08)]" : ""}`}
+            rounded={rounded ? "2xl" : "none"}
+          />
 
           {caption && (
             <figcaption className="mt-4 text-center text-sm text-[#716C70] font-heebo leading-relaxed">

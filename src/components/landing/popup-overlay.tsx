@@ -648,18 +648,22 @@ export function PopupOverlay({
       )}
 
       {/* Title */}
-      <h2
-        className={`font-heading text-xl font-extrabold mb-2 ${isBackgroundLayout ? "text-white" : "text-[#2a2628]"}`}
-      >
-        {content.title_he}
-      </h2>
+      {content.title_he && (
+        <h2
+          className={`font-heading text-xl font-extrabold mb-2 ${isBackgroundLayout ? "text-white" : "text-[#2a2628]"}`}
+        >
+          {content.title_he}
+        </h2>
+      )}
 
       {/* Body */}
-      <p
-        className={`font-heebo text-sm mb-4 leading-relaxed ${isBackgroundLayout ? "text-white/80" : "text-[#716C70]"}`}
-      >
-        {content.body_he}
-      </p>
+      {content.body_he && (
+        <p
+          className={`font-heebo text-sm mb-4 leading-relaxed ${isBackgroundLayout ? "text-white/80" : "text-[#716C70]"}`}
+        >
+          {content.body_he}
+        </p>
+      )}
 
       {/* Social proof */}
       {content.social_proof_text && (

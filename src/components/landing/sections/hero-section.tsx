@@ -32,7 +32,7 @@ export function HeroSection({ content, language }: HeroSectionProps) {
   /* ---- Content fields ---- */
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || "";
   const subheading = (content[`subheading_${language}`] as string) || (content.subheading_he as string) || "";
-  const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || (isRtl ? "קבלו מידע מלא" : "Get full info");
+  const ctaText = (content[`cta_text_${language}`] as string) || (content.cta_text_he as string) || (language === "ar" ? "احصل على معلومات كاملة" : language === "he" ? "קבלו מידע מלא" : "Get full info");
   const ctaEnabled = content.cta_enabled !== false;
   const bgImage = (content.background_image_url as string) || (content.background_image as string) || "";
   const bgVideo = (content.background_video_url as string) || "";

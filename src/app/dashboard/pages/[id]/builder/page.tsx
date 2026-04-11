@@ -400,6 +400,7 @@ function getDefaultContent(type: string): Record<string, unknown> {
     case "single_image":
       return {
         image_url: "",
+        video_url: "",
         alt_text: "",
         caption_he: "",
         caption_en: "",
@@ -582,6 +583,9 @@ const SECTION_LABELS: Record<string, string> = {
   accordion: "אקורדיון",
   contact_info: "פרטי יצירת קשר",
   custom_html: "HTML מותאם",
+  text_block: "בלוק טקסט",
+  partners: "שותפים ולוגואים",
+  programs_list: "רשימת תוכניות",
 };
 
 // ---------------------------------------------------------------------------
@@ -1797,7 +1801,7 @@ function ObjectImageField({
 interface ObjectListFieldProps {
   label: string;
   fieldKey: string;
-  fields: Array<{ key: string; label: string; type?: "text" | "textarea" | "image" }>;
+  fields: Array<{ key: string; label: string; type?: "text" | "textarea" | "richtext" | "image" }>;
   draft: Record<string, unknown>;
   set: (key: string, value: unknown) => void;
 }
@@ -1857,7 +1861,16 @@ function SortableObjectItem({
         </Button>
       </div>
       {fields.map((f) =>
-        f.type === "textarea" ? (
+        f.type === "richtext" ? (
+          <div key={f.key} className="space-y-1">
+            <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
+            <RichTextEditor
+              value={item[f.key] || ""}
+              onChange={(v) => onUpdate(f.key, v)}
+              dir="rtl"
+            />
+          </div>
+        ) : f.type === "textarea" ? (
           <div key={f.key} className="space-y-1">
             <Label className="text-[11px] text-[#9A969A]">{f.label}</Label>
             <Textarea
@@ -2081,6 +2094,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
             <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "About the Program" : "אודות התוכנית"} draft={draft} set={set} />
             <TextareaField label={isEn ? "Description" : "תיאור"} fieldKey={lk("description")} rows={4} placeholder={isEn ? "Program description..." : "פסקת תיאור..."} draft={draft} set={set} />
             <ImageField label={isEn ? "Image" : "תמונה"} fieldKey="image_url" recommendedSize="800×600px" draft={draft} set={set} />
+            <Field label={isEn ? "YouTube Video URL (optional)" : "קישור YouTube (אופציונלי)"} fieldKey="video_url" placeholder="https://youtube.com/watch?v=..." dir="ltr" draft={draft} set={set} />
             <StringListField label={isEn ? "Key Points" : "נקודות מפתח"} fieldKey="bullets" placeholder={isEn ? "Key point..." : "נקודה מפתח..."} draft={draft} set={set} />
             <CtaTextField fieldKey={lk("cta_text")} draft={draft} set={set} isEn={isEn} placeholder={isEn ? "Learn More" : "לפרטים נוספים"} />
           </div>
@@ -2095,7 +2109,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               fieldKey="items"
               fields={[
                 { key: lk("title"), label: isEn ? "Benefit Title" : "כותרת יתרון" },
-                { key: lk("description"), label: isEn ? "Description" : "תיאור", type: "textarea" },
+                { key: lk("description"), label: isEn ? "Description" : "תיאור", type: "richtext" },
               ]}
               draft={draft}
               set={set}
@@ -2193,7 +2207,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               fieldKey="items"
               fields={[
                 { key: lk("question"), label: isEn ? "Question" : "שאלה" },
-                { key: lk("answer"), label: isEn ? "Answer" : "תשובה", type: "textarea" },
+                { key: lk("answer"), label: isEn ? "Answer" : "תשובה", type: "richtext" },
               ]}
               draft={draft}
               set={set}
@@ -2235,6 +2249,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               fieldKey="images"
               fields={[
                 { key: "url", label: isEn ? "Image URL" : "URL תמונה", type: "image" },
+                { key: "video_url", label: isEn ? "YouTube URL (optional)" : "קישור YouTube (אופציונלי)" },
                 { key: lk("caption"), label: isEn ? "Caption" : "כיתוב" },
               ]}
               draft={draft}
@@ -2252,6 +2267,14 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               label={isEn ? "Image" : "תמונה"}
               fieldKey="image_url"
               recommendedSize={isEn ? "Recommended: 1600×900 or larger" : "מומלץ: 1600×900 ומעלה"}
+              draft={draft}
+              set={set}
+            />
+            <Field
+              label={isEn ? "YouTube Video URL (optional)" : "קישור YouTube (אופציונלי)"}
+              fieldKey="video_url"
+              placeholder="https://youtube.com/watch?v=..."
+              dir="ltr"
               draft={draft}
               set={set}
             />
@@ -2614,7 +2637,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               fieldKey="items"
               fields={[
                 { key: lk("title"), label: isEn ? "Title" : "כותרת הפריט" },
-                { key: lk("body"), label: isEn ? "Body Text" : "תוכן", type: "textarea" },
+                { key: lk("body"), label: isEn ? "Body Text" : "תוכן", type: "richtext" },
               ]}
               draft={draft}
               set={set}
@@ -2818,8 +2841,9 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
               fieldKey="items"
               fields={[
                 { key: lk("title"), label: isEn ? "Title" : "כותרת" },
-                { key: lk("body"), label: isEn ? "Body (rich text)" : "תוכן (טקסט עשיר)", type: "textarea" },
+                { key: lk("body"), label: isEn ? "Body (rich text)" : "תוכן (טקסט עשיר)", type: "richtext" },
                 { key: "image_url", label: isEn ? "Image URL" : "URL תמונה", type: "image" },
+                { key: "video_url", label: isEn ? "YouTube URL (optional)" : "קישור YouTube (אופציונלי)" },
                 { key: "link_url", label: isEn ? "Link URL (optional)" : "קישור (אופציונלי)" },
                 { key: lk("link_text"), label: isEn ? "Link Text" : "טקסט הקישור" },
               ]}

@@ -571,7 +571,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
 
       {/* Modal */}
       <div className="relative z-10 w-full max-w-md mx-4 mb-0 md:mb-0 animate-fade-in-up">
-        <div className="bg-[#2a2628] rounded-t-3xl md:rounded-3xl border border-white/10 shadow-[0_-8px_60px_rgba(0,0,0,0.5)] overflow-hidden">
+        <div className="bg-[#2a2628] rounded-t-3xl md:rounded-3xl border border-white/10 shadow-[0_-8px_60px_rgba(0,0,0,0.5)] overflow-hidden pb-[env(safe-area-inset-bottom)]">
           {/* Close button */}
           <button
             onClick={handleClose}

@@ -61,6 +61,7 @@ export default function LpLayout({ children }: { children: React.ReactNode }) {
             Uses a raw <script> tag because Next.js <Script strategy="beforeInteractive">
             does NOT render in nested layouts (App Router limitation). */}
         <script
+          suppressHydrationWarning
           id="consent-mode-v2"
           dangerouslySetInnerHTML={{ __html: CONSENT_MODE_INIT_SCRIPT }}
         />

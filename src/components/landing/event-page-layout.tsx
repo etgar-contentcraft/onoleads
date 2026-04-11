@@ -150,7 +150,7 @@ function formatTime(isoDate: string): string {
  * Animated countdown timer that updates every second.
  * @param targetDate - ISO date string to count down to
  */
-function CountdownTimer({ targetDate }: { targetDate: string }) {
+function CountdownTimer({ targetDate, dir = "rtl" }: { targetDate: string; dir?: "ltr" | "rtl" }) {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(() => getTimeLeft(targetDate));
 
   useEffect(() => {
@@ -168,7 +168,7 @@ function CountdownTimer({ targetDate }: { targetDate: string }) {
   ];
 
   return (
-    <div className="flex items-center gap-3 md:gap-4" dir="rtl">
+    <div className="flex items-center gap-3 md:gap-4" dir={dir}>
       {units.map((unit, i) => (
         <div key={unit.label} className="flex items-center gap-3 md:gap-4">
           <div className="flex flex-col items-center">
@@ -196,6 +196,8 @@ interface RegistrationFormProps {
   pageId: string;
   eventTitle: string;
   isZoom?: boolean;
+  /** Text direction based on page language */
+  dir?: "ltr" | "rtl";
 }
 
 /**
@@ -205,7 +207,7 @@ interface RegistrationFormProps {
  * @param eventTitle - Event name shown in form header
  * @param isZoom - Whether to show Zoom-specific button text
  */
-function RegistrationForm({ pageId, eventTitle, isZoom = false }: RegistrationFormProps) {
+function RegistrationForm({ pageId, eventTitle, isZoom = false, dir = "rtl" }: RegistrationFormProps) {
   const [formData, setFormData] = useState({ full_name: "", phone: "", email: "", program_interest: "" });
   const [honeypot, setHoneypot] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -307,7 +309,7 @@ function RegistrationForm({ pageId, eventTitle, isZoom = false }: RegistrationFo
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" dir="rtl" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-4" dir={dir} noValidate>
       {/* Honeypot - hidden from real users */}
       <div aria-hidden="true" className="absolute -left-[9999px] -top-[9999px]">
         <input
@@ -485,7 +487,7 @@ function EventFaqAccordion({ items }: { items: { question: string; answer: strin
  * Sticky header that appears after scrolling 400px.
  * Includes Ono logo, event title (truncated), and scroll-to-form CTA.
  */
-function EventStickyHeader({ title, onRegisterClick }: { title: string; onRegisterClick: () => void }) {
+function EventStickyHeader({ title, onRegisterClick, dir = "rtl" }: { title: string; onRegisterClick: () => void; dir?: "ltr" | "rtl" }) {
   const ONO_LOGO = useEventLogo();
   const [visible, setVisible] = useState(false);
 
@@ -498,7 +500,7 @@ function EventStickyHeader({ title, onRegisterClick }: { title: string; onRegist
   return (
     <div
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"}`}
-      dir="rtl"
+      dir={dir}
     >
       <div className="bg-white/95 backdrop-blur-xl border-b border-gray-200/50 shadow-[0_2px_20px_rgba(0,0,0,0.06)]">
         <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between">
@@ -531,6 +533,8 @@ function EventStickyHeader({ title, onRegisterClick }: { title: string; onRegist
  */
 function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
   const ONO_LOGO = useEventLogo();
+  /** Derive text direction from the page language — English is LTR, Hebrew/Arabic are RTL. */
+  const dir = page.language === "en" ? "ltr" : "rtl";
   const formRef = useRef<HTMLDivElement>(null);
   const [heroVisible, setHeroVisible] = useState(false);
 
@@ -563,8 +567,8 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
   const faqItems = (eventMeta.faq && eventMeta.faq.length > 0) ? eventMeta.faq : defaultFaq;
 
   return (
-    <div className="min-h-screen bg-white font-heebo" dir="rtl">
-      <EventStickyHeader title={page.title_he} onRegisterClick={scrollToForm} />
+    <div className="min-h-screen bg-white font-heebo" dir={dir}>
+      <EventStickyHeader title={page.title_he} onRegisterClick={scrollToForm} dir={dir} />
 
       {/* ====== HERO ====== */}
       <section className="relative min-h-screen flex items-center overflow-hidden">
@@ -640,7 +644,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
             className="flex flex-col lg:flex-row items-start lg:items-center gap-8 opacity-0"
             style={{ animation: heroVisible ? "fade-in-up 0.8s ease-out 0.6s forwards" : "none" }}
           >
-            <CountdownTimer targetDate={eventMeta.event_date} />
+            <CountdownTimer targetDate={eventMeta.event_date} dir={dir} />
             <button
               onClick={scrollToForm}
               className="inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_50px_rgba(184,217,0,0.5)] hover:scale-[1.03] active:scale-[0.98]"
@@ -889,6 +893,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
               pageId={page.id}
               eventTitle={page.title_he}
               isZoom={false}
+              dir={dir}
             />
           </div>
         </div>
@@ -910,7 +915,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
       </section>
 
       {/* ====== FOOTER ====== */}
-      <footer className="py-12 bg-[#2a2628]" dir="rtl">
+      <footer className="py-12 bg-[#2a2628]" dir={dir}>
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
@@ -953,6 +958,8 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
  */
 function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
   const ONO_LOGO = useEventLogo();
+  /** Derive text direction from the page language — English is LTR, Hebrew/Arabic are RTL. */
+  const dir = page.language === "en" ? "ltr" : "rtl";
   const formRef = useRef<HTMLDivElement>(null);
   const [heroVisible, setHeroVisible] = useState(false);
 
@@ -1016,8 +1023,8 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-white font-heebo" dir="rtl">
-      <EventStickyHeader title={page.title_he} onRegisterClick={scrollToForm} />
+    <div className="min-h-screen bg-white font-heebo" dir={dir}>
+      <EventStickyHeader title={page.title_he} onRegisterClick={scrollToForm} dir={dir} />
 
       {/* ====== HERO ====== */}
       <section className="relative min-h-screen flex items-center overflow-hidden">
@@ -1088,7 +1095,7 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
             className="flex flex-col lg:flex-row items-start lg:items-center gap-8 opacity-0"
             style={{ animation: heroVisible ? "fade-in-up 0.8s ease-out 0.6s forwards" : "none" }}
           >
-            <CountdownTimer targetDate={eventMeta.event_date} />
+            <CountdownTimer targetDate={eventMeta.event_date} dir={dir} />
             <button
               onClick={scrollToForm}
               className="inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_50px_rgba(184,217,0,0.5)] hover:scale-[1.03] active:scale-[0.98]"
@@ -1258,6 +1265,7 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
               pageId={page.id}
               eventTitle={page.title_he}
               isZoom={true}
+              dir={dir}
             />
           </div>
 
@@ -1323,7 +1331,7 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
       </section>
 
       {/* ====== FOOTER ====== */}
-      <footer className="py-12 bg-[#2a2628]" dir="rtl">
+      <footer className="py-12 bg-[#2a2628]" dir={dir}>
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">

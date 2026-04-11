@@ -60,7 +60,7 @@ export function AboutSection({ content, language }: AboutSectionProps) {
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-1 bg-[#B8D900] rounded-full" />
                 <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
-                  {isRtl ? "אודות התוכנית" : "About"}
+                  {language === "ar" ? "عن البرنامج" : language === "he" ? "אודות התוכנית" : "About"}
                 </span>
               </div>
               <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] mb-6 leading-tight">

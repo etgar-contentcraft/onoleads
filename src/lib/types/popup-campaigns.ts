@@ -80,7 +80,11 @@ export interface PopupContent {
 /** Content shape for sticky CTA bars */
 export interface StickyBarContent {
   text_he: string;
+  text_en?: string;
+  text_ar?: string;
   cta_text_he: string;
+  cta_text_en?: string;
+  cta_text_ar?: string;
   phone_number?: string;
   bg_color: string;
   accent_color: string;

@@ -91,7 +91,11 @@ function AnimatedStat({ item, language, inView, index }: { item: StatItem; langu
 
 export function StatsSection({ content, language }: StatsSectionProps) {
   const isRtl = language === "he" || language === "ar";
-  const items: StatItem[] = Array.isArray(content.items) ? (content.items as StatItem[]) : [];
+  const items: StatItem[] = Array.isArray(content.stats)
+    ? (content.stats as StatItem[])
+    : Array.isArray(content.items)
+      ? (content.items as StatItem[])
+      : [];
   const heading = (content[`heading_${language}`] as string) || (content.heading_he as string) || "";
   const bgImage = (content.background_image_url as string) || (content.background_image as string) || "";
   const bgVideo = (content.background_video_url as string) || "";

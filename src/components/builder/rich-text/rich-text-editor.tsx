@@ -48,7 +48,7 @@ export function RichTextEditor({ value, onChange, placeholder, dir = "auto" }: R
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm max-w-none focus:outline-none min-h-[100px] px-3 py-2 text-[#4A4648]",
+          "prose prose-sm max-w-none focus:outline-none min-h-[160px] px-3 py-2 text-[#4A4648]",
         dir,
         ...(placeholder ? { "data-placeholder": placeholder } : {}),
       },

@@ -93,7 +93,7 @@ export function StickyCtaBar({
       dir={isRtl ? "rtl" : "ltr"}
       className={`
         fixed left-0 right-0 z-[45]
-        ${isTop ? HEADER_OFFSET_CLASS : "bottom-0"}
+        ${isTop ? HEADER_OFFSET_CLASS : "bottom-0 pb-[env(safe-area-inset-bottom)]"}
         animate-slide-in-bar
         flex items-center justify-between
         px-4 py-2 shadow-lg
@@ -104,7 +104,7 @@ export function StickyCtaBar({
       {/* Left/start side: promotional text + social proof */}
       <div className="hidden md:flex flex-col gap-0">
         <span className="text-sm font-medium text-white truncate max-w-[40vw]">
-          {content.text_he}
+          {content[`text_${language}` as keyof typeof content] as string || content.text_he}
         </span>
         {content.social_proof_text && (
           <span className="text-xs text-white/60">{content.social_proof_text}</span>
@@ -114,7 +114,7 @@ export function StickyCtaBar({
       {/* Center: countdown (desktop only) */}
       {content.countdown_end && (
         <div className="hidden md:flex items-center gap-1.5">
-          <span className="text-xs text-white/60">{isRtl ? "נותר:" : "Remaining:"}</span>
+          <span className="text-xs text-white/60">{language === "ar" ? "المتبقي:" : language === "he" ? "נותר:" : "Remaining:"}</span>
           <BarCountdown targetISO={content.countdown_end} textColor="white" />
         </div>
       )}
@@ -151,7 +151,7 @@ export function StickyCtaBar({
           className="font-heading rounded-full px-5 py-1.5 text-sm font-bold text-white shadow-md hover:brightness-110 transition-all duration-200 cursor-pointer"
           style={{ backgroundColor: content.accent_color }}
         >
-          {content.cta_text_he}
+          {content[`cta_text_${language}` as keyof typeof content] as string || content.cta_text_he}
         </button>
       </div>
     </div>

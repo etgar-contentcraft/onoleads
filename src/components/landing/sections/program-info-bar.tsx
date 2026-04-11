@@ -71,22 +71,22 @@ export function ProgramInfoBar({ content, language }: ProgramInfoBarProps) {
   const displayItems: InfoItem[] = items.length > 0 ? items : [
     ...(content.duration ? [{
       icon: "duration",
-      label: isRtl ? "משך הלימודים" : "Duration",
+      label: language === "ar" ? "مدة الدراسة" : language === "he" ? "משך הלימודים" : "Duration",
       value: content.duration as string,
     }] : []),
     ...(content.campus ? [{
       icon: "campus",
-      label: isRtl ? "קמפוס" : "Campus",
+      label: language === "ar" ? "الحرم الجامعي" : language === "he" ? "קמפוס" : "Campus",
       value: content.campus as string,
     }] : []),
     ...(content.format ? [{
       icon: "format",
-      label: isRtl ? "מתכונת" : "Format",
+      label: language === "ar" ? "التنسيق" : language === "he" ? "מתכונת" : "Format",
       value: content.format as string,
     }] : []),
     ...(content.degree ? [{
       icon: "degree",
-      label: isRtl ? "תואר" : "Degree",
+      label: language === "ar" ? "الدرجة" : language === "he" ? "תואר" : "Degree",
       value: content.degree as string,
     }] : []),
   ];
