@@ -104,7 +104,7 @@ function TrackCard({
 
       {/* Icon + title row */}
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-11 h-11 rounded-xl bg-[#B8D900]/12 flex items-center justify-center shrink-0">
+        <div className="w-11 h-11 rounded-xl bg-[#B8D900]/15 flex items-center justify-center shrink-0 shadow-[0_2px_6px_rgba(184,217,0,0.08)]">
           <TrackIconSvg icon={track.icon} />
         </div>
         <h3 className="font-heading font-bold text-[#2a2628] text-lg leading-snug">

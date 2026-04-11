@@ -85,7 +85,7 @@ export function AccordionSection({ content, language }: AccordionSectionProps) {
           </h2>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {items.map((item, index) => {
             const title =
               (item[`title_${language}` as keyof AccordionItem] as string) ||
@@ -102,8 +102,8 @@ export function AccordionSection({ content, language }: AccordionSectionProps) {
                 key={index}
                 className={`rounded-2xl border transition-all duration-300 overflow-hidden opacity-0 ${
                   isOpen
-                    ? "border-[#B8D900]/40 bg-white shadow-[0_4px_24px_rgba(184,217,0,0.08)]"
-                    : "border-gray-200 bg-white hover:border-[#B8D900]/20"
+                    ? "border-[#B8D900]/40 bg-white shadow-[0_6px_28px_rgba(184,217,0,0.12)]"
+                    : "border-gray-200 bg-[#fafaf8] hover:border-[#B8D900]/25 hover:bg-white hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
                 }`}
                 style={{
                   animation: inView
@@ -116,9 +116,15 @@ export function AccordionSection({ content, language }: AccordionSectionProps) {
                   className="w-full flex items-center justify-between p-5 md:p-6 text-start group"
                   aria-expanded={isOpen}
                 >
-                  <span className="font-heading text-base md:text-lg font-bold text-[#2a2628] leading-snug pr-3">
-                    {title}
-                  </span>
+                  <div className="flex items-start gap-4">
+                    {/* Green accent bar */}
+                    <div className={`w-1 self-stretch rounded-full transition-all duration-300 shrink-0 ${
+                      isOpen ? "bg-[#B8D900]" : "bg-gray-200 group-hover:bg-[#B8D900]/50"
+                    }`} />
+                    <span className="font-heading text-base md:text-lg font-bold text-[#2a2628] leading-snug">
+                      {title}
+                    </span>
+                  </div>
                   <div
                     className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
                       isOpen

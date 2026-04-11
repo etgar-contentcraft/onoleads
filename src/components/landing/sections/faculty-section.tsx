@@ -105,7 +105,7 @@ export function FacultySection({ content, language }: FacultySectionProps) {
   return (
     <section
       ref={sectionRef}
-      className="py-20 md:py-28 bg-white"
+      className="py-20 md:py-28 bg-[#fafafa]"
       dir={isRtl ? "rtl" : "ltr"}
     >
       <div className="max-w-6xl mx-auto px-5">
@@ -158,7 +158,7 @@ export function FacultySection({ content, language }: FacultySectionProps) {
             return (
               <div
                 key={member.library_id ?? index}
-                className="group text-center opacity-0"
+                className="group text-center opacity-0 bg-white rounded-2xl p-5 pb-6 border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(184,217,0,0.12)] hover:border-[#B8D900]/30 hover:-translate-y-1 transition-all duration-300"
                 style={{
                   animation: inView
                     ? `fade-in-up 0.5s ease-out ${0.15 + index * 0.07}s forwards`
@@ -166,9 +166,9 @@ export function FacultySection({ content, language }: FacultySectionProps) {
                 }}
               >
                 {/* Photo container with hover effect */}
-                <div className="relative mx-auto w-28 h-28 md:w-32 md:h-32 mb-4">
+                <div className="relative mx-auto w-24 h-24 md:w-28 md:h-28 mb-5">
                   {imageUrl ? (
-                    <div className="w-full h-full rounded-full overflow-hidden border-3 border-transparent group-hover:border-[#B8D900]/40 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.06)] group-hover:shadow-[0_8px_30px_rgba(184,217,0,0.15)]">
+                    <div className="w-full h-full rounded-full overflow-hidden border-3 border-[#B8D900]/15 group-hover:border-[#B8D900]/40 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.06)] group-hover:shadow-[0_8px_30px_rgba(184,217,0,0.15)]">
                       <Image
                         src={imageUrl}
                         alt={name}
@@ -180,27 +180,22 @@ export function FacultySection({ content, language }: FacultySectionProps) {
                       />
                     </div>
                   ) : (
-                    <div className="w-full h-full rounded-full bg-gradient-to-br from-[#B8D900]/15 to-[#B8D900]/5 flex items-center justify-center border-2 border-[#B8D900]/10 group-hover:border-[#B8D900]/30 transition-all duration-300">
-                      <span className="font-heading font-bold text-3xl text-[#9ab800]">
+                    <div className="w-full h-full rounded-full bg-gradient-to-br from-[#B8D900]/20 to-[#B8D900]/8 flex items-center justify-center border-2 border-[#B8D900]/20 group-hover:border-[#B8D900]/40 transition-all duration-300 shadow-[0_2px_10px_rgba(184,217,0,0.08)]">
+                      <span className="font-heading font-bold text-3xl md:text-4xl text-[#7a9400]">
                         {name.charAt(0)}
                       </span>
                     </div>
                   )}
-
-                  {/* Green indicator dot */}
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm">
-                    <div className="w-3.5 h-3.5 rounded-full bg-[#B8D900]" />
-                  </div>
                 </div>
 
                 {/* Name */}
-                <h3 className="font-heading font-bold text-[#2a2628] text-base mb-1">
+                <h3 className="font-heading font-bold text-[#2a2628] text-base md:text-lg mb-1.5 leading-snug">
                   {name}
                 </h3>
 
                 {/* Title / bio */}
                 {title && (
-                  <p className="font-heebo text-[#5A5658] text-xs leading-relaxed max-w-[180px] mx-auto mb-2">
+                  <p className="font-heebo text-[#5A5658] text-sm leading-relaxed max-w-[200px] mx-auto mb-2">
                     {title}
                   </p>
                 )}

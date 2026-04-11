@@ -161,13 +161,13 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
             return (
               <div
                 key={index}
-                className="group relative bg-white rounded-2xl p-7 md:p-8 border border-gray-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] hover:border-[#B8D900]/40 hover:shadow-[0_12px_40px_rgba(184,217,0,0.1)] transition-all duration-400 opacity-0 hover:-translate-y-1 w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-19px)]"
+                className="group relative bg-white rounded-2xl p-7 md:p-8 border border-gray-200/80 shadow-[0_2px_16px_rgba(0,0,0,0.05)] hover:border-[#B8D900]/40 hover:shadow-[0_12px_40px_rgba(184,217,0,0.12)] transition-all duration-400 opacity-0 hover:-translate-y-1 w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-19px)]"
                 style={{ animation: inView ? `fade-in-up 0.5s ease-out ${0.1 + index * 0.08}s forwards` : "none" }}
               >
                 {/* Green top accent line on hover */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-[#B8D900] rounded-t-2xl scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center" />
 
-                <div className="w-14 h-14 rounded-2xl bg-[#B8D900]/10 flex items-center justify-center text-[#9ab800] mb-5 group-hover:bg-[#B8D900] group-hover:text-[#2a2628] transition-all duration-300">
+                <div className="w-14 h-14 rounded-2xl bg-[#B8D900]/12 flex items-center justify-center text-[#7a9400] mb-5 group-hover:bg-[#B8D900] group-hover:text-[#2a2628] transition-all duration-300 shadow-[0_2px_8px_rgba(184,217,0,0.08)]">
                   {BENEFIT_ICONS[iconKey] || BENEFIT_ICONS.star}
                 </div>
                 <h3 className="font-heading font-bold text-lg text-[#2a2628] mb-2 leading-snug">{title}</h3>

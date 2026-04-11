@@ -95,7 +95,7 @@ export function FaqSection({ content, language }: FaqSectionProps) {
         </div>
 
         {/* Accordion items */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {items.map((item, index) => {
             const question = (item[`question_${language}` as keyof FaqItem] as string) || item.question_he || "";
             const answer = (item[`answer_${language}` as keyof FaqItem] as string) || item.answer_he || "";
@@ -106,8 +106,8 @@ export function FaqSection({ content, language }: FaqSectionProps) {
                 key={index}
                 className={`rounded-2xl border transition-all duration-300 overflow-hidden opacity-0 ${
                   isOpen
-                    ? "border-[#B8D900]/40 bg-white shadow-[0_4px_24px_rgba(184,217,0,0.08)]"
-                    : "border-gray-200 bg-white hover:border-[#B8D900]/20"
+                    ? "border-[#B8D900]/40 bg-white shadow-[0_6px_28px_rgba(184,217,0,0.12)]"
+                    : "border-gray-200 bg-[#fafaf8] hover:border-[#B8D900]/25 hover:bg-white hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
                 }`}
                 style={{ animation: inView ? `fade-in-up 0.5s ease-out ${0.15 + index * 0.06}s forwards` : "none" }}
               >

@@ -38,11 +38,11 @@ const MAX_STARS = 5;
  */
 function StarRating({ rating }: { rating: number }) {
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center gap-1">
       {Array.from({ length: MAX_STARS }).map((_, i) => (
         <svg
           key={i}
-          className={`w-4 h-4 ${i < rating ? "text-[#B8D900]" : "text-gray-200"}`}
+          className={`w-[18px] h-[18px] ${i < rating ? "text-[#B8D900]" : "text-gray-200"}`}
           fill="currentColor"
           viewBox="0 0 24 24"
         >
@@ -235,7 +235,7 @@ function TestimonialCard({
   return (
     <div
       data-card
-      className={`relative bg-white rounded-2xl p-7 md:p-8 shadow-[0_2px_20px_rgba(0,0,0,0.04)] border border-gray-100 hover:shadow-[0_12px_50px_rgba(0,0,0,0.08)] hover:border-[#B8D900]/20 transition-all duration-300 ${className}`}
+      className={`relative bg-white rounded-2xl p-7 md:p-8 shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-gray-200/80 hover:shadow-[0_12px_50px_rgba(0,0,0,0.10)] hover:border-[#B8D900]/30 hover:-translate-y-0.5 transition-all duration-300 ${className}`}
       style={style}
     >
       {/* Video testimonial embed */}
@@ -253,7 +253,7 @@ function TestimonialCard({
 
       {/* Green quote mark */}
       <div className="mb-4">
-        <svg className="w-10 h-10 text-[#B8D900] opacity-25" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="w-10 h-10 text-[#B8D900] opacity-35" fill="currentColor" viewBox="0 0 24 24">
           <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
         </svg>
       </div>
@@ -269,7 +269,7 @@ function TestimonialCard({
       </p>
 
       {/* Author info */}
-      <div className="flex items-center gap-4 pt-5 border-t border-gray-100">
+      <div className="flex items-center gap-4 pt-5 border-t border-gray-200">
         {imageUrl ? (
           <Image
             src={imageUrl}

@@ -155,7 +155,7 @@ export function ContactInfoSection({ content, language }: ContactInfoSectionProp
           {items.map((item, index) => {
             const inner = (
               <>
-                <div className="w-12 h-12 rounded-full bg-[#B8D900]/15 text-[#2a2628] flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-[#B8D900]/15 text-[#7a9400] flex items-center justify-center mb-4 shadow-[0_2px_6px_rgba(184,217,0,0.08)]">
                   {item.icon}
                 </div>
                 <p className="text-xs uppercase tracking-widest text-[#7A7678] font-heebo font-semibold mb-1">
@@ -168,7 +168,7 @@ export function ContactInfoSection({ content, language }: ContactInfoSectionProp
             );
 
             const baseClass =
-              "block bg-white border border-gray-200 rounded-2xl p-6 transition-all duration-300 hover:border-[#B8D900]/50 hover:shadow-[0_8px_30px_rgba(184,217,0,0.10)] opacity-0";
+              "block bg-white border border-gray-200/80 rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-[#B8D900]/50 hover:shadow-[0_8px_30px_rgba(184,217,0,0.12)] hover:-translate-y-0.5 opacity-0";
             const animStyle = {
               animation: inView
                 ? `fade-in-up 0.5s ease-out ${0.15 + index * 0.08}s forwards`

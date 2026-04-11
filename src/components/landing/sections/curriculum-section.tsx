@@ -148,10 +148,10 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
                         ? "bg-[#B8D900] text-[#2a2628] shadow-[0_0_20px_rgba(184,217,0,0.4)]"
                         : isCompleted
                           ? "bg-[#B8D900]/80 text-[#2a2628]"
-                          : "bg-white text-[#5A5658] border-gray-200"
+                          : "bg-white text-[#5A5658] border-gray-300 shadow-[0_1px_4px_rgba(0,0,0,0.06)]"
                     }`}
                   >
-                    <span className="font-heading font-bold text-sm">{index + 1}</span>
+                    <span className="font-heading font-bold text-sm md:text-base">{index + 1}</span>
                   </div>
 
                   {/* Accordion card */}
@@ -159,8 +159,8 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
                     <div
                       className={`rounded-2xl border overflow-hidden transition-all duration-300 ${
                         isOpen
-                          ? "border-[#B8D900]/30 bg-white shadow-[0_4px_24px_rgba(184,217,0,0.08)]"
-                          : "border-gray-200 bg-white hover:border-[#B8D900]/20 hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+                          ? "border-[#B8D900]/30 bg-white shadow-[0_6px_28px_rgba(184,217,0,0.12)]"
+                          : "border-gray-200 bg-white hover:border-[#B8D900]/25 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
                       }`}
                     >
                       <button
@@ -192,7 +192,7 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
                             {year.courses.map((course, cIndex) => (
                               <span
                                 key={cIndex}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#B8D900]/8 text-[#2a2628] text-sm font-medium font-heebo border border-[#B8D900]/15 hover:bg-[#B8D900]/15 transition-colors"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#B8D900]/12 text-[#2a2628] text-sm font-medium font-heebo border border-[#B8D900]/20 hover:bg-[#B8D900]/20 hover:border-[#B8D900]/30 transition-colors"
                               >
                                 <div className="w-1.5 h-1.5 rounded-full bg-[#B8D900]" />
                                 {course}

@@ -144,7 +144,7 @@ export function ProgramsListSection({ content, language, programsMap = {} }: Pro
         </div>
 
         {/* Accordion items */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {items.map((item, index) => {
             const title = resolve(item, "title", language);
             const body = resolve(item, "body", language);
@@ -161,8 +161,8 @@ export function ProgramsListSection({ content, language, programsMap = {} }: Pro
                 key={index}
                 className={`rounded-2xl border transition-all duration-300 overflow-hidden opacity-0 ${
                   opened
-                    ? "border-[#B8D900]/40 bg-white shadow-[0_4px_24px_rgba(184,217,0,0.08)]"
-                    : "border-gray-200 bg-white hover:border-[#B8D900]/20"
+                    ? "border-[#B8D900]/40 bg-white shadow-[0_6px_28px_rgba(184,217,0,0.12)]"
+                    : "border-gray-200 bg-[#fafaf8] hover:border-[#B8D900]/25 hover:bg-white hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
                 }`}
                 style={{
                   animation: inView

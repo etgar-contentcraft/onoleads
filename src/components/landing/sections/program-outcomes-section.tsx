@@ -129,7 +129,7 @@ export function ProgramOutcomesSection({ content, language }: ProgramOutcomesSec
             return (
               <div
                 key={index}
-                className="group relative rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:border-[#B8D900]/50 hover:shadow-[0_8px_30px_rgba(184,217,0,0.10)] opacity-0"
+                className="group relative rounded-2xl border border-gray-200/80 bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-[#B8D900]/50 hover:shadow-[0_8px_30px_rgba(184,217,0,0.12)] hover:-translate-y-0.5 opacity-0"
                 style={{
                   animation: inView
                     ? `fade-in-up 0.5s ease-out ${0.2 + index * 0.08}s forwards`
