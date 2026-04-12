@@ -2013,6 +2013,24 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
       }
     }
 
+    /**
+     * Curriculum normalization: the seed/import scripts store data as `semesters`
+     * (legacy format) while the editor reads `years`. Convert on load so the
+     * editor displays the existing course data.
+     */
+    if (section.section_type === "curriculum" && !raw.years && Array.isArray(raw.semesters)) {
+      raw.years = (raw.semesters as Array<Record<string, unknown>>).map((sem) => {
+        const courses = Array.isArray(sem.courses)
+          ? (sem.courses as Array<Record<string, string>>).map((c) => c[`name_${lang}`] || c.name_he || "").filter(Boolean).join(", ")
+          : "";
+        return {
+          [`title_${lang}`]: sem[`title_${lang}`] || sem.title_he || "",
+          title_he: (sem.title_he as string) || "",
+          courses,
+        };
+      });
+    }
+
     setDraft(raw);
   }, [section, pageLanguage]);
 
