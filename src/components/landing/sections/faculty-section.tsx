@@ -105,7 +105,7 @@ export function FacultySection({ content, language }: FacultySectionProps) {
   return (
     <section
       ref={sectionRef}
-      className="py-20 md:py-28 bg-[#fafafa]"
+      className="py-20 md:py-28 bg-mesh-warm"
       dir={isRtl ? "rtl" : "ltr"}
     >
       <div className="max-w-6xl mx-auto px-5">
@@ -114,7 +114,7 @@ export function FacultySection({ content, language }: FacultySectionProps) {
           <div
             className="inline-flex items-center gap-3 mb-5 opacity-0"
             style={{
-              animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none",
+              animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none",
             }}
           >
             <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
@@ -127,7 +127,7 @@ export function FacultySection({ content, language }: FacultySectionProps) {
             className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
             style={{
               animation: inView
-                ? "fade-in-up 0.6s ease-out 0.1s forwards"
+                ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards"
                 : "none",
             }}
           >
@@ -158,10 +158,10 @@ export function FacultySection({ content, language }: FacultySectionProps) {
             return (
               <div
                 key={member.library_id ?? index}
-                className="group text-center opacity-0 bg-white rounded-2xl p-5 pb-6 border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgba(184,217,0,0.12)] hover:border-[#B8D900]/30 hover:-translate-y-1 transition-all duration-300"
+                className="group text-center opacity-0 bg-white/80 rounded-2xl p-5 pb-6 border border-gray-100/80 card-premium gradient-border-green"
                 style={{
                   animation: inView
-                    ? `fade-in-up 0.5s ease-out ${0.15 + index * 0.07}s forwards`
+                    ? `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + index * 0.07}s forwards`
                     : "none",
                 }}
               >
@@ -180,8 +180,8 @@ export function FacultySection({ content, language }: FacultySectionProps) {
                       />
                     </div>
                   ) : (
-                    <div className="w-full h-full rounded-full bg-gradient-to-br from-[#B8D900]/20 to-[#B8D900]/8 flex items-center justify-center border-2 border-[#B8D900]/20 group-hover:border-[#B8D900]/40 transition-all duration-300 shadow-[0_2px_10px_rgba(184,217,0,0.08)]">
-                      <span className="font-heading font-bold text-3xl md:text-4xl text-[#7a9400]">
+                    <div className="w-full h-full rounded-full bg-gradient-to-br from-[#B8D900]/20 via-[#d4f040]/10 to-[#B8D900]/5 flex items-center justify-center border-2 border-[#B8D900]/25 group-hover:border-[#B8D900]/50 transition-all duration-300 shadow-[inset_0_2px_8px_rgba(184,217,0,0.1)]">
+                      <span className="font-heading font-bold text-3xl md:text-4xl text-[#6d8a00]">
                         {name.charAt(0)}
                       </span>
                     </div>

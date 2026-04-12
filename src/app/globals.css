@@ -166,13 +166,57 @@
 .reduce-motion,
 .reduce-motion * {
   animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ── Global pointer cursor on all clickable elements ──
+   Ensures the hand (pointer) cursor appears on hover for every interactive
+   element — buttons, links, role="button", summary, and tabindex targets.
+   Without this, many <button> elements show the default arrow cursor. */
+button,
+[role="button"],
+[role="link"],
+summary,
+[tabindex]:not([tabindex="-1"]) {
+  cursor: pointer;
+}
+
+/* ── Global keyboard focus ring ──
+   Brand green outline on all interactive elements when navigated via keyboard.
+   Uses :focus-visible (not :focus) so mouse clicks don't show the ring.
+   Covers all 34+ CTA buttons, links, and form controls across sections. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[role="link"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #B8D900;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Highlight ALL interactive elements — not just <a> links.
+   Israeli Standard SI 5568 requires identifiable clickable targets. */
+.highlight-links a,
+.highlight-links button,
+.highlight-links [role="button"],
+.highlight-links [role="link"],
+.highlight-links input[type="submit"],
+.highlight-links input[type="button"],
+.highlight-links summary,
+.highlight-links [tabindex="0"] {
+  outline: 2px solid #B8D900 !important;
+  outline-offset: 2px !important;
 }
 .highlight-links a {
   text-decoration: underline !important;
-  outline: 2px solid #B8D900 !important;
-  outline-offset: 2px;
 }
 
 /* Skip to content link for screen readers */
@@ -226,6 +270,25 @@
 
 .font-heebo {
   font-family: var(--font-heebo), sans-serif;
+}
+
+/* ============================================================================
+   Premium Design System — Shadow & Glass Foundation
+   ============================================================================ */
+
+:root {
+  /* Layered shadow system — simulates real light with multiple stops */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 6px 16px rgba(0,0,0,0.04);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.08), 0 20px 48px rgba(0,0,0,0.06);
+  --shadow-elevated: 0 8px 24px rgba(0,0,0,0.10), 0 24px 64px rgba(0,0,0,0.06);
+  --shadow-modal: 0 24px 80px rgba(0,0,0,0.18), 0 8px 24px rgba(0,0,0,0.10);
+  --shadow-green-sm: 0 2px 8px rgba(184,217,0,0.15);
+  --shadow-green: 0 4px 20px rgba(184,217,0,0.20), 0 0 60px rgba(184,217,0,0.06);
+  --shadow-green-lg: 0 8px 32px rgba(184,217,0,0.25), 0 0 80px rgba(184,217,0,0.08);
+  /* Spring easing for personality */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ============================================================================
@@ -388,6 +451,58 @@
   animation: slide-in-bottom 0.4s ease-out forwards;
 }
 
+/* --- Premium Animation Keyframes --- */
+
+@keyframes blur-in {
+  from { opacity: 0; filter: blur(12px); transform: translateY(8px); }
+  to { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+
+@keyframes number-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes draw-line {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(184,217,0,0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(184,217,0,0); }
+  100% { box-shadow: 0 0 0 0 rgba(184,217,0,0); }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes slide-up-spring {
+  0% { opacity: 0; transform: translateY(40px) scale(0.96); }
+  60% { transform: translateY(-4px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes expand-accent {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes icon-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(2deg); }
+}
+
+.animate-blur-in { animation: blur-in 0.7s var(--ease-out-expo) forwards; }
+.animate-number-pop { animation: number-pop 0.5s var(--ease-spring) forwards; }
+.animate-draw-line { animation: draw-line 0.5s var(--ease-out-expo) forwards; transform-origin: center; }
+.animate-pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+.animate-slide-up-spring { animation: slide-up-spring 0.6s var(--ease-out-expo) forwards; }
+.animate-icon-float { animation: icon-float 3s ease-in-out infinite; }
+
 /* Staggered animation delays */
 .stagger-1 { animation-delay: 0.1s; }
 .stagger-2 { animation-delay: 0.2s; }
@@ -398,20 +513,42 @@
 
 /* Respect users who prefer reduced motion — disable all custom animations */
 @media (prefers-reduced-motion: reduce) {
+  /* Nuclear reset — disables ALL animations & transitions including inline
+     style={{ animation: "..." }} patterns used by Premium Glass sections.
+     !important overrides inline styles per CSS cascade rules. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Ensure animated elements are still visible (not stuck at opacity:0) */
   .animate-fade-in-up,
   .animate-fade-in-down,
   .animate-fade-in,
   .animate-scale-in,
   .animate-slide-in-right,
   .animate-slide-in-left,
+  .animate-slide-in-bottom,
   .animate-float,
   .animate-pulse-glow,
   .animate-shimmer,
   .animate-count-up,
   .animate-scroll-hint,
-  .animate-check-draw {
+  .animate-check-draw,
+  .animate-blur-in,
+  .animate-number-pop,
+  .animate-draw-line,
+  .animate-slide-up-spring,
+  .animate-icon-float {
     animation: none !important;
     opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
   }
 }
 
@@ -419,7 +556,7 @@
    Landing Page Utility Classes
    ============================================================================ */
 
-/* Glass morphism card */
+/* --- Glass Morphism System --- */
 .glass-card {
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px);
@@ -429,9 +566,77 @@
 
 .glass-card-light {
   background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+.glass-backdrop {
+  background: rgba(42, 38, 40, 0.5);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+}
+
+/* --- Gradient Border (hover reveals green gradient outline) --- */
+.gradient-border-green {
+  position: relative;
+  z-index: 0;
+}
+.gradient-border-green::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(135deg, #B8D900, rgba(184,217,0,0.4), transparent 60%, rgba(184,217,0,0.25));
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  z-index: -1;
+}
+.gradient-border-green:hover::before,
+.gradient-border-green.active::before {
+  opacity: 1;
+}
+
+/* --- Section Mesh Backgrounds --- */
+.bg-mesh-light {
+  background-image:
+    radial-gradient(at 20% 80%, rgba(184,217,0,0.04) 0%, transparent 50%),
+    radial-gradient(at 80% 20%, rgba(184,217,0,0.03) 0%, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(184,217,0,0.015) 0%, transparent 70%);
+  background-color: white;
+}
+
+.bg-mesh-warm {
+  background-image:
+    radial-gradient(at 0% 100%, rgba(184,217,0,0.05) 0%, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(184,217,0,0.03) 0%, transparent 50%);
+  background-color: #fafafa;
+}
+
+/* --- Premium Card Interaction --- */
+.card-premium {
+  box-shadow: var(--shadow-card);
+  transition: transform 0.35s var(--ease-spring),
+              box-shadow 0.35s ease,
+              border-color 0.35s ease;
+}
+.card-premium:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* --- Premium Input Focus --- */
+.input-focus-ring:focus {
+  border-color: #B8D900;
+  box-shadow: 0 0 0 3px rgba(184,217,0,0.12), var(--shadow-card);
+  outline: none;
 }
 
 /* Gradient text */

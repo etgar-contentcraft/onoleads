@@ -119,7 +119,7 @@ export function MapSection({ content, language }: MapSectionProps) {
   return (
     <section
       ref={sectionRef}
-      className="py-20 md:py-28 bg-[#f8f8f8]"
+      className="py-20 md:py-28 bg-mesh-light"
       dir={isRtl ? "rtl" : "ltr"}
     >
       <div className="max-w-6xl mx-auto px-5">
@@ -127,17 +127,17 @@ export function MapSection({ content, language }: MapSectionProps) {
         <div className="text-center mb-12">
           <div
             className="inline-flex items-center gap-3 mb-5 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+            style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
           >
             <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
-            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
+            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo border border-[#B8D900]/20">
               {isRtl ? "מיקום ונסיעה" : "Location & Travel"}
             </span>
             <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
           </div>
           <h2
             className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
           >
             {heading}
           </h2>
@@ -146,13 +146,13 @@ export function MapSection({ content, language }: MapSectionProps) {
         {/* Main content block — map/card + optional venue photo */}
         <div
           className={`flex flex-col ${imageUrl ? "lg:flex-row" : ""} gap-6 lg:gap-8 opacity-0`}
-          style={{ animation: inView ? "fade-in-up 0.7s ease-out 0.2s forwards" : "none" }}
+          style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.2s forwards" : "none" }}
         >
           {/* Map embed OR styled address card */}
           <div className="flex-1 min-w-0 flex flex-col gap-4">
             {embedUrl ? (
               /* ---- Google Maps embed iframe ---- */
-              <div className="relative rounded-2xl overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.1)] border border-gray-200 bg-gray-100 aspect-[16/9] lg:aspect-auto lg:h-[420px]">
+              <div className="relative rounded-2xl overflow-hidden shadow-[var(--shadow-card)] border border-gray-100/80 bg-gray-100 aspect-[16/9] lg:aspect-auto lg:h-[420px]">
                 <iframe
                   src={embedUrl}
                   className="absolute inset-0 w-full h-full"
@@ -164,7 +164,7 @@ export function MapSection({ content, language }: MapSectionProps) {
               </div>
             ) : (
               /* ---- Styled address card fallback ---- */
-              <div className="rounded-2xl bg-white border border-gray-200 shadow-[0_2px_20px_rgba(0,0,0,0.06)] p-8 md:p-10 flex items-start gap-5">
+              <div className="rounded-2xl bg-white/80 border border-gray-100/80 card-premium gradient-border-green p-8 md:p-10 flex items-start gap-5">
                 <div className="shrink-0 w-14 h-14 rounded-2xl bg-[#B8D900]/12 flex items-center justify-center mt-0.5">
                   <LocationPinIcon className="w-7 h-7 text-[#B8D900]" />
                 </div>
@@ -184,7 +184,7 @@ export function MapSection({ content, language }: MapSectionProps) {
             )}
 
             {/* Info card below map/card — venue name + address + directions */}
-            <div className="rounded-2xl bg-white border border-gray-200 shadow-[0_2px_16px_rgba(0,0,0,0.05)] p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+            <div className="rounded-2xl bg-white/80 border border-gray-100/80 card-premium gradient-border-green p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
               <div className="flex items-start gap-4">
                 <div className="shrink-0 w-10 h-10 rounded-xl bg-[#B8D900]/12 flex items-center justify-center mt-0.5">
                   <LocationPinIcon className="w-5 h-5 text-[#B8D900]" />
@@ -209,7 +209,7 @@ export function MapSection({ content, language }: MapSectionProps) {
                   href={googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-2.5 shrink-0 px-6 py-3 rounded-xl bg-[#2a2628] text-white font-heading font-bold text-sm transition-all duration-300 hover:bg-[#B8D900] hover:text-[#2a2628] hover:shadow-[0_0_30px_rgba(184,217,0,0.3)] hover:scale-[1.02] active:scale-[0.98]"
+                  className="group inline-flex items-center gap-2.5 shrink-0 px-6 py-3 rounded-xl bg-[#2a2628] text-white font-heading font-bold text-sm transition-all duration-300 hover:bg-[#B8D900] hover:text-[#2a2628] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <svg
                     className="w-4 h-4 shrink-0"
@@ -240,7 +240,7 @@ export function MapSection({ content, language }: MapSectionProps) {
             {(parkingInfo || transportInfo) && (
               <div className="flex flex-wrap gap-3">
                 {parkingInfo && (
-                  <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white border border-gray-200 shadow-sm">
+                  <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/80 border border-gray-100/80 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-300">
                     <span className="shrink-0 w-7 h-7 rounded-lg bg-[#B8D900]/12 flex items-center justify-center">
                       <CarIcon className="w-4 h-4 text-[#B8D900]" />
                     </span>
@@ -248,7 +248,7 @@ export function MapSection({ content, language }: MapSectionProps) {
                   </div>
                 )}
                 {transportInfo && (
-                  <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white border border-gray-200 shadow-sm">
+                  <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/80 border border-gray-100/80 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all duration-300">
                     <span className="shrink-0 w-7 h-7 rounded-lg bg-[#B8D900]/12 flex items-center justify-center">
                       <BusIcon className="w-4 h-4 text-[#B8D900]" />
                     </span>
@@ -262,7 +262,7 @@ export function MapSection({ content, language }: MapSectionProps) {
           {/* Optional venue photo — shown beside the map on large screens */}
           {imageUrl && (
             <div className="lg:w-72 xl:w-80 shrink-0">
-              <div className="relative rounded-2xl overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.10)] border border-gray-200 h-64 lg:h-full min-h-[280px]">
+              <div className="relative rounded-2xl overflow-hidden shadow-[var(--shadow-card)] border border-gray-100/80 h-64 lg:h-full min-h-[280px]">
                 <Image
                   src={imageUrl}
                   alt={venueName || heading}
@@ -285,7 +285,7 @@ export function MapSection({ content, language }: MapSectionProps) {
         {/* Bottom decorative line */}
         <div
           className="mt-10 flex items-center justify-center gap-4 opacity-0"
-          style={{ animation: inView ? "fade-in-up 0.5s ease-out 0.4s forwards" : "none" }}
+          style={{ animation: inView ? "slide-up-spring 0.5s var(--ease-out-expo) 0.4s forwards" : "none" }}
         >
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#B8D900]/30 to-transparent max-w-xs" />
           <div className="w-2 h-2 rounded-full bg-[#B8D900]/40" />

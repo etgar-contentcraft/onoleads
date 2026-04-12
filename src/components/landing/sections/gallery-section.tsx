@@ -50,17 +50,19 @@ function Lightbox({
   const current = images[index];
   const hasPrev = index > 0;
   const hasNext = index < images.length - 1;
+  const isRtl = language === "he" || language === "ar";
 
-  /* Keyboard navigation inside the lightbox */
+  /* Keyboard navigation inside the lightbox
+   * ArrowRight = "next" in LTR, "prev" in RTL (follow reading direction) */
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
-      if (e.key === "ArrowRight") onNext();
-      if (e.key === "ArrowLeft") onPrev();
+      if (e.key === "ArrowRight") { isRtl ? onPrev() : onNext(); }
+      if (e.key === "ArrowLeft") { isRtl ? onNext() : onPrev(); }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose, onPrev, onNext]);
+  }, [onClose, onPrev, onNext, isRtl]);
 
   /* Lock body scroll while lightbox is open */
   useEffect(() => {
@@ -70,16 +72,16 @@ function Lightbox({
 
   return (
     <div
-      className="fixed inset-0 z-[105] flex items-center justify-center bg-black/95 animate-fade-in"
+      className="fixed inset-0 z-[105] flex items-center justify-center bg-black/90 backdrop-blur-xl animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-label={language === "he" || language === "ar" ? "תמונה מוגדלת" : "Enlarged image"}
     >
-      {/* Close button */}
+      {/* Close button — end-4 respects dir so it sits top-right in LTR, top-left in RTL */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-        aria-label={language === "he" || language === "ar" ? "סגור" : "Close"}
+        className="absolute top-4 end-4 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+        aria-label={isRtl ? "סגור" : "Close"}
       >
         <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -91,28 +93,28 @@ function Lightbox({
         {index + 1} / {images.length}
       </div>
 
-      {/* Prev arrow */}
+      {/* Prev arrow — start-4 places it at the "start" side of reading direction */}
       {hasPrev && (
         <button
           onClick={onPrev}
-          className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all hover:scale-110"
-          aria-label={language === "he" || language === "ar" ? "תמונה קודמת" : "Previous image"}
+          className="absolute start-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all hover:scale-110"
+          aria-label={isRtl ? "תמונה קודמת" : "Previous image"}
         >
           <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            <path strokeLinecap="round" strokeLinejoin="round" d={isRtl ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"} />
           </svg>
         </button>
       )}
 
-      {/* Next arrow */}
+      {/* Next arrow — end-4 places it at the "end" side of reading direction */}
       {hasNext && (
         <button
           onClick={onNext}
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all hover:scale-110"
-          aria-label={language === "he" || language === "ar" ? "תמונה הבאה" : "Next image"}
+          className="absolute end-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all hover:scale-110"
+          aria-label={isRtl ? "תמונה הבאה" : "Next image"}
         >
           <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            <path strokeLinecap="round" strokeLinejoin="round" d={isRtl ? "M15 19l-7-7 7-7" : "M9 5l7 7-7 7"} />
           </svg>
         </button>
       )}
@@ -215,10 +217,10 @@ function GalleryTile({
   return (
     <button
       onClick={onClick}
-      className="group relative block w-full overflow-hidden rounded-xl bg-gray-100 aspect-[4/3] opacity-0 focus-visible:ring-2 focus-visible:ring-[#B8D900] focus-visible:ring-offset-2"
+      className="group relative block w-full overflow-hidden rounded-2xl bg-white/80 aspect-[4/3] opacity-0 border border-gray-100/80 card-premium gradient-border-green focus-visible:ring-2 focus-visible:ring-[#B8D900] focus-visible:ring-offset-2"
       style={{
         animation: inView
-          ? `fade-in-up 0.55s ease-out ${animationDelay}s forwards`
+          ? `slide-up-spring 0.55s var(--ease-out-expo) ${animationDelay}s forwards`
           : "none",
       }}
       aria-label={image.alt_he || (isVideo ? "הפעל סרטון" : "פתח תמונה")}
@@ -339,24 +341,24 @@ export function GallerySection({ content, language }: GallerySectionProps) {
       : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4";
 
   return (
-    <section ref={sectionRef} className="py-20 md:py-28 bg-white" dir={isRtl ? "rtl" : "ltr"}>
+    <section ref={sectionRef} className="py-20 md:py-28 bg-mesh-warm" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-6xl mx-auto px-5">
         {/* Header */}
         {heading && (
           <div className="text-center mb-12">
             <div
               className="inline-flex items-center gap-3 mb-5 opacity-0"
-              style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+              style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
             >
               <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
-              <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
+              <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo border border-[#B8D900]/20">
                 {isRtl ? "גלריית תמונות" : "Gallery"}
               </span>
               <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
             </div>
             <h2
               className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
-              style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+              style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
             >
               {heading}
             </h2>

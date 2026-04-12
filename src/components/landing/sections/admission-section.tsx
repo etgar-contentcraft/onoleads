@@ -82,14 +82,14 @@ function TrackCard({
 
   return (
     <div
-      className={`relative flex flex-col rounded-2xl p-7 transition-all duration-300 hover:shadow-[0_12px_50px_rgba(0,0,0,0.10)] opacity-0 ${
+      className={`relative flex flex-col rounded-2xl p-7 transition-all duration-300 opacity-0 ${
         isRecommended
-          ? "bg-white border-2 border-[#B8D900] shadow-[0_4px_30px_rgba(184,217,0,0.12)]"
-          : "bg-white border border-gray-200 shadow-[0_2px_16px_rgba(0,0,0,0.05)] hover:border-[#B8D900]/30"
+          ? "bg-white/90 border-2 border-[#B8D900] shadow-[var(--shadow-card-hover)] card-premium"
+          : "bg-white/80 border border-gray-100/80 card-premium gradient-border-green shadow-[var(--shadow-card)]"
       }`}
       style={{
         animation: inView
-          ? `fade-in-up 0.6s ease-out ${index * CARD_STAGGER_DELAY}s forwards`
+          ? `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + index * CARD_STAGGER_DELAY}s forwards`
           : "none",
       }}
     >
@@ -202,7 +202,7 @@ export function AdmissionSection({ content, language }: AdmissionSectionProps) {
   return (
     <section
       ref={sectionRef}
-      className="py-20 md:py-28 bg-[#f8f8f8]"
+      className="py-20 md:py-28 bg-mesh-light"
       dir={isRtl ? "rtl" : "ltr"}
     >
       <div className="max-w-6xl mx-auto px-5">
@@ -210,17 +210,17 @@ export function AdmissionSection({ content, language }: AdmissionSectionProps) {
         <div className="text-center mb-14">
           <div
             className="inline-flex items-center gap-3 mb-5 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+            style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
           >
-            <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
-            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
+            <div className="w-10 h-0.5 bg-[#B8D900] rounded-full" />
+            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo tracking-wide">
               {isRtl ? "קבלה ללימודים" : "Admissions"}
             </span>
-            <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+            <div className="w-10 h-0.5 bg-[#B8D900] rounded-full" />
           </div>
           <h2
             className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
           >
             {heading}
           </h2>
@@ -245,10 +245,10 @@ export function AdmissionSection({ content, language }: AdmissionSectionProps) {
           /* ---- Single-track: elegant decorated list ---- */
           <div
             className="max-w-2xl mx-auto opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.15s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.15s forwards" : "none" }}
           >
             <div
-              className={`bg-white rounded-2xl p-8 md:p-10 shadow-[0_2px_20px_rgba(0,0,0,0.06)] border border-gray-100 ${
+              className={`bg-white/80 rounded-2xl p-8 md:p-10 shadow-[var(--shadow-card)] border border-gray-100/80 card-premium ${
                 isRtl ? "border-r-4 border-r-[#B8D900]" : "border-l-4 border-l-[#B8D900]"
               }`}
             >
@@ -275,13 +275,13 @@ export function AdmissionSection({ content, language }: AdmissionSectionProps) {
             className="mt-12 text-center opacity-0"
             style={{
               animation: inView
-                ? `fade-in-up 0.6s ease-out ${isMultiTrack ? tracks!.length * CARD_STAGGER_DELAY + 0.1 : 0.3}s forwards`
+                ? `slide-up-spring 0.7s var(--ease-out-expo) ${isMultiTrack ? tracks!.length * CARD_STAGGER_DELAY + 0.1 : 0.3}s forwards`
                 : "none",
             }}
           >
             <button
               onClick={() => open("section_admission")}
-              className="group inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_40px_rgba(184,217,0,0.40)] hover:scale-[1.02] active:scale-[0.98]"
+              className="group inline-flex items-center gap-3 px-10 py-5 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
             >
               {ctaText}
               <svg

@@ -208,7 +208,7 @@ function CountdownTimer({ targetISO, accentColor }: { targetISO: string; accentC
             <span className="text-xl font-bold tabular-nums leading-tight" style={{ color: accentColor }}>
               {String(u.value).padStart(2, "0")}
             </span>
-            <span className="text-[9px] text-[#9A969A] leading-none mt-0.5">{u.label}</span>
+            <span className="text-[9px] text-[#767276] leading-none mt-0.5">{u.label}</span>
           </div>
           {i < units.length - 1 && (
             <span className="text-lg font-bold" style={{ color: accentColor }}>:</span>
@@ -248,8 +248,8 @@ function StarRating({ score, count }: { score: number; count: number }) {
           );
         })}
       </div>
-      <span className="text-xs text-[#9A969A]">{score.toFixed(1)}</span>
-      <span className="text-xs text-[#9A969A]">({count.toLocaleString("he-IL")} ביקורות)</span>
+      <span className="text-xs text-[#767276]">{score.toFixed(1)}</span>
+      <span className="text-xs text-[#767276]">({count.toLocaleString("he-IL")} ביקורות)</span>
     </div>
   );
 }
@@ -669,7 +669,7 @@ export function PopupOverlay({
       {content.social_proof_text && (
         <div className="flex items-center justify-center gap-1.5 mb-4">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <span className={`text-xs font-medium ${isBackgroundLayout ? "text-white/70" : "text-[#9A969A]"}`}>
+          <span className={`text-xs font-medium ${isBackgroundLayout ? "text-white/70" : "text-[#767276]"}`}>
             {content.social_proof_text}
           </span>
         </div>
@@ -679,7 +679,7 @@ export function PopupOverlay({
       {content.include_form && !submitSuccess && (
         <>
           {submitError && (
-            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-center">
+            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm text-center">
               {submitError}
             </div>
           )}
@@ -696,7 +696,7 @@ export function PopupOverlay({
               <input id="popup_full_name" type="text" value={formData.full_name}
                 onChange={(e) => { hasKeystrokeRef.current = true; setFormData({ ...formData, full_name: e.target.value }); }}
                 placeholder={isRtl ? "שם מלא *" : "Full name *"} autoComplete="name"
-                className="w-full h-11 rounded-xl bg-black/5 border border-black/10 px-4 text-[#2a2628] text-sm placeholder:text-[#9A969A] focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
+                className="w-full h-11 rounded-xl bg-gray-50 border border-gray-200 px-4 text-[#2a2628] text-sm placeholder:text-gray-500 focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 focus:shadow-[0_0_0_3px_rgba(184,217,0,0.12)] transition-all duration-200"
                 aria-required="true" aria-invalid={!!errors.full_name} />
               {errors.full_name && <p role="alert" className="text-red-500 text-xs mt-1 font-medium">{errors.full_name}</p>}
             </div>
@@ -706,7 +706,7 @@ export function PopupOverlay({
               <input id="popup_phone" type="tel" value={formData.phone}
                 onChange={(e) => { hasKeystrokeRef.current = true; setFormData({ ...formData, phone: e.target.value }); }}
                 placeholder={isRtl ? "טלפון *" : "Phone *"} dir="ltr" autoComplete="tel"
-                className="w-full h-11 rounded-xl bg-black/5 border border-black/10 px-4 text-[#2a2628] text-sm placeholder:text-[#9A969A] text-left focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
+                className="w-full h-11 rounded-xl bg-gray-50 border border-gray-200 px-4 text-[#2a2628] text-sm placeholder:text-gray-500 text-left focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 focus:shadow-[0_0_0_3px_rgba(184,217,0,0.12)] transition-all duration-200"
                 aria-required="true" aria-invalid={!!errors.phone} />
               {errors.phone && <p role="alert" className="text-red-500 text-xs mt-1 font-medium">{errors.phone}</p>}
             </div>
@@ -716,7 +716,7 @@ export function PopupOverlay({
               <input id="popup_email" type="email" value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder={isRtl ? "אימייל" : "Email"} dir="ltr" autoComplete="email"
-                className="w-full h-11 rounded-xl bg-black/5 border border-black/10 px-4 text-[#2a2628] text-sm placeholder:text-[#9A969A] text-left focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all"
+                className="w-full h-11 rounded-xl bg-gray-50 border border-gray-200 px-4 text-[#2a2628] text-sm placeholder:text-gray-500 text-left focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 focus:shadow-[0_0_0_3px_rgba(184,217,0,0.12)] transition-all duration-200"
                 aria-invalid={!!errors.email} />
               {errors.email && <p role="alert" className="text-red-500 text-xs mt-1 font-medium">{errors.email}</p>}
             </div>
@@ -731,7 +731,7 @@ export function PopupOverlay({
                   id="popup_interest_area"
                   value={selectedInterestArea}
                   onChange={(e) => setSelectedInterestArea(e.target.value)}
-                  className={`w-full h-11 rounded-xl bg-black/5 border px-4 text-[#2a2628] text-sm focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none ${errors.interest_area ? "border-red-400/60" : "border-black/10"}`}
+                  className={`w-full h-11 rounded-xl bg-gray-50 border px-4 text-[#2a2628] text-sm focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 focus:shadow-[0_0_0_3px_rgba(184,217,0,0.12)] transition-all duration-200 appearance-none ${errors.interest_area ? "border-red-300" : "border-gray-200"}`}
                   aria-required="true"
                   aria-invalid={!!errors.interest_area}
                 >
@@ -753,7 +753,7 @@ export function PopupOverlay({
             )}
 
             {/* Privacy disclaimer — collapsed by default */}
-            <div className="text-[10px] leading-relaxed text-[#9A969A] pt-1">
+            <div className="text-[10px] leading-relaxed text-[#767276] pt-1">
               <p>
                 {isRtl
                   ? "מילוי הפרטים מהווה הסכמה לשימוש במידע לפי "
@@ -783,7 +783,7 @@ export function PopupOverlay({
 
             {/* Submit */}
             <button type="submit" disabled={submitting}
-              className="w-full py-3 rounded-xl font-heading font-bold text-base transition-all duration-300 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3 rounded-xl font-heading font-bold text-base transition-all duration-300 hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
               style={{ backgroundColor: content.accent_color, color: "#2a2628" }}>
               {submitting ? (
                 <span className="flex items-center justify-center gap-2">
@@ -820,7 +820,7 @@ export function PopupOverlay({
       {/* ── Standard / WhatsApp CTA button ── */}
       {!content.include_form && (
         <button onClick={handleCtaClick}
-          className="w-full py-3 rounded-xl font-heading font-bold text-base transition-all duration-300 active:scale-[0.98]"
+          className="w-full py-3 rounded-xl font-heading font-bold text-base transition-all duration-300 hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
           style={{ backgroundColor: content.accent_color, color: "#2a2628" }}>
           {content.cta_text_he}
         </button>
@@ -828,7 +828,7 @@ export function PopupOverlay({
 
       {/* Dismiss */}
       <button onClick={onDismiss}
-        className={`w-full py-2 mt-3 text-xs transition-colors ${isBackgroundLayout ? "text-white/50 hover:text-white/70" : "text-[#9A969A] hover:text-[#5A5658]"}`}>
+        className={`w-full py-2 mt-3 text-xs transition-colors ${isBackgroundLayout ? "text-white/50 hover:text-white/70" : "text-[#767276] hover:text-[#5A5658]"}`}>
         {content.dismiss_text_he}
       </button>
     </div>
@@ -840,18 +840,18 @@ export function PopupOverlay({
 
   return (
     <div
-      className={`fixed inset-0 z-[90] flex items-center justify-center p-4 transition-opacity duration-300 ${mounted ? "opacity-100" : "opacity-0"}`}
+      className={`fixed inset-0 z-[95] flex items-center justify-center p-4 transition-opacity duration-300 ${mounted ? "opacity-100" : "opacity-0"}`}
       dir={isRtl ? "rtl" : "ltr"}
       role="dialog"
       aria-modal="true"
       aria-label={content.title_he}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onDismiss} aria-hidden="true" />
+      {/* Backdrop — Premium Glass */}
+      <div className="absolute inset-0 glass-backdrop" onClick={onDismiss} aria-hidden="true" />
 
-      {/* Card */}
+      {/* Card — Premium Glass with slide-up-spring entrance */}
       <div
-        className={`relative rounded-2xl shadow-2xl ${maxWidth} w-full overflow-hidden transition-all duration-300 ${mounted ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"}`}
+        className={`relative rounded-2xl shadow-[var(--shadow-modal)] ${maxWidth} w-full overflow-hidden ${mounted ? "animate-slide-up-spring" : "opacity-0 translate-y-6"}`}
         style={{ backgroundColor: isBackgroundLayout ? "transparent" : content.bg_color }}
       >
         {/* Background media layer */}
@@ -869,7 +869,7 @@ export function PopupOverlay({
         {/* Close button */}
         <button
           onClick={onDismiss}
-          className={`absolute top-3 ${isRtl ? "left-3" : "right-3"} z-20 w-7 h-7 rounded-full flex items-center justify-center transition-colors ${isBackgroundLayout ? "bg-white/20 hover:bg-white/30 text-white" : "bg-black/5 hover:bg-black/10 text-gray-400 hover:text-gray-600"}`}
+          className={`absolute top-3 end-3 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 hover:rotate-90 ${isBackgroundLayout ? "bg-white/20 hover:bg-white/30 text-white" : "bg-black/5 hover:bg-black/10 text-gray-400 hover:text-gray-600"}`}
           aria-label={isRtl ? "סגור" : "Close"}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -128,22 +128,32 @@ export function ContactInfoSection({ content, language }: ContactInfoSectionProp
   return (
     <section
       ref={sectionRef}
-      className="py-20 md:py-28 bg-gradient-to-b from-[#FAFAFA] to-white"
+      className="py-20 md:py-28 bg-mesh-light"
       dir={isRtl ? "rtl" : "ltr"}
     >
       <div className="max-w-5xl mx-auto px-5">
         {/* Header */}
         <div className="text-center mb-12">
+          <div
+            className="inline-flex items-center gap-3 mb-5 opacity-0"
+            style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
+          >
+            <div className="w-10 h-0.5 bg-[#B8D900] rounded-full" />
+            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo tracking-wide">
+              {isRtl ? "יצירת קשר" : "Contact"}
+            </span>
+            <div className="w-10 h-0.5 bg-[#B8D900] rounded-full" />
+          </div>
           <h2
             className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
           >
             {heading}
           </h2>
           {subheading && (
             <p
               className="mt-4 text-[#5A5658] font-heebo text-base md:text-lg max-w-2xl mx-auto opacity-0"
-              style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+              style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.15s forwards" : "none" }}
             >
               {subheading}
             </p>
@@ -168,10 +178,10 @@ export function ContactInfoSection({ content, language }: ContactInfoSectionProp
             );
 
             const baseClass =
-              "block bg-white border border-gray-200/80 rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.03)] transition-all duration-300 hover:border-[#B8D900]/50 hover:shadow-[0_8px_30px_rgba(184,217,0,0.12)] hover:-translate-y-0.5 opacity-0";
+              "block bg-white/80 border border-gray-100/80 rounded-2xl p-6 card-premium gradient-border-green opacity-0";
             const animStyle = {
               animation: inView
-                ? `fade-in-up 0.5s ease-out ${0.15 + index * 0.08}s forwards`
+                ? `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + index * 0.08}s forwards`
                 : "none",
             };
 
@@ -201,13 +211,13 @@ export function ContactInfoSection({ content, language }: ContactInfoSectionProp
             className="text-center mt-14 opacity-0"
             style={{
               animation: inView
-                ? `fade-in-up 0.6s ease-out ${0.3 + items.length * 0.08}s forwards`
+                ? `slide-up-spring 0.7s var(--ease-out-expo) ${0.3 + items.length * 0.08}s forwards`
                 : "none",
             }}
           >
             <button
               onClick={() => open("section_contact_info")}
-              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_8px_30px_rgba(184,217,0,0.25)] hover:scale-[1.02] active:scale-[0.98]"
+              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
             >
               {ctaText}
               <svg

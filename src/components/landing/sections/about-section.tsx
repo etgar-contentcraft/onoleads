@@ -48,14 +48,14 @@ export function AboutSection({ content, language }: AboutSectionProps) {
   if (!description && bullets.length === 0) return null;
 
   return (
-    <section ref={sectionRef} className="py-20 md:py-28 bg-white overflow-hidden" dir={isRtl ? "rtl" : "ltr"}>
+    <section ref={sectionRef} className="py-20 md:py-28 bg-mesh-warm overflow-hidden" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-6xl mx-auto px-5">
         <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
           {/* Text column (right in RTL) */}
           <div className="order-2 md:order-1">
             <div
               className="opacity-0"
-              style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
+              style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
             >
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-1 bg-[#B8D900] rounded-full" />
@@ -63,7 +63,10 @@ export function AboutSection({ content, language }: AboutSectionProps) {
                   {language === "ar" ? "عن البرنامج" : language === "he" ? "אודות התוכנית" : "About"}
                 </span>
               </div>
-              <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] mb-6 leading-tight">
+              <h2
+                className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] mb-6 leading-tight opacity-0"
+                style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
+              >
                 {heading}
               </h2>
             </div>
@@ -71,7 +74,7 @@ export function AboutSection({ content, language }: AboutSectionProps) {
             {description && (
               <div
                 className="prose prose-sm max-w-none font-heebo text-[#5A5658] text-base md:text-lg leading-[1.8] prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline mb-8 opacity-0"
-                style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.15s forwards" : "none" }}
+                style={{ animation: inView ? "slide-up-spring 0.6s var(--ease-out-expo) 0.15s forwards" : "none" }}
                 dangerouslySetInnerHTML={richTextHtml(description)}
               />
             )}
@@ -83,9 +86,9 @@ export function AboutSection({ content, language }: AboutSectionProps) {
                   <li
                     key={i}
                     className="flex items-start gap-3.5 opacity-0"
-                    style={{ animation: inView ? `fade-in-up 0.5s ease-out ${0.2 + i * 0.08}s forwards` : "none" }}
+                    style={{ animation: inView ? `slide-up-spring 0.5s var(--ease-out-expo) ${0.2 + i * 0.08}s forwards` : "none" }}
                   >
-                    <div className="w-7 h-7 rounded-full bg-[#B8D900] flex items-center justify-center shrink-0 mt-0.5 shadow-[0_2px_8px_rgba(184,217,0,0.3)]">
+                    <div className="w-7 h-7 rounded-full bg-[#B8D900] flex items-center justify-center shrink-0 mt-0.5 shadow-[var(--shadow-green-sm)]">
                       <svg className="w-4 h-4 text-[#2a2628]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
@@ -102,11 +105,11 @@ export function AboutSection({ content, language }: AboutSectionProps) {
             {ctaEnabled && ctaText && (
               <div
                 className="opacity-0"
-                style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.5s forwards" : "none" }}
+                style={{ animation: inView ? "slide-up-spring 0.6s var(--ease-out-expo) 0.5s forwards" : "none" }}
               >
                 <button
                   onClick={() => open("section_about")}
-                  className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_8px_30px_rgba(184,217,0,0.3)] hover:scale-[1.02] active:scale-[0.98]"
+                  className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
                 >
                   {ctaText}
                   <svg className={`w-4 h-4 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -120,13 +123,13 @@ export function AboutSection({ content, language }: AboutSectionProps) {
           {/* Image / Video column (left in RTL) */}
           <div
             className="order-1 md:order-2 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.7s ease-out 0.2s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.2s forwards" : "none" }}
           >
             {videoUrl && extractYoutubeId(videoUrl) ? (
               /* YouTube embed in the visual column */
               <div className="relative">
                 <div className={`absolute -top-4 ${isRtl ? "-right-4" : "-left-4"} w-full h-full rounded-2xl bg-[#B8D900]/10 -z-10`} />
-                <div className="relative rounded-2xl overflow-hidden shadow-[0_12px_50px_rgba(0,0,0,0.12)] aspect-video bg-[#2a2628]">
+                <div className="relative rounded-2xl overflow-hidden shadow-[var(--shadow-elevated)] border border-white/60 aspect-video bg-[#2a2628]">
                   <iframe
                     src={`https://www.youtube-nocookie.com/embed/${extractYoutubeId(videoUrl)}?rel=0&modestbranding=1`}
                     className="absolute inset-0 w-full h-full border-0"
@@ -140,7 +143,7 @@ export function AboutSection({ content, language }: AboutSectionProps) {
               <div className="relative">
                 {/* Decorative accent shape behind image */}
                 <div className={`absolute -top-4 ${isRtl ? "-right-4" : "-left-4"} w-full h-full rounded-2xl bg-[#B8D900]/10 -z-10`} />
-                <div className="relative rounded-2xl overflow-hidden shadow-[0_12px_50px_rgba(0,0,0,0.12)]">
+                <div className="relative rounded-2xl overflow-hidden shadow-[var(--shadow-elevated)] border border-white/60">
                   <Image
                     src={imageUrl}
                     alt={heading}

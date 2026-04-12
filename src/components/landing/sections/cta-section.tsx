@@ -74,8 +74,8 @@ export function CtaSection({ content, language }: CtaSectionProps) {
       className="relative py-20 md:py-28 overflow-hidden"
       dir={isRtl ? "rtl" : "ltr"}
     >
-      {/* Background — default green gradient, or custom image/video */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#B8D900] via-[#c8e920] to-[#B8D900] overflow-hidden">
+      {/* Background — default warm mesh gradient, or custom image/video */}
+      <div className="absolute inset-0 bg-mesh-warm overflow-hidden">
         {/* YouTube background video */}
         {youtubeId && (
           <div
@@ -109,10 +109,10 @@ export function CtaSection({ content, language }: CtaSectionProps) {
       </div>
 
       {/* Decorative pattern */}
-      <div className="absolute inset-0 opacity-[0.06]">
+      <div className="absolute inset-0 opacity-[0.04]">
         <div
           style={{
-            backgroundImage: `radial-gradient(circle, rgba(42,38,40,0.3) 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(circle, rgba(184,217,0,0.4) 1px, transparent 1px)`,
             backgroundSize: "30px 30px",
             width: "100%",
             height: "100%",
@@ -120,15 +120,27 @@ export function CtaSection({ content, language }: CtaSectionProps) {
         />
       </div>
 
-      {/* Decorative shapes */}
-      <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/10" />
-      <div className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full bg-white/10" />
+      {/* Decorative gradient orbs */}
+      <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-[#B8D900]/5 blur-[100px]" />
+      <div className="absolute -bottom-20 -left-20 w-96 h-96 rounded-full bg-[#B8D900]/5 blur-[100px]" />
 
       <div className="relative z-10 max-w-3xl mx-auto px-5 text-center">
-        {/* Heading — white text when custom media is set, dark text on default green */}
+        {/* Badge pill */}
+        <div
+          className="inline-flex items-center gap-3 mb-5 opacity-0"
+          style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
+        >
+          <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+          <span className={`px-4 py-1.5 rounded-full text-sm font-semibold font-heebo ${bgImage || youtubeId ? "bg-white/10 text-white/90 border border-white/20" : "bg-[#B8D900]/10 text-[#2a2628] border border-[#B8D900]/20"}`}>
+            {language === "ar" ? "ابدأ الآن" : language === "he" ? "הרשמה" : "Apply Now"}
+          </span>
+          <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+        </div>
+
+        {/* Heading — white text when custom media is set, dark text on default */}
         <h2
           className={`font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4 opacity-0 ${bgImage || youtubeId ? "text-white" : "text-[#2a2628]"}`}
-          style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
+          style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
         >
           {heading}
         </h2>
@@ -137,7 +149,7 @@ export function CtaSection({ content, language }: CtaSectionProps) {
         {description && (
           <div
             className={`prose prose-sm max-w-none font-heebo text-lg md:text-xl mb-10 max-w-xl mx-auto opacity-0 prose-headings:font-heading prose-a:underline ${bgImage || youtubeId ? "text-white/70 prose-headings:text-white prose-a:text-white" : "text-[#2a2628]/60 prose-headings:text-[#2a2628] prose-a:text-[#B8D900]"}`}
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.15s forwards" : "none" }}
+            style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) 0.2s forwards" : "none" }}
             dangerouslySetInnerHTML={richTextHtml(description)}
           />
         )}
@@ -145,13 +157,13 @@ export function CtaSection({ content, language }: CtaSectionProps) {
         {/* Buttons */}
         <div
           className="flex flex-col sm:flex-row items-center justify-center gap-4 opacity-0"
-          style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.3s forwards" : "none" }}
+          style={{ animation: inView ? "slide-up-spring 0.6s var(--ease-out-expo) 0.3s forwards" : "none" }}
         >
           {/* Primary CTA - opens modal */}
           {ctaEnabled && buttonText && (
             <button
               onClick={() => open("section_cta")}
-              className="group inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#2a2628] text-[#B8D900] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#1a1618] hover:shadow-[0_8px_40px_rgba(0,0,0,0.35)] hover:scale-[1.03] active:scale-[0.98]"
+              className="group inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green-lg)] hover:scale-[1.02] active:scale-[0.98]"
             >
               {buttonText}
               <svg className={`w-5 h-5 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -164,7 +176,11 @@ export function CtaSection({ content, language }: CtaSectionProps) {
           {phone && (
             <a
               href={`tel:${phone}`}
-              className="inline-flex items-center justify-center gap-2.5 px-8 py-5 rounded-2xl bg-white/30 backdrop-blur-md text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-white/50 hover:scale-[1.03] active:scale-[0.98]"
+              className={`inline-flex items-center justify-center gap-2.5 px-8 py-5 rounded-2xl backdrop-blur-md font-heading font-bold text-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${
+                bgImage || youtubeId
+                  ? "bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                  : "bg-white/80 border border-gray-100/80 text-[#2a2628] card-premium"
+              }`}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />

@@ -182,20 +182,20 @@ function PageStickyBar({
   return (
     <div
       dir={isRtl ? "rtl" : "ltr"}
-      className="fixed bottom-0 left-0 right-0 z-[45] bg-[#2a2628]/95 backdrop-blur-sm
-        flex items-center gap-3 px-4 py-2.5 shadow-[0_-2px_16px_rgba(0,0,0,0.18)]
-        animate-slide-in-bottom"
+      className="fixed bottom-0 left-0 right-0 z-[45] bg-[#2a2628]/90 backdrop-blur-2xl
+        flex items-center gap-3 px-5 py-3 shadow-[var(--shadow-elevated)]
+        border-t border-white/[0.06] animate-slide-in-bottom"
     >
       {/* Promotional text — desktop only */}
-      <span className="hidden md:block text-white/65 text-xs font-medium truncate flex-1">
+      <span className="hidden md:block text-white/60 text-xs font-medium font-heebo truncate flex-1">
         {barText}
       </span>
 
-      <div className="flex items-center gap-2.5 ms-auto">
+      <div className="flex items-center gap-3 ms-auto">
         {/* Phone link */}
         <a
           href={`tel:${phone.replace(/[\s\-]/g, "")}`}
-          className="hidden sm:flex items-center gap-1 text-white/60 text-xs hover:text-white/90 transition-colors"
+          className="hidden sm:flex items-center gap-1.5 text-white/50 text-xs hover:text-[#B8D900] transition-colors duration-200 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.05]"
           aria-label={phone}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24"
@@ -210,7 +210,7 @@ function PageStickyBar({
         <button
           type="button"
           onClick={() => open("sticky_bar")}
-          className="font-heading rounded-full px-4 py-1.5 text-xs font-bold text-[#2a2628] bg-[#B8D900] hover:bg-[#c8e920] transition-colors shadow-sm"
+          className="font-heading rounded-xl px-5 py-2 text-xs font-bold text-[#2a2628] bg-[#B8D900] hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.03] active:scale-[0.97] transition-all duration-300"
         >
           {ctaText}
         </button>
@@ -219,7 +219,7 @@ function PageStickyBar({
         <button
           type="button"
           onClick={handleDismiss}
-          className="text-white/30 hover:text-white/60 transition-colors p-0.5 rounded shrink-0"
+          className="text-white/25 hover:text-white/60 transition-all duration-200 p-1 rounded-lg hover:bg-white/[0.05] shrink-0"
           aria-label={isRtl ? "סגור" : "Close"}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none"
@@ -272,8 +272,8 @@ function StickyHeader({
       }`}
       dir={isRtl ? "rtl" : "ltr"}
     >
-      <div className="bg-white/95 backdrop-blur-xl border-b border-gray-200/50 shadow-[0_2px_20px_rgba(0,0,0,0.06)]">
-        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between">
+      <div className="bg-white/90 backdrop-blur-2xl border-b border-gray-200/30 shadow-[var(--shadow-elevated)]">
+        <div className="max-w-6xl mx-auto px-5 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -294,7 +294,7 @@ function StickyHeader({
             )}
             <a
               href={`tel:${displayPhone}`}
-              className="hidden md:flex items-center gap-2 text-[#5A5658] font-medium text-sm hover:text-[#B8D900] transition-colors px-3 py-2 rounded-lg hover:bg-[#B8D900]/5"
+              className="hidden md:flex items-center gap-2 text-[#5A5658] font-medium text-sm hover:text-[#B8D900] transition-all duration-200 px-3 py-2 rounded-xl hover:bg-[#B8D900]/[0.06]"
               aria-label={`התקשרו: ${displayPhone}`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -305,7 +305,7 @@ function StickyHeader({
           </div>
           <button
             onClick={() => open("section_cta")}
-            className="inline-flex items-center px-6 py-3 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm hover:bg-[#c8e920] hover:shadow-[0_0_20px_rgba(184,217,0,0.3)] transition-all duration-300 active:scale-[0.97]"
+            className="inline-flex items-center px-6 py-3 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.97] transition-all duration-300"
           >
             {isRtl ? "השאירו פרטים" : "Get Info"}
           </button>
@@ -710,52 +710,54 @@ function InnerLayout({
       </main>
 
       {/* Footer */}
-      <footer className="py-12 bg-[#2a2628]" dir={isRtl ? "rtl" : "ltr"}>
+      <footer className="py-14 bg-[#2a2628] relative overflow-hidden" dir={isRtl ? "rtl" : "ltr"}>
+        {/* Subtle gradient accent at top */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#B8D900]/20 to-transparent" />
         <div className="max-w-6xl mx-auto px-5">
           {/* Branding line */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 mb-3">
-              <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+            <div className="inline-flex items-center gap-3 mb-3">
+              <div className="w-10 h-0.5 bg-[#B8D900]/40 rounded-full" />
               <span className="text-[#B8D900] font-heading font-bold text-sm tracking-wider">
                 {isRtl ? "המכללה המומלצת בישראל" : "Israel's Most Recommended College"}
               </span>
-              <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+              <div className="w-10 h-0.5 bg-[#B8D900]/40 rounded-full" />
             </div>
             <h3 className="font-heading text-xl text-white/90 font-bold">
               {isRtl ? "הקריה האקדמית אונו" : "Ono Academic College"}
             </h3>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-6 border-t border-white/10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-6 border-t border-white/[0.06]">
             <div className="flex items-center gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={settings?.logo_url || ONO_LOGO}
                 alt="הקריה האקדמית אונו"
-                className="h-10 object-contain brightness-0 invert opacity-70"
+                className="h-10 object-contain brightness-0 invert opacity-60"
                 loading="lazy"
               />
               <div>
-                <p className="text-white/90 font-heading font-bold text-sm">
+                <p className="text-white/85 font-heading font-bold text-sm">
                   {isRtl ? "הקריה האקדמית אונו" : "Ono Academic College"}
                 </p>
-                <p className="text-xs text-white/50 font-heebo">{isRtl ? "המכללה המומלצת בישראל" : "Israel's Most Recommended College"}</p>
+                <p className="text-xs text-white/40 font-heebo">{isRtl ? "המכללה המומלצת בישראל" : "Israel's Most Recommended College"}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-6 text-white/50 text-sm font-heebo">
-              <a href={`tel:${settings?.phone_number || "*2899"}`} className="hover:text-[#B8D900] transition-colors">{settings?.phone_number || "*2899"}</a>
-              <a href="https://www.ono.ac.il" target="_blank" rel="noopener noreferrer" className="hover:text-[#B8D900] transition-colors">
+            <div className="flex items-center gap-6 text-white/45 text-sm font-heebo">
+              <a href={`tel:${settings?.phone_number || "*2899"}`} className="hover:text-[#B8D900] transition-colors duration-200">{settings?.phone_number || "*2899"}</a>
+              <a href="https://www.ono.ac.il" target="_blank" rel="noopener noreferrer" className="hover:text-[#B8D900] transition-colors duration-200">
                 ono.ac.il
               </a>
             </div>
 
-            <div className="flex items-center gap-4 text-white/50 text-xs font-heebo">
-              <a href="/privacy" className="hover:text-[#B8D900] transition-colors">{isRtl ? "מדיניות פרטיות" : "Privacy Policy"}</a>
-              <span className="w-px h-3 bg-white/20" />
-              <a href="/terms" className="hover:text-[#B8D900] transition-colors">{isRtl ? "תנאי שימוש" : "Terms of Use"}</a>
-              <span className="w-px h-3 bg-white/20" />
-              <p className="text-white/40">
+            <div className="flex items-center gap-4 text-white/40 text-xs font-heebo">
+              <a href="/privacy" className="hover:text-[#B8D900] transition-colors duration-200">{isRtl ? "מדיניות פרטיות" : "Privacy Policy"}</a>
+              <span className="w-px h-3 bg-white/10" />
+              <a href="/terms" className="hover:text-[#B8D900] transition-colors duration-200">{isRtl ? "תנאי שימוש" : "Terms of Use"}</a>
+              <span className="w-px h-3 bg-white/10" />
+              <p className="text-white/30">
                 &copy; {new Date().getFullYear()} {isRtl ? "הקריה האקדמית אונו" : "Ono Academic College"}
               </p>
             </div>

@@ -279,13 +279,14 @@ export default function EventSection({ content, language, event }: EventSectionP
 
   return (
     <section
-      className="py-16 bg-gradient-to-b from-gray-50 via-white to-gray-50"
+      className="py-16 bg-mesh-warm"
       dir={isRtl ? "rtl" : "ltr"}
     >
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
         {/* ── Hero image (optional) ── */}
         {data.heroImageUrl && (
-          <div className="rounded-3xl overflow-hidden mb-10 shadow-xl aspect-[16/9] max-h-96">
+          <div className="rounded-3xl overflow-hidden mb-10 shadow-[var(--shadow-card)] aspect-[16/9] max-h-96"
+            style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) forwards" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={data.heroImageUrl}
@@ -299,18 +300,30 @@ export default function EventSection({ content, language, event }: EventSectionP
         {/* ── Header ── */}
         {(data.title || data.description) && (
           <div className="text-center mb-10">
+            <div
+              className="inline-flex items-center gap-3 mb-5"
+              style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+            >
+              <div className="w-10 h-0.5 bg-[#B8D900] rounded-full" />
+              <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo tracking-wide">
+                {l.eventDetails}
+              </span>
+              <div className="w-10 h-0.5 bg-[#B8D900] rounded-full" />
+            </div>
             {data.title && (
-              <h2 className="text-3xl md:text-4xl font-heading font-bold text-[#2A2628] mb-3">
+              <h2 className="text-3xl md:text-4xl font-heading font-bold text-[#2A2628] mb-3"
+                style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s both" }}>
                 {data.title}
               </h2>
             )}
             {data.description && (
-              <p className="text-[#5A5658] text-lg max-w-2xl mx-auto whitespace-pre-line">
+              <p className="text-[#5A5658] text-lg max-w-2xl mx-auto whitespace-pre-line"
+                style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.15s both" }}>
                 {data.description}
               </p>
             )}
             {data.hashtag && (
-              <p className="text-sm font-bold mt-3" style={{ color: ACCENT }}>
+              <p className="text-sm font-bold mt-3" style={{ color: ACCENT, animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.2s both" }}>
                 #{data.hashtag}
               </p>
             )}
@@ -321,8 +334,8 @@ export default function EventSection({ content, language, event }: EventSectionP
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           {formattedDate && (
             <div
-              className="flex items-center gap-3 p-4 rounded-xl bg-white border shadow-sm"
-              style={{ borderColor: `${ACCENT}33` }}
+              className="flex items-center gap-3 p-4 rounded-2xl bg-white/80 border border-gray-100/80 card-premium gradient-border-green"
+              style={{ animation: "slide-up-spring 0.6s var(--ease-out-expo) 0.15s both" }}
             >
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
@@ -331,7 +344,7 @@ export default function EventSection({ content, language, event }: EventSectionP
                 <Calendar className="w-5 h-5" style={{ color: ACCENT }} />
               </div>
               <div>
-                <p className="text-xs font-semibold text-[#9A969A] uppercase">{l.date}</p>
+                <p className="text-xs font-semibold text-[#767276] uppercase">{l.date}</p>
                 <p className="text-sm font-bold text-[#2A2628]">{formattedDate}</p>
               </div>
             </div>
@@ -339,8 +352,8 @@ export default function EventSection({ content, language, event }: EventSectionP
 
           {data.timeString && (
             <div
-              className="flex items-center gap-3 p-4 rounded-xl bg-white border shadow-sm"
-              style={{ borderColor: `${ACCENT}33` }}
+              className="flex items-center gap-3 p-4 rounded-2xl bg-white/80 border border-gray-100/80 card-premium gradient-border-green"
+              style={{ animation: "slide-up-spring 0.6s var(--ease-out-expo) 0.22s both" }}
             >
               <div
                 className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
@@ -349,15 +362,15 @@ export default function EventSection({ content, language, event }: EventSectionP
                 <Clock className="w-5 h-5" style={{ color: ACCENT }} />
               </div>
               <div>
-                <p className="text-xs font-semibold text-[#9A969A] uppercase">{l.time}</p>
+                <p className="text-xs font-semibold text-[#767276] uppercase">{l.time}</p>
                 <p className="text-sm font-bold text-[#2A2628]">{data.timeString}</p>
               </div>
             </div>
           )}
 
           <div
-            className="flex items-center gap-3 p-4 rounded-xl bg-white border shadow-sm"
-            style={{ borderColor: `${ACCENT}33` }}
+            className="flex items-center gap-3 p-4 rounded-2xl bg-white/80 border border-gray-100/80 card-premium gradient-border-green"
+            style={{ animation: "slide-up-spring 0.6s var(--ease-out-expo) 0.29s both" }}
           >
             <div
               className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
@@ -370,7 +383,7 @@ export default function EventSection({ content, language, event }: EventSectionP
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-[#9A969A] uppercase">
+              <p className="text-xs font-semibold text-[#767276] uppercase">
                 {data.isOnline ? l.online : l.location}
               </p>
               <p className="text-sm font-bold text-[#2A2628] truncate">
@@ -387,7 +400,7 @@ export default function EventSection({ content, language, event }: EventSectionP
               href={data.onlineUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-transform hover:scale-[1.03]"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
               style={{ background: ACCENT, color: "#2A2628" }}
             >
               <Video className="w-4 h-4" />
@@ -399,7 +412,7 @@ export default function EventSection({ content, language, event }: EventSectionP
               href={data.venueUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-transform hover:scale-[1.03]"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
               style={{ background: ACCENT, color: "#2A2628" }}
             >
               <MapPin className="w-4 h-4" />
@@ -411,7 +424,7 @@ export default function EventSection({ content, language, event }: EventSectionP
               href={data.registrationUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-[#2A2628] text-white transition-transform hover:scale-[1.03]"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-[#2A2628] text-white transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
             >
               {l.register}
             </a>
@@ -421,7 +434,7 @@ export default function EventSection({ content, language, event }: EventSectionP
               href={data.ctaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 font-bold text-sm transition-transform hover:scale-[1.03]"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 font-bold text-sm transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
               style={{ borderColor: ACCENT, color: "#2A2628" }}
             >
               {data.ctaLabel} →

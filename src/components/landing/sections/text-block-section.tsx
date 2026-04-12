@@ -69,7 +69,7 @@ export function TextBlockSection({ content, language }: TextBlockSectionProps) {
   const isDarkBg = background === "dark" || background === "brand";
   const customBg = background === "custom" ? (content.background_custom as string) || "#1e1a2e" : undefined;
 
-  let bgClass = "bg-white";
+  let bgClass = "bg-mesh-light";
   let bgStyle: React.CSSProperties | undefined;
   if (background === "dark") bgClass = "bg-[#1e1a2e]";
   else if (background === "brand") bgClass = "bg-[#B8D900]";
@@ -133,7 +133,7 @@ export function TextBlockSection({ content, language }: TextBlockSectionProps) {
         {heading && (
           <HeadingTag
             className={`font-heading ${headingSizeClass} font-extrabold ${headingColor} mb-6 opacity-0`}
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) forwards" : "none" }}
           >
             {heading}
           </HeadingTag>
@@ -147,7 +147,7 @@ export function TextBlockSection({ content, language }: TextBlockSectionProps) {
                 ? "prose-invert prose-a:text-[#B8D900]"
                 : "prose-a:text-[#B8D900]"
             }`}
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
             dangerouslySetInnerHTML={richTextHtml(body)}
           />
         )}
@@ -156,7 +156,7 @@ export function TextBlockSection({ content, language }: TextBlockSectionProps) {
         {ctaEnabled && (
           <div
             className="mt-10 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.2s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.2s forwards" : "none" }}
           >
             {ctaStyle === "link" ? (
               <button
@@ -170,7 +170,7 @@ export function TextBlockSection({ content, language }: TextBlockSectionProps) {
             ) : (
               <button
                 onClick={() => open("section_text_block")}
-                className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_8px_30px_rgba(184,217,0,0.25)] hover:scale-[1.02] active:scale-[0.98]"
+                className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
               >
                 {ctaText}
               </button>

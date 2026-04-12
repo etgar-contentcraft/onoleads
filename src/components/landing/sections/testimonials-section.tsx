@@ -113,13 +113,13 @@ export function TestimonialsSection({ content, language }: TestimonialsSectionPr
   const showCarousel = items.length > 2;
 
   return (
-    <section ref={sectionRef} className="py-20 md:py-28 bg-[#fafafa]" dir={isRtl ? "rtl" : "ltr"}>
+    <section ref={sectionRef} className="py-20 md:py-28 bg-mesh-warm" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-6xl mx-auto px-5">
         {/* Header */}
         <div className="text-center mb-14">
           <div
             className="inline-flex items-center gap-3 mb-5 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+            style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
           >
             <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
             <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
@@ -129,7 +129,7 @@ export function TestimonialsSection({ content, language }: TestimonialsSectionPr
           </div>
           <h2
             className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
           >
             {heading}
           </h2>
@@ -142,7 +142,7 @@ export function TestimonialsSection({ content, language }: TestimonialsSectionPr
               ref={scrollRef}
               className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide -mx-5 px-5 opacity-0"
               style={{
-                animation: inView ? "fade-in-up 0.6s ease-out 0.2s forwards" : "none",
+                animation: inView ? "blur-in 0.7s var(--ease-out-expo) 0.2s forwards" : "none",
                 scrollbarWidth: "none",
                 msOverflowStyle: "none",
               }}
@@ -198,7 +198,7 @@ export function TestimonialsSection({ content, language }: TestimonialsSectionPr
           >
             <button
               onClick={() => open("section_testimonials")}
-              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_8px_30px_rgba(184,217,0,0.25)] hover:scale-[1.02] active:scale-[0.98]"
+              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
             >
               {ctaText}
               <svg className={`w-4 h-4 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -235,7 +235,7 @@ function TestimonialCard({
   return (
     <div
       data-card
-      className={`relative bg-white rounded-2xl p-7 md:p-8 shadow-[0_2px_16px_rgba(0,0,0,0.06)] border border-gray-200/80 hover:shadow-[0_12px_50px_rgba(0,0,0,0.10)] hover:border-[#B8D900]/30 hover:-translate-y-0.5 transition-all duration-300 ${className}`}
+      className={`relative bg-white/80 rounded-2xl p-7 md:p-8 card-premium border border-gray-100/80 gradient-border-green ${className}`}
       style={style}
     >
       {/* Video testimonial embed */}
@@ -253,7 +253,7 @@ function TestimonialCard({
 
       {/* Green quote mark */}
       <div className="mb-4">
-        <svg className="w-10 h-10 text-[#B8D900] opacity-35" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="w-10 h-10 text-[#B8D900] opacity-30" fill="currentColor" viewBox="0 0 24 24">
           <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
         </svg>
       </div>

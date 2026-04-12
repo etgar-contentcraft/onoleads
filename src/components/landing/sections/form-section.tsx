@@ -339,46 +339,49 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
     <section
       id="form"
       ref={sectionRef}
-      className="py-20 md:py-28 relative overflow-hidden"
+      className="py-20 md:py-28 relative overflow-hidden bg-mesh-light"
       dir={isRtl ? "rtl" : "ltr"}
     >
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#2a2628] via-[#3a3638] to-[#2a2628]" />
-      <div className="absolute inset-0 opacity-[0.03]">
-        <div
-          style={{
-            backgroundImage: `radial-gradient(circle, #B8D900 1px, transparent 1px)`,
-            backgroundSize: "40px 40px",
-            width: "100%",
-            height: "100%",
-          }}
-        />
-      </div>
 
       <div className="relative z-10 max-w-xl mx-auto px-5">
         {/* Header */}
-        <div
-          className="text-center mb-10 opacity-0"
-          style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
-        >
+        <div className="text-center mb-10">
+          <div
+            className="inline-flex items-center gap-3 mb-5 opacity-0"
+            style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
+          >
+            <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo border border-[#B8D900]/20">
+              {isRtl ? "הרשמה" : "Register"}
+            </span>
+            <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+          </div>
           {heading && (
-            <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-white mb-3">
+            <h2
+              className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628] mb-3 opacity-0"
+              style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
+            >
               {heading}
             </h2>
           )}
           {subheading && (
-            <p className="text-white/60 text-lg">{subheading}</p>
+            <p
+              className="text-[#5A5658] text-lg opacity-0"
+              style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.2s forwards" : "none" }}
+            >
+              {subheading}
+            </p>
           )}
         </div>
 
         {/* Form Card */}
         <div
           className="opacity-0"
-          style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.2s forwards" : "none" }}
+          style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.3s forwards" : "none" }}
         >
           <form
             onSubmit={handleSubmit}
-            className="bg-white/[0.07] backdrop-blur-2xl rounded-3xl border border-white/10 p-7 md:p-10 shadow-[0_8px_60px_rgba(0,0,0,0.3)]"
+            className="bg-white/80 backdrop-blur-2xl rounded-3xl border border-gray-100/80 card-premium gradient-border-green p-7 md:p-10"
           >
             {/* Progress steps (item 9) */}
             <div className="flex items-center justify-center gap-2 mb-7">
@@ -389,14 +392,14 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
               ].map((step, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="flex items-center gap-1.5">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${i === 0 ? "bg-[#B8D900] text-[#2a2628]" : "bg-white/10 text-white/40"}`}>
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${i === 0 ? "bg-[#B8D900] text-[#2a2628]" : "bg-gray-100 text-[#767276]"}`}>
                       {i + 1}
                     </div>
-                    <span className={`text-[11px] font-medium whitespace-nowrap ${i === 0 ? "text-[#B8D900]" : "text-white/30"}`}>
+                    <span className={`text-[11px] font-medium whitespace-nowrap ${i === 0 ? "text-[#2a2628]" : "text-[#767276]"}`}>
                       {language === "en" ? step.en : language === "ar" ? step.ar : step.he}
                     </span>
                   </div>
-                  {i < 2 && <span className="text-white/20 text-xs mx-0.5">›</span>}
+                  {i < 2 && <span className="text-[#767276]/40 text-xs mx-0.5">›</span>}
                 </div>
               ))}
             </div>
@@ -404,7 +407,7 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
             <div className="space-y-5">
               {fields.map((field) => (
                 <div key={field.name}>
-                  <label className="block text-white/80 text-sm font-medium mb-2">
+                  <label className="block text-[#2a2628] text-sm font-medium mb-2">
                     {getLabel(field)}
                     {field.required && <span className={`text-[#B8D900] ${isRtl ? "mr-1" : "ml-1"}`}>*</span>}
                   </label>
@@ -416,11 +419,11 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
                       onBlur={() => handleBlur(field)}
                       aria-required={field.required || undefined}
                       required={field.required}
-                      className={`w-full h-14 rounded-xl bg-white/10 border px-5 text-white text-base focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none ${errors[field.name] ? "border-red-400/60" : fieldValid[field.name] ? "border-[#B8D900]/50" : "border-white/20"}`}
+                      className={`w-full h-14 rounded-xl bg-white border px-5 text-[#2a2628] text-base focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none ${errors[field.name] ? "border-red-400/60" : fieldValid[field.name] ? "border-[#B8D900]/50" : "border-gray-200"}`}
                     >
-                      <option value="" className="bg-[#2a2628]">{isRtl ? "בחרו..." : "Select..."}</option>
+                      <option value="">{isRtl ? "בחרו..." : "Select..."}</option>
                       {field.options?.map((opt) => (
-                        <option key={opt} value={opt} className="bg-[#2a2628]">{opt}</option>
+                        <option key={opt} value={opt}>{opt}</option>
                       ))}
                     </select>
                   ) : (
@@ -433,7 +436,7 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
                         dir={field.type === "tel" || field.type === "email" ? "ltr" : undefined}
                         aria-required={field.required || undefined}
                         required={field.required}
-                        className={`w-full h-14 rounded-xl bg-white/10 border px-5 ${(field.type === "tel" || field.type === "email") ? "pr-10" : ""} text-white text-base placeholder:text-white/30 focus:border-[#B8D900] focus:bg-white/15 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors[field.name] ? "border-red-400/60" : fieldValid[field.name] ? "border-[#B8D900]/50" : "border-white/20"}`}
+                        className={`w-full h-14 rounded-xl bg-white border px-5 ${(field.type === "tel" || field.type === "email") ? "pr-10" : ""} text-[#2a2628] text-base placeholder:text-[#767276] focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors[field.name] ? "border-red-400/60" : fieldValid[field.name] ? "border-[#B8D900]/50" : "border-gray-200"}`}
                         placeholder={getLabel(field)}
                       />
                       {/* Inline ✓ on valid blur — phone & email only, positioned at input end */}
@@ -448,7 +451,7 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
                   )}
 
                   {errors[field.name] && (
-                    <p className="text-red-400 text-xs mt-2 font-medium flex items-center gap-1">
+                    <p className="text-red-500 text-xs mt-2 font-medium flex items-center gap-1">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -473,7 +476,7 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
 
             {/* API error feedback */}
             {apiError && (
-              <div className="mt-5 p-4 rounded-xl bg-red-500/10 border border-red-400/30 text-red-300 text-sm flex items-center gap-2">
+              <div className="mt-5 p-4 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm flex items-center gap-2">
                 <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -484,7 +487,7 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full h-16 mt-8 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-xl transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_40px_rgba(184,217,0,0.4)] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full h-16 mt-8 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-xl transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <span className="flex items-center justify-center gap-3">
@@ -501,19 +504,19 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
 
             {/* Trust indicators */}
             <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
-              <div className="flex items-center gap-1.5 text-white/40 text-xs">
+              <div className="flex items-center gap-1.5 text-[#5A5658] text-xs">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
                 <span>{isRtl ? "פרטיכם מאובטחים" : "Your data is secure"}</span>
               </div>
-              <div className="flex items-center gap-1.5 text-white/40 text-xs">
+              <div className="flex items-center gap-1.5 text-[#5A5658] text-xs">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <span>{isRtl ? "ללא התחייבות" : "No commitment"}</span>
               </div>
-              <div className="flex items-center gap-1.5 text-white/40 text-xs">
+              <div className="flex items-center gap-1.5 text-[#5A5658] text-xs">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
@@ -522,8 +525,8 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
             </div>
 
             {/* What happens next? (item 13) */}
-            <div className="mt-8 pt-6 border-t border-white/10">
-              <p className="text-center text-white/40 text-[11px] uppercase tracking-widest mb-4">
+            <div className="mt-8 pt-6 border-t border-gray-200/60">
+              <p className="text-center text-[#767276] text-[11px] uppercase tracking-widest mb-4">
                 {language === "en" ? "What happens next?" : language === "ar" ? "ماذا يحدث بعد ذلك؟" : "מה קורה אחרי?"}
               </p>
               <div className="space-y-3">
@@ -548,12 +551,12 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
                   },
                 ].map((step, i) => (
                   <div key={i} className={`flex items-center gap-3 ${isRtl ? "flex-row-reverse text-right" : ""}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${step.done ? "bg-[#B8D900]/20 text-[#B8D900]" : "bg-white/5 text-white/25"}`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${step.done ? "bg-[#B8D900]/20 text-[#5a7200]" : "bg-gray-100 text-[#767276]"}`}>
                       {step.done
                         ? <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                         : i + 1}
                     </div>
-                    <span className={`text-xs ${step.done ? "text-white/50" : "text-white/30"}`}>
+                    <span className={`text-xs ${step.done ? "text-[#5A5658]" : "text-[#767276]"}`}>
                       {language === "en" ? step.en : language === "ar" ? step.ar : step.he}
                     </span>
                   </div>
@@ -562,7 +565,7 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
             </div>
 
             {/* Security badge (item 14) — very subtle */}
-            <p className="text-center text-white/20 text-[10px] mt-4 flex items-center justify-center gap-1">
+            <p className="text-center text-[#767276]/60 text-[10px] mt-4 flex items-center justify-center gap-1">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>

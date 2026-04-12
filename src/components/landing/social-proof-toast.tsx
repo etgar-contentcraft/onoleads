@@ -69,20 +69,34 @@ export function SocialProofToast({ pageId, days = 7, language = "he" }: SocialPr
 
   return (
     <div
-      className={`fixed bottom-6 right-6 z-[75] max-w-xs px-4 py-3 rounded-xl bg-[#2a2628] text-white shadow-2xl border border-white/10 flex items-center gap-3 transition-all duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}
+      className={`fixed bottom-6 z-[75] max-w-sm px-5 py-3.5 rounded-2xl glass-backdrop text-white shadow-[var(--shadow-elevated)] border border-white/10 flex items-center gap-3.5 ${
+        isRtl ? "left-6" : "right-6"
+      }`}
       dir={isRtl ? "rtl" : "ltr"}
       role="status"
       aria-live="polite"
+      style={{
+        animation: visible
+          ? "slide-up-spring 0.5s var(--ease-out-expo) forwards"
+          : "none",
+        opacity: visible ? 1 : 0,
+        transform: visible ? "none" : "translateY(1.5rem)",
+        transition: visible ? "none" : "opacity 0.3s ease, transform 0.3s ease",
+        pointerEvents: visible ? "auto" : "none",
+      }}
     >
-      {/* Pulsing green dot */}
-      <span className="w-2.5 h-2.5 rounded-full bg-[#B8D900] animate-pulse shrink-0" />
+      {/* Pulsing green dot with ring effect */}
+      <span className="relative shrink-0 flex items-center justify-center w-3 h-3">
+        <span className="absolute inset-0 rounded-full bg-[#B8D900]/30 animate-ping" />
+        <span className="relative w-2.5 h-2.5 rounded-full bg-[#B8D900] shadow-[0_0_8px_rgba(184,217,0,0.5)]" />
+      </span>
       <p className="font-heebo text-sm leading-snug text-white/90">{label}</p>
       <button
         onClick={() => setVisible(false)}
-        className="shrink-0 w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+        className="shrink-0 w-6 h-6 rounded-full bg-white/[0.06] hover:bg-white/15 flex items-center justify-center transition-all duration-200 hover:rotate-90"
         aria-label={isRtl ? "סגור" : "Close"}
       >
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <svg className="w-3 h-3 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>

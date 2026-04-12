@@ -96,10 +96,10 @@ export function StickyCtaBar({
         ${isTop ? HEADER_OFFSET_CLASS : "bottom-0 pb-[env(safe-area-inset-bottom)]"}
         animate-slide-in-bar
         flex items-center justify-between
-        px-4 py-2.5 shadow-lg
+        px-4 py-2.5 shadow-[var(--shadow-elevated)] backdrop-blur-md
         transition-transform duration-500 ease-out
       `}
-      style={{ backgroundColor: content.bg_color }}
+      style={{ backgroundColor: content.bg_color + "f0" }}
     >
       {/* Left/start side: promotional text + social proof */}
       <div className="hidden md:flex flex-col gap-0">
@@ -132,7 +132,7 @@ export function StickyCtaBar({
         {content.show_phone && phoneHref && (
           <a
             href={phoneHref}
-            className="flex items-center gap-1.5 text-white text-sm font-medium hover:opacity-80 transition-opacity"
+            className="flex items-center gap-1.5 text-white text-sm font-medium hover:text-[#B8D900] transition-colors duration-200"
             aria-label={content.phone_number}
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
@@ -148,7 +148,7 @@ export function StickyCtaBar({
         <button
           type="button"
           onClick={handleCtaClick}
-          className="font-heading rounded-full px-5 py-2.5 text-sm font-bold text-white shadow-md hover:brightness-110 transition-all duration-200 cursor-pointer"
+          className="font-heading rounded-full px-5 py-2.5 text-sm font-bold text-white shadow-md hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer"
           style={{ backgroundColor: content.accent_color }}
         >
           {content[`cta_text_${language}` as keyof typeof content] as string || content.cta_text_he}

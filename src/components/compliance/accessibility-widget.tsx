@@ -232,14 +232,14 @@ export function AccessibilityWidget({ language = "he" }: { language?: Lang }) {
       {/* Floating accessibility button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 left-6 z-[80] w-12 h-12 rounded-full bg-[#2a2628] text-white shadow-lg hover:bg-[#3a3638] transition-all duration-300 flex items-center justify-center group"
+        className="fixed bottom-6 left-6 z-[80] w-12 h-12 rounded-2xl bg-[#2a2628]/90 backdrop-blur-xl text-white shadow-[var(--shadow-elevated)] border border-white/[0.08] hover:bg-[#2a2628] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center group"
         aria-label={l.buttonAriaLabel}
         aria-expanded={isOpen}
         aria-controls="accessibility-panel"
         title={l.buttonTitle}
       >
         <svg
-          className="w-6 h-6 group-hover:scale-110 transition-transform"
+          className="w-6 h-6 group-hover:scale-110 transition-transform duration-300"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -257,9 +257,10 @@ export function AccessibilityWidget({ language = "he" }: { language?: Lang }) {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-[81] bg-black/30 backdrop-blur-sm animate-fade-in"
+            className="fixed inset-0 z-[81] bg-[#2a2628]/40 backdrop-blur-md"
             onClick={() => setIsOpen(false)}
             aria-hidden="true"
+            style={{ animation: "blur-in 0.3s var(--ease-out-expo) forwards" }}
           />
 
           {/* Panel — font-size isolated in px so it's unaffected by the root fontSize override */}
@@ -267,27 +268,27 @@ export function AccessibilityWidget({ language = "he" }: { language?: Lang }) {
             id="accessibility-panel"
             role="dialog"
             aria-label={l.panelAriaLabel}
-            className="fixed bottom-20 left-6 z-[82] max-h-[80vh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-200 animate-fade-in-up"
-            style={{ fontSize: "16px", width: "min(320px, calc(100vw - 3rem))" }}
+            className="fixed bottom-20 left-6 z-[82] max-h-[80vh] overflow-y-auto bg-white/95 backdrop-blur-xl rounded-2xl shadow-[var(--shadow-modal)] border border-gray-200/60"
+            style={{ fontSize: "16px", width: "min(320px, calc(100vw - 3rem))", animation: "slide-up-spring 0.4s var(--ease-out-expo) forwards" }}
             dir={isRtl ? "rtl" : "ltr"}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-[#B8D900]/15 flex items-center justify-center">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100/80">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#B8D900]/10 border border-[#B8D900]/15 flex items-center justify-center">
                   <svg className="w-4 h-4 text-[#B8D900]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                     <circle cx="12" cy="4" r="2" fill="currentColor" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0l-4 6m4-6l4 6M8 12h8" />
                   </svg>
                 </div>
-                <h2 className="font-bold text-[#2a2628] text-base">{l.heading}</h2>
+                <h2 className="font-heading font-bold text-[#2a2628] text-base">{l.heading}</h2>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-all duration-200 hover:rotate-90"
                 aria-label={l.closeAriaLabel}
               >
-                <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -374,13 +375,13 @@ export function AccessibilityWidget({ language = "he" }: { language?: Lang }) {
               {/* Reset button */}
               <button
                 onClick={resetAll}
-                className="w-full py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+                className="w-full py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
               >
                 {l.reset}
               </button>
 
               {/* Compliance notice */}
-              <p className="text-xs text-gray-400 text-center leading-relaxed">
+              <p className="text-xs text-gray-400 text-center leading-relaxed font-heebo">
                 {l.compliance}
               </p>
             </div>
@@ -410,10 +411,10 @@ function ToggleControl({
   return (
     <button
       onClick={onToggle}
-      className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all duration-200 ${
+      className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all duration-300 ${
         active
-          ? "border-[#B8D900] bg-[#B8D900]/5"
-          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+          ? "border-[#B8D900]/40 bg-[#B8D900]/[0.06] shadow-[var(--shadow-green-sm)]"
+          : "border-gray-200 hover:border-[#B8D900]/25 hover:bg-[#B8D900]/[0.02]"
       }`}
       role="switch"
       aria-checked={active}
@@ -421,15 +422,15 @@ function ToggleControl({
     >
       <div className={isRtl ? "text-right" : "text-left"}>
         <span className="block text-sm font-medium text-[#2a2628]">{label}</span>
-        <span className="block text-xs text-gray-500">{description}</span>
+        <span className="block text-xs text-gray-500 mt-0.5">{description}</span>
       </div>
       <div
-        className={`w-11 h-6 rounded-full relative transition-colors duration-200 shrink-0 ${isRtl ? "mr-3" : "ml-3"} ${
-          active ? "bg-[#B8D900]" : "bg-gray-200"
+        className={`w-11 h-6 rounded-full relative transition-all duration-300 shrink-0 ${isRtl ? "mr-3" : "ml-3"} ${
+          active ? "bg-[#B8D900] shadow-[0_0_10px_rgba(184,217,0,0.3)]" : "bg-gray-200"
         }`}
       >
         <div
-          className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+          className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-300 ${
             active ? "right-0.5" : "right-[22px]"
           }`}
         />

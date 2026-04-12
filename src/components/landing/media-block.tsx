@@ -40,7 +40,7 @@ export function MediaBlock({
   if (youtubeId) {
     return (
       <div
-        className={`relative w-full overflow-hidden rounded-${rounded} shadow-lg ${className}`}
+        className={`relative w-full overflow-hidden rounded-${rounded} shadow-[var(--shadow-card)] border border-gray-100/50 ${className}`}
         style={{ aspectRatio: "16 / 9" }}
       >
         <iframe
@@ -58,7 +58,7 @@ export function MediaBlock({
   /* ── Static image ────────────────────────────────────────────── */
   if (image_url) {
     return (
-      <div className={`relative overflow-hidden rounded-${rounded} shadow-lg ${className}`}>
+      <div className={`relative overflow-hidden rounded-${rounded} shadow-[var(--shadow-card)] border border-gray-100/50 ${className}`}>
         <Image
           src={image_url}
           alt={alt}

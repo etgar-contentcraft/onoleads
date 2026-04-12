@@ -209,24 +209,24 @@ export function CareerSection({ content, language }: CareerSectionProps) {
         <div className="text-center mb-14">
           <div
             className="inline-flex items-center gap-3 mb-5 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+            style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
           >
-            <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
-            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/15 text-[#B8D900] text-sm font-semibold font-heebo">
+            <div className="w-10 h-0.5 bg-[#B8D900] rounded-full" />
+            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/15 text-[#5a7200] text-sm font-semibold font-heebo tracking-wide">
               {isRtl ? "אפשרויות קריירה" : "Career Paths"}
             </span>
-            <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+            <div className="w-10 h-0.5 bg-[#B8D900] rounded-full" />
           </div>
           <h2
             className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-3 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
           >
             {heading}
           </h2>
           {subheading && (
             <p
               className="font-heebo text-white/60 text-lg max-w-2xl mx-auto opacity-0"
-              style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.2s forwards" : "none" }}
+              style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.2s forwards" : "none" }}
             >
               {subheading}
             </p>
@@ -249,7 +249,7 @@ export function CareerSection({ content, language }: CareerSectionProps) {
                   border: `1px solid ${isHovered ? palette.border : "rgba(255,255,255,0.07)"}`,
                   boxShadow: isHovered ? `0 8px 32px ${palette.shadow}` : "none",
                   transform: isHovered ? "translateY(-4px)" : "translateY(0)",
-                  animation: inView ? `fade-in-up 0.5s ease-out ${0.2 + index * 0.07}s forwards` : "none",
+                  animation: inView ? `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + index * 0.07}s forwards` : "none",
                 }}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
@@ -296,11 +296,11 @@ export function CareerSection({ content, language }: CareerSectionProps) {
         {ctaEnabled && (
           <div
             className="text-center opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.5s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.5s forwards" : "none" }}
           >
             <button
               onClick={() => open("section_career")}
-              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_40px_rgba(184,217,0,0.35)] hover:scale-[1.02] active:scale-[0.98]"
+              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
             >
               {ctaText}
               <svg className={`w-4 h-4 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

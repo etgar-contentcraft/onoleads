@@ -66,7 +66,7 @@ export function FaqSection({ content, language }: FaqSectionProps) {
   };
 
   return (
-    <section ref={sectionRef} className="py-20 md:py-28 bg-white" dir={isRtl ? "rtl" : "ltr"}>
+    <section ref={sectionRef} className="py-20 md:py-28 bg-mesh-light" dir={isRtl ? "rtl" : "ltr"}>
       <script
         type="application/ld+json"
         suppressHydrationWarning
@@ -75,20 +75,20 @@ export function FaqSection({ content, language }: FaqSectionProps) {
 
       <div className="max-w-3xl mx-auto px-5">
         {/* Header */}
-        <div className="text-center mb-14">
+        <div className="text-center mb-16">
           <div
             className="inline-flex items-center gap-3 mb-5 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+            style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
           >
-            <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
-            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
+            <div className="w-10 h-0.5 bg-[#B8D900] rounded-full" />
+            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo tracking-wide">
               {isRtl ? "שאלות ותשובות" : "Q&A"}
             </span>
-            <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+            <div className="w-10 h-0.5 bg-[#B8D900] rounded-full" />
           </div>
           <h2
             className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
           >
             {heading}
           </h2>
@@ -104,12 +104,12 @@ export function FaqSection({ content, language }: FaqSectionProps) {
             return (
               <div
                 key={index}
-                className={`rounded-2xl border transition-all duration-300 overflow-hidden opacity-0 ${
+                className={`rounded-2xl border overflow-hidden opacity-0 transition-all duration-[400ms] ${
                   isOpen
-                    ? "border-[#B8D900]/40 bg-white shadow-[0_6px_28px_rgba(184,217,0,0.12)]"
-                    : "border-gray-200 bg-[#fafaf8] hover:border-[#B8D900]/25 hover:bg-white hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+                    ? "border-[#B8D900]/30 bg-white shadow-[var(--shadow-card-hover)]"
+                    : "border-gray-200/80 bg-white/70 hover:bg-white hover:border-[#B8D900]/20 hover:shadow-[var(--shadow-card)]"
                 }`}
-                style={{ animation: inView ? `fade-in-up 0.5s ease-out ${0.15 + index * 0.06}s forwards` : "none" }}
+                style={{ animation: inView ? `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + index * 0.08}s forwards` : "none" }}
               >
                 <button
                   id={`faq-question-${index}`}
@@ -118,16 +118,22 @@ export function FaqSection({ content, language }: FaqSectionProps) {
                   aria-expanded={isOpen}
                   aria-controls={`faq-answer-${index}`}
                 >
-                  <div className="flex items-start gap-4">
-                    {/* Green accent bar */}
-                    <div className={`w-1 self-stretch rounded-full transition-all duration-300 shrink-0 ${
-                      isOpen ? "bg-[#B8D900]" : "bg-gray-200 group-hover:bg-[#B8D900]/50"
-                    }`} />
-                    <span className="font-heading text-base md:text-lg font-bold text-[#2a2628] leading-snug">
+                  <div className="flex items-center gap-4">
+                    {/* Numbered badge */}
+                    <div className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center font-heading font-bold text-sm transition-all duration-300 ${
+                      isOpen
+                        ? "bg-[#B8D900] text-[#2a2628] shadow-[var(--shadow-green-sm)]"
+                        : "bg-[#B8D900]/8 text-[#9ab800] group-hover:bg-[#B8D900]/15"
+                    }`}>
+                      {String(index + 1).padStart(2, "0")}
+                    </div>
+                    <span className={`font-heading text-base md:text-lg font-bold leading-snug transition-colors duration-300 ${
+                      isOpen ? "text-[#2a2628]" : "text-[#3a3638] group-hover:text-[#2a2628]"
+                    }`}>
                       {question}
                     </span>
                   </div>
-                  <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${isRtl ? "ml-4" : "mr-4"} ${
+                  <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${isRtl ? "ml-3" : "mr-3"} ${
                     isOpen
                       ? "bg-[#B8D900] rotate-180 shadow-[0_0_15px_rgba(184,217,0,0.3)]"
                       : "bg-gray-100 group-hover:bg-[#B8D900]/15"
@@ -141,19 +147,26 @@ export function FaqSection({ content, language }: FaqSectionProps) {
                   </div>
                 </button>
 
+                {/* Animated accent line */}
+                <div className={`mx-5 md:mx-6 h-px transition-all duration-500 ${
+                  isOpen ? "bg-gradient-to-r from-transparent via-[#B8D900]/30 to-transparent scale-x-100" : "bg-transparent scale-x-0"
+                }`} />
+
                 {/* Answer with smooth animation */}
                 <div
                   id={`faq-answer-${index}`}
                   role="region"
                   aria-labelledby={`faq-question-${index}`}
-                  className={`grid transition-all duration-300 ease-in-out ${
+                  className={`grid transition-all duration-[400ms] ease-in-out ${
                     isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                   }`}
                 >
                   <div className="overflow-hidden">
-                    <div className={`px-5 md:px-6 pb-6 ${isRtl ? "pr-10" : "pl-10"}`}>
+                    <div className={`px-5 md:px-6 pb-6 pt-4 ${isRtl ? "pr-[4.25rem]" : "pl-[4.25rem]"}`}>
                       <div
-                        className="prose prose-sm max-w-none font-heebo text-[#5A5658] leading-[1.8] prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline"
+                        className={`prose prose-sm max-w-none font-heebo text-[#5A5658] leading-[1.8] prose-headings:text-[#2a2628] prose-headings:font-heading prose-a:text-[#B8D900] prose-a:underline ${
+                          isRtl ? "border-r-2 border-[#B8D900]/20 pr-4" : "border-l-2 border-[#B8D900]/20 pl-4"
+                        }`}
                         dangerouslySetInnerHTML={richTextHtml(answer)}
                       />
                     </div>
@@ -164,15 +177,15 @@ export function FaqSection({ content, language }: FaqSectionProps) {
           })}
         </div>
 
-        {/* CTA Button — always shown when ctaEnabled (falls back to a default if not overridden) */}
+        {/* CTA Button */}
         {ctaEnabled && (
           <div
-            className="text-center mt-14 opacity-0"
-            style={{ animation: inView ? `fade-in-up 0.6s ease-out ${0.2 + items.length * 0.06}s forwards` : "none" }}
+            className="text-center mt-16 opacity-0"
+            style={{ animation: inView ? `slide-up-spring 0.7s var(--ease-out-expo) ${0.3 + items.length * 0.08}s forwards` : "none" }}
           >
             <button
               onClick={() => open("section_faq")}
-              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_8px_30px_rgba(184,217,0,0.25)] hover:scale-[1.02] active:scale-[0.98]"
+              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
             >
               {ctaText}
               <svg className={`w-4 h-4 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

@@ -172,7 +172,7 @@ function CountdownTimer({ targetDate, dir = "rtl" }: { targetDate: string; dir?:
       {units.map((unit, i) => (
         <div key={unit.label} className="flex items-center gap-3 md:gap-4">
           <div className="flex flex-col items-center">
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl w-16 h-16 md:w-20 md:h-20 flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl w-16 h-16 md:w-20 md:h-20 flex items-center justify-center shadow-[var(--shadow-elevated)]">
               <span className="font-heading font-extrabold text-2xl md:text-3xl text-white tabular-nums leading-none">
                 {String(unit.value).padStart(2, "0")}
               </span>
@@ -335,7 +335,7 @@ function RegistrationForm({ pageId, eventTitle, isZoom = false, dir = "rtl" }: R
           onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
           placeholder="שם מלא *"
           autoComplete="name"
-          className="w-full h-13 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3.5 text-[#2a2628] text-base placeholder:text-[#5A5658]/50 focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 transition-all"
+          className="w-full h-13 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3.5 text-[#2a2628] text-base placeholder:text-[#5A5658]/50 focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 input-focus-ring transition-all"
           aria-required="true"
           aria-invalid={!!errors.full_name}
         />
@@ -351,7 +351,7 @@ function RegistrationForm({ pageId, eventTitle, isZoom = false, dir = "rtl" }: R
           placeholder="טלפון *"
           dir="ltr"
           autoComplete="tel"
-          className="w-full h-13 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3.5 text-[#2a2628] text-base placeholder:text-[#5A5658]/50 text-left focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 transition-all"
+          className="w-full h-13 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3.5 text-[#2a2628] text-base placeholder:text-[#5A5658]/50 text-left focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 input-focus-ring transition-all"
           aria-required="true"
           aria-invalid={!!errors.phone}
         />
@@ -367,7 +367,7 @@ function RegistrationForm({ pageId, eventTitle, isZoom = false, dir = "rtl" }: R
           placeholder="אימייל"
           dir="ltr"
           autoComplete="email"
-          className="w-full h-13 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3.5 text-[#2a2628] text-base placeholder:text-[#5A5658]/50 text-left focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 transition-all"
+          className="w-full h-13 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3.5 text-[#2a2628] text-base placeholder:text-[#5A5658]/50 text-left focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 input-focus-ring transition-all"
           aria-invalid={!!errors.email}
         />
         {errors.email && <p className="text-red-500 text-xs mt-1.5">{errors.email}</p>}
@@ -385,7 +385,7 @@ function RegistrationForm({ pageId, eventTitle, isZoom = false, dir = "rtl" }: R
       <button
         type="submit"
         disabled={submitting}
-        className="w-full h-14 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_30px_rgba(184,217,0,0.4)] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full h-14 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {submitting ? (
           <span className="flex items-center justify-center gap-2">
@@ -444,8 +444,8 @@ function EventFaqAccordion({ items }: { items: { question: string; answer: strin
             key={index}
             className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
               isOpen
-                ? "border-[#B8D900]/40 bg-white shadow-[0_4px_24px_rgba(184,217,0,0.08)]"
-                : "border-gray-200 bg-white hover:border-[#B8D900]/20"
+                ? "border-[#B8D900]/40 bg-white/90 shadow-[var(--shadow-green-sm)]"
+                : "border-gray-100/80 bg-white/80 card-premium gradient-border-green hover:border-[#B8D900]/20"
             }`}
           >
             <button
@@ -502,7 +502,7 @@ function EventStickyHeader({ title, onRegisterClick, dir = "rtl" }: { title: str
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"}`}
       dir={dir}
     >
-      <div className="bg-white/95 backdrop-blur-xl border-b border-gray-200/50 shadow-[0_2px_20px_rgba(0,0,0,0.06)]">
+      <div className="bg-white/90 backdrop-blur-2xl border-b border-gray-200/30 shadow-[var(--shadow-elevated)]">
         <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -513,7 +513,7 @@ function EventStickyHeader({ title, onRegisterClick, dir = "rtl" }: { title: str
           </div>
           <button
             onClick={onRegisterClick}
-            className="inline-flex items-center px-6 py-2.5 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm hover:bg-[#c8e920] transition-all duration-300"
+            className="inline-flex items-center px-6 py-2.5 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
           >
             הרשמה לאירוע
           </button>
@@ -589,7 +589,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
           {/* Ono logo */}
           <div
             className="mb-8 opacity-0"
-            style={{ animation: heroVisible ? "fade-in-down 0.7s ease-out 0.1s forwards" : "none" }}
+            style={{ animation: heroVisible ? "blur-in 0.6s var(--ease-out-expo) 0.1s forwards" : "none" }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={ONO_LOGO} alt="הקריה האקדמית אונו" className="h-12 object-contain" loading="eager" />
@@ -598,9 +598,9 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
           {/* Event type badge */}
           <div
             className="mb-5 opacity-0"
-            style={{ animation: heroVisible ? "fade-in-up 0.7s ease-out 0.2s forwards" : "none" }}
+            style={{ animation: heroVisible ? "blur-in 0.6s var(--ease-out-expo) 0.2s forwards" : "none" }}
           >
-            <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm">
+            <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#B8D900]/10 text-[#5a7200] border border-[#B8D900]/30 backdrop-blur-md font-heading font-bold text-sm">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -612,7 +612,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
           {/* Main Heading */}
           <h1
             className="font-heading text-4xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] mb-4 max-w-3xl opacity-0"
-            style={{ animation: heroVisible ? "fade-in-up 0.8s ease-out 0.3s forwards" : "none" }}
+            style={{ animation: heroVisible ? "slide-up-spring 0.7s var(--ease-out-expo) 0.3s forwards" : "none" }}
           >
             {page.title_he}
           </h1>
@@ -620,7 +620,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
           {/* Date + venue */}
           <div
             className="flex flex-wrap items-center gap-4 mb-10 opacity-0"
-            style={{ animation: heroVisible ? "fade-in-up 0.8s ease-out 0.45s forwards" : "none" }}
+            style={{ animation: heroVisible ? "slide-up-spring 0.7s var(--ease-out-expo) 0.45s forwards" : "none" }}
           >
             <div className="flex items-center gap-2 text-white/80 font-heebo text-lg">
               <svg className="w-5 h-5 text-[#B8D900]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -642,12 +642,12 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
           {/* Countdown + CTA */}
           <div
             className="flex flex-col lg:flex-row items-start lg:items-center gap-8 opacity-0"
-            style={{ animation: heroVisible ? "fade-in-up 0.8s ease-out 0.6s forwards" : "none" }}
+            style={{ animation: heroVisible ? "slide-up-spring 0.7s var(--ease-out-expo) 0.6s forwards" : "none" }}
           >
             <CountdownTimer targetDate={eventMeta.event_date} dir={dir} />
             <button
               onClick={scrollToForm}
-              className="inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_50px_rgba(184,217,0,0.5)] hover:scale-[1.03] active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green-lg)] hover:scale-[1.03] active:scale-[0.98]"
             >
               הירשמו עכשיו - חינם
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -663,19 +663,29 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
       </section>
 
       {/* ====== WHAT TO EXPECT ====== */}
-      <section className="py-20 md:py-28 bg-white">
+      <section className="py-20 md:py-28 bg-mesh-warm">
         <div className="max-w-6xl mx-auto px-5 md:px-8">
           <div className="text-center mb-16">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+            <span
+              className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4"
+              style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+            >
               מה תגלו
             </span>
-            <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628]">
+            <h2
+              className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628]"
+              style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+            >
               מה קורה <span className="text-[#B8D900]">ביום הפתוח?</span>
             </h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {whatToExpect.map((item, i) => (
-              <div key={i} className="group p-7 rounded-2xl border border-gray-100 hover:border-[#B8D900]/30 hover:shadow-[0_4px_30px_rgba(184,217,0,0.1)] transition-all duration-300 bg-white">
+              <div
+                key={i}
+                className="group p-7 rounded-2xl border border-gray-100/80 bg-white/80 card-premium gradient-border-green transition-all duration-300"
+                style={{ animation: `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + i * 0.07}s forwards`, opacity: 0 }}
+              >
                 <div className="text-4xl mb-4">{item.icon}</div>
                 <h3 className="font-heading font-bold text-[#2a2628] text-lg mb-2">{item.title}</h3>
                 <p className="text-[#5A5658] text-sm leading-relaxed">{item.desc}</p>
@@ -687,13 +697,19 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
 
       {/* ====== SCHEDULE ====== */}
       {eventMeta.schedule && eventMeta.schedule.length > 0 && (
-        <section className="py-20 md:py-28 bg-gray-50">
+        <section className="py-20 md:py-28 bg-mesh-light">
           <div className="max-w-3xl mx-auto px-5 md:px-8">
             <div className="text-center mb-14">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+              <span
+                className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4"
+                style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+              >
                 לוח זמנים
               </span>
-              <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]">
+              <h2
+                className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]"
+                style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+              >
                 תוכנית האירוע
               </h2>
             </div>
@@ -725,17 +741,23 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
 
       {/* ====== MAP ====== */}
       {eventMeta.venue && (
-        <section className="py-20 md:py-28 bg-white">
+        <section className="py-20 md:py-28 bg-mesh-warm">
           <div className="max-w-4xl mx-auto px-5 md:px-8">
             <div className="text-center mb-14">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+              <span
+                className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4"
+                style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+              >
                 מיקום
               </span>
-              <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]">
+              <h2
+                className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]"
+                style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+              >
                 איך מגיעים?
               </h2>
             </div>
-            <div className="bg-gradient-to-br from-gray-50 to-white rounded-3xl border border-gray-100 p-8 md:p-10">
+            <div className="bg-white/80 rounded-3xl border border-gray-100/80 p-8 md:p-10 card-premium gradient-border-green">
               <div className="flex flex-col md:flex-row items-start gap-8">
                 {/* Address info */}
                 <div className="flex-1">
@@ -773,7 +795,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
                       href={eventMeta.google_maps_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-3 px-7 py-3.5 rounded-xl bg-[#2a2628] text-white font-heading font-bold text-sm hover:bg-[#3a3638] transition-colors"
+                      className="inline-flex items-center gap-3 px-7 py-3.5 rounded-xl bg-[#2a2628] text-white font-heading font-bold text-sm hover:bg-[#3a3638] hover:shadow-[var(--shadow-elevated)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
                     >
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -801,19 +823,29 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
 
       {/* ====== FEATURED PROGRAMS ====== */}
       {eventMeta.programs_featured && eventMeta.programs_featured.length > 0 && (
-        <section className="py-20 md:py-28 bg-gray-50">
+        <section className="py-20 md:py-28 bg-mesh-light">
           <div className="max-w-4xl mx-auto px-5 md:px-8">
             <div className="text-center mb-14">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+              <span
+                className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4"
+                style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+              >
                 תוכניות לימוד
               </span>
-              <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]">
+              <h2
+                className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]"
+                style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+              >
                 התוכניות שיוצגו <span className="text-[#B8D900]">ביום הפתוח</span>
               </h2>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               {eventMeta.programs_featured.map((program, i) => (
-                <div key={i} className="flex items-center gap-4 p-5 rounded-2xl bg-white border border-gray-100 hover:border-[#B8D900]/30 hover:shadow-[0_4px_20px_rgba(184,217,0,0.08)] transition-all duration-200">
+                <div
+                  key={i}
+                  className="flex items-center gap-4 p-5 rounded-2xl bg-white/80 border border-gray-100/80 card-premium gradient-border-green transition-all duration-300"
+                  style={{ animation: `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + i * 0.07}s forwards`, opacity: 0 }}
+                >
                   <div className="w-10 h-10 rounded-xl bg-[#B8D900]/15 flex items-center justify-center flex-shrink-0">
                     <svg className="w-5 h-5 text-[#B8D900]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -829,29 +861,39 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
 
       {/* ====== SPEAKERS ====== */}
       {eventMeta.speakers && eventMeta.speakers.length > 0 && (
-        <section className="py-20 md:py-28 bg-white">
+        <section className="py-20 md:py-28 bg-mesh-light">
           <div className="max-w-4xl mx-auto px-5 md:px-8">
             <div className="text-center mb-14">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+              <span
+                className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4"
+                style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+              >
                 סגל אקדמי
               </span>
-              <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]">
+              <h2
+                className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]"
+                style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+              >
                 תפגשו את המרצים
               </h2>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
               {eventMeta.speakers.map((speaker, i) => (
-                <div key={i} className="text-center p-6 rounded-2xl bg-gray-50 border border-gray-100">
+                <div
+                  key={i}
+                  className="text-center p-6 rounded-2xl bg-white/80 border border-gray-100/80 card-premium gradient-border-green"
+                  style={{ animation: `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + i * 0.07}s forwards`, opacity: 0 }}
+                >
                   {speaker.image_url ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={speaker.image_url}
                       alt={speaker.name}
-                      className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-4 border-white shadow-md"
+                      className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-4 border-white shadow-[var(--shadow-card)]"
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-20 h-20 rounded-full mx-auto mb-4 bg-gradient-to-br from-[#B8D900] to-[#9ab800] flex items-center justify-center text-[#2a2628] font-heading font-bold text-2xl border-4 border-white shadow-md">
+                    <div className="w-20 h-20 rounded-full mx-auto mb-4 bg-gradient-to-br from-[#B8D900] to-[#9ab800] flex items-center justify-center text-[#2a2628] font-heading font-bold text-2xl border-4 border-white shadow-[var(--shadow-card)]">
                       {speaker.name.charAt(0)}
                     </div>
                   )}
@@ -877,10 +919,16 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
 
         <div className="relative z-10 max-w-lg mx-auto px-5">
           <div className="text-center mb-10">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/15 text-[#B8D900] text-sm font-semibold mb-4">
+            <span
+              className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/15 text-[#5a7200] text-sm font-semibold mb-4"
+              style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+            >
               הרשמה חינמית
             </span>
-            <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-white mb-3">
+            <h2
+              className="font-heading text-3xl md:text-4xl font-extrabold text-white mb-3"
+              style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+            >
               הירשמו ליום הפתוח
             </h2>
             <p className="text-white/60 text-base font-heebo">
@@ -888,7 +936,7 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
               {eventMeta.venue && ` | ${eventMeta.venue.split(",")[0]}`}
             </p>
           </div>
-          <div className="bg-white rounded-3xl p-7 md:p-8 shadow-[0_20px_80px_rgba(0,0,0,0.3)]">
+          <div className="bg-white rounded-3xl p-7 md:p-8 shadow-[var(--shadow-modal)]">
             <RegistrationForm
               pageId={page.id}
               eventTitle={page.title_he}
@@ -900,13 +948,19 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
       </section>
 
       {/* ====== FAQ ====== */}
-      <section className="py-20 md:py-28 bg-white">
+      <section className="py-20 md:py-28 bg-mesh-warm">
         <div className="max-w-3xl mx-auto px-5 md:px-8">
           <div className="text-center mb-14">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+            <span
+              className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4"
+              style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+            >
               שאלות ותשובות
             </span>
-            <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]">
+            <h2
+              className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]"
+              style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+            >
               שאלות נפוצות
             </h2>
           </div>
@@ -915,26 +969,27 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
       </section>
 
       {/* ====== FOOTER ====== */}
-      <footer className="py-12 bg-[#2a2628]" dir={dir}>
+      <footer className="relative py-12 bg-[#2a2628]" dir={dir}>
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#B8D900]/30 to-transparent" aria-hidden="true" />
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={ONO_LOGO} alt="הקריה האקדמית אונו" className="h-10 object-contain brightness-0 invert opacity-70" loading="lazy" />
               <div>
-                <p className="text-white/90 font-heading font-bold text-sm">הקריה האקדמית אונו</p>
-                <p className="text-xs text-white/50">המכללה המומלצת בישראל</p>
+                <p className="text-white/90 font-heading font-bold text-sm tracking-wide">הקריה האקדמית אונו</p>
+                <p className="text-xs text-white/40 tracking-wide">המכללה המומלצת בישראל</p>
               </div>
             </div>
             <div className="flex items-center gap-6 text-white/50 text-sm">
-              <a href="tel:*2899" className="hover:text-[#B8D900] transition-colors">*2899</a>
-              <a href="https://www.ono.ac.il" target="_blank" rel="noopener noreferrer" className="hover:text-[#B8D900] transition-colors">ono.ac.il</a>
+              <a href="tel:*2899" className="hover:text-[#B8D900] transition-colors duration-300">*2899</a>
+              <a href="https://www.ono.ac.il" target="_blank" rel="noopener noreferrer" className="hover:text-[#B8D900] transition-colors duration-300">ono.ac.il</a>
             </div>
-            <div className="flex items-center gap-4 text-white/40 text-xs">
-              <a href="/privacy" className="hover:text-[#B8D900] transition-colors">מדיניות פרטיות</a>
-              <span className="w-px h-3 bg-white/20" />
-              <a href="/terms" className="hover:text-[#B8D900] transition-colors">תנאי שימוש</a>
-              <span className="w-px h-3 bg-white/20" />
+            <div className="flex items-center gap-4 text-white/30 text-xs tracking-wide">
+              <a href="/privacy" className="hover:text-[#B8D900] transition-colors duration-300">מדיניות פרטיות</a>
+              <span className="w-px h-3 bg-white/15" />
+              <a href="/terms" className="hover:text-[#B8D900] transition-colors duration-300">תנאי שימוש</a>
+              <span className="w-px h-3 bg-white/15" />
               <p>&copy; {new Date().getFullYear()} הקריה האקדמית אונו</p>
             </div>
           </div>
@@ -1040,7 +1095,7 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
           {/* Zoom + Ono logos */}
           <div
             className="flex items-center gap-5 mb-10 opacity-0"
-            style={{ animation: heroVisible ? "fade-in-down 0.7s ease-out 0.1s forwards" : "none" }}
+            style={{ animation: heroVisible ? "blur-in 0.6s var(--ease-out-expo) 0.1s forwards" : "none" }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={ONO_LOGO} alt="הקריה האקדמית אונו" className="h-10 object-contain brightness-0 invert opacity-80" loading="eager" />
@@ -1057,9 +1112,9 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
           {/* Event type badge */}
           <div
             className="mb-5 opacity-0"
-            style={{ animation: heroVisible ? "fade-in-up 0.7s ease-out 0.2s forwards" : "none" }}
+            style={{ animation: heroVisible ? "blur-in 0.6s var(--ease-out-expo) 0.2s forwards" : "none" }}
           >
-            <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#2D8CFF]/20 text-[#2D8CFF] border border-[#2D8CFF]/30 font-heading font-bold text-sm">
+            <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#2D8CFF]/20 text-[#2D8CFF] border border-[#2D8CFF]/30 backdrop-blur-md font-heading font-bold text-sm">
               יום פתוח בזום
             </span>
           </div>
@@ -1067,7 +1122,7 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
           {/* Main Heading */}
           <h1
             className="font-heading text-4xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] mb-4 max-w-3xl opacity-0"
-            style={{ animation: heroVisible ? "fade-in-up 0.8s ease-out 0.3s forwards" : "none" }}
+            style={{ animation: heroVisible ? "slide-up-spring 0.7s var(--ease-out-expo) 0.3s forwards" : "none" }}
           >
             {page.title_he}
           </h1>
@@ -1075,7 +1130,7 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
           {/* Date + online badge */}
           <div
             className="flex flex-wrap items-center gap-4 mb-10 opacity-0"
-            style={{ animation: heroVisible ? "fade-in-up 0.8s ease-out 0.45s forwards" : "none" }}
+            style={{ animation: heroVisible ? "slide-up-spring 0.7s var(--ease-out-expo) 0.45s forwards" : "none" }}
           >
             <div className="flex items-center gap-2 text-white/80 font-heebo text-lg">
               <svg className="w-5 h-5 text-[#B8D900]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1093,12 +1148,12 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
           {/* Countdown + CTA */}
           <div
             className="flex flex-col lg:flex-row items-start lg:items-center gap-8 opacity-0"
-            style={{ animation: heroVisible ? "fade-in-up 0.8s ease-out 0.6s forwards" : "none" }}
+            style={{ animation: heroVisible ? "slide-up-spring 0.7s var(--ease-out-expo) 0.6s forwards" : "none" }}
           >
             <CountdownTimer targetDate={eventMeta.event_date} dir={dir} />
             <button
               onClick={scrollToForm}
-              className="inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_50px_rgba(184,217,0,0.5)] hover:scale-[1.03] active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green-lg)] hover:scale-[1.03] active:scale-[0.98]"
             >
               קבל קישור לזום - חינם
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -1113,19 +1168,29 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
       </section>
 
       {/* ====== WHAT TO EXPECT ====== */}
-      <section className="py-20 md:py-28 bg-white">
+      <section className="py-20 md:py-28 bg-mesh-warm">
         <div className="max-w-6xl mx-auto px-5 md:px-8">
           <div className="text-center mb-16">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+            <span
+              className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4"
+              style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+            >
               יתרונות
             </span>
-            <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628]">
+            <h2
+              className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628]"
+              style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+            >
               למה להצטרף <span className="text-[#B8D900]">לזום?</span>
             </h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {whatToExpect.map((item, i) => (
-              <div key={i} className="group p-7 rounded-2xl border border-gray-100 hover:border-[#B8D900]/30 hover:shadow-[0_4px_30px_rgba(184,217,0,0.1)] transition-all duration-300 bg-white">
+              <div
+                key={i}
+                className="group p-7 rounded-2xl border border-gray-100/80 bg-white/80 card-premium gradient-border-green transition-all duration-300"
+                style={{ animation: `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + i * 0.07}s forwards`, opacity: 0 }}
+              >
                 <div className="text-4xl mb-4">{item.icon}</div>
                 <h3 className="font-heading font-bold text-[#2a2628] text-lg mb-2">{item.title}</h3>
                 <p className="text-[#5A5658] text-sm leading-relaxed">{item.desc}</p>
@@ -1137,13 +1202,19 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
 
       {/* ====== ZOOM SCHEDULE ====== */}
       {eventMeta.schedule && eventMeta.schedule.length > 0 && (
-        <section className="py-20 md:py-28 bg-gray-50">
+        <section className="py-20 md:py-28 bg-mesh-light">
           <div className="max-w-3xl mx-auto px-5 md:px-8">
             <div className="text-center mb-14">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+              <span
+                className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4"
+                style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+              >
                 לוח זמנים
               </span>
-              <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]">
+              <h2
+                className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]"
+                style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+              >
                 אג&apos;נדת הזום
               </h2>
             </div>
@@ -1170,26 +1241,36 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
       )}
 
       {/* ====== TECH REQUIREMENTS ====== */}
-      <section className="py-20 md:py-28 bg-white">
+      <section className="py-20 md:py-28 bg-mesh-warm">
         <div className="max-w-4xl mx-auto px-5 md:px-8">
           <div className="text-center mb-14">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+            <span
+              className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4"
+              style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+            >
               הצטרפות לזום
             </span>
-            <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]">
+            <h2
+              className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]"
+              style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+            >
               מה צריך כדי להצטרף?
             </h2>
           </div>
           <div className="grid md:grid-cols-2 gap-8 items-start">
             <div className="space-y-4">
               {techRequirements.map((req, i) => (
-                <div key={i} className="flex items-center gap-4 p-5 rounded-2xl bg-gray-50 border border-gray-100">
+                <div
+                  key={i}
+                  className="flex items-center gap-4 p-5 rounded-2xl bg-white/80 border border-gray-100/80 card-premium gradient-border-green"
+                  style={{ animation: `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + i * 0.07}s forwards`, opacity: 0 }}
+                >
                   <span className="text-2xl">{req.icon}</span>
                   <span className="font-heebo text-[#2a2628] text-base">{req.text}</span>
                 </div>
               ))}
             </div>
-            <div className="bg-gradient-to-br from-[#2D8CFF]/10 to-[#2D8CFF]/5 rounded-3xl border border-[#2D8CFF]/20 p-8 text-center">
+            <div className="bg-gradient-to-br from-[#2D8CFF]/10 to-[#2D8CFF]/5 rounded-3xl border border-[#2D8CFF]/20 p-8 text-center shadow-[var(--shadow-card)]">
               <svg viewBox="0 0 24 24" className="w-16 h-16 fill-[#2D8CFF]/60 mx-auto mb-4" aria-hidden="true">
                 <path d="M16.8 11.4L21 8v8l-4.2-3.4v2.1a3.5 3.5 0 01-3.5 3.5H5.5A3.5 3.5 0 012 13.7V10a3.5 3.5 0 013.5-3.5h7.8a3.5 3.5 0 013.5 3.5v1.4z"/>
               </svg>
@@ -1199,7 +1280,7 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
                 href="https://zoom.us/download"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#2D8CFF] text-white font-heading font-bold text-sm hover:bg-[#1a7ae0] transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#2D8CFF] text-white font-heading font-bold text-sm hover:bg-[#1a7ae0] hover:shadow-[var(--shadow-elevated)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
               >
                 הורידו Zoom חינם
               </a>
@@ -1210,19 +1291,29 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
 
       {/* ====== FEATURED PROGRAMS ====== */}
       {eventMeta.programs_featured && eventMeta.programs_featured.length > 0 && (
-        <section className="py-20 md:py-28 bg-gray-50">
+        <section className="py-20 md:py-28 bg-mesh-light">
           <div className="max-w-4xl mx-auto px-5 md:px-8">
             <div className="text-center mb-14">
-              <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+              <span
+                className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4"
+                style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+              >
                 תוכניות לימוד
               </span>
-              <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]">
+              <h2
+                className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]"
+                style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+              >
                 התוכניות שיוצגו <span className="text-[#B8D900]">בזום</span>
               </h2>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               {eventMeta.programs_featured.map((program, i) => (
-                <div key={i} className="flex items-center gap-4 p-5 rounded-2xl bg-white border border-gray-100 hover:border-[#B8D900]/30 hover:shadow-[0_4px_20px_rgba(184,217,0,0.08)] transition-all duration-200">
+                <div
+                  key={i}
+                  className="flex items-center gap-4 p-5 rounded-2xl bg-white/80 border border-gray-100/80 card-premium gradient-border-green transition-all duration-300"
+                  style={{ animation: `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + i * 0.07}s forwards`, opacity: 0 }}
+                >
                   <div className="w-10 h-10 rounded-xl bg-[#B8D900]/15 flex items-center justify-center flex-shrink-0">
                     <svg className="w-5 h-5 text-[#B8D900]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -1247,20 +1338,26 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
 
         <div className="relative z-10 max-w-lg mx-auto px-5">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center gap-2 mb-4 px-5 py-2 rounded-full bg-[#2D8CFF]/15 border border-[#2D8CFF]/30">
+            <div
+              className="inline-flex items-center justify-center gap-2 mb-4 px-5 py-2 rounded-full bg-[#2D8CFF]/15 border border-[#2D8CFF]/30"
+              style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+            >
               <svg viewBox="0 0 24 24" className="w-5 h-5 fill-[#2D8CFF]" aria-hidden="true">
                 <path d="M16.8 11.4L21 8v8l-4.2-3.4v2.1a3.5 3.5 0 01-3.5 3.5H5.5A3.5 3.5 0 012 13.7V10a3.5 3.5 0 013.5-3.5h7.8a3.5 3.5 0 013.5 3.5v1.4z"/>
               </svg>
               <span className="text-[#2D8CFF] font-semibold text-sm">הצטרפו בזום</span>
             </div>
-            <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-white mb-3">
+            <h2
+              className="font-heading text-3xl md:text-4xl font-extrabold text-white mb-3"
+              style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+            >
               קבלו קישור לזום
             </h2>
             <p className="text-white/60 text-base font-heebo">
               {eventDate} | שעה {eventTime} | אונליין
             </p>
           </div>
-          <div className="bg-white rounded-3xl p-7 md:p-8 shadow-[0_20px_80px_rgba(0,0,0,0.3)]">
+          <div className="bg-white rounded-3xl p-7 md:p-8 shadow-[var(--shadow-modal)]">
             <RegistrationForm
               pageId={page.id}
               eventTitle={page.title_he}
@@ -1277,7 +1374,7 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
                 href={buildGoogleCalendarUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white/70 text-sm font-medium hover:bg-white/15 hover:text-white transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white/70 text-sm font-medium hover:bg-white/15 hover:text-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -1291,7 +1388,7 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
                 href={buildOutlookCalendarUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white/70 text-sm font-medium hover:bg-white/15 hover:text-white transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white/70 text-sm font-medium hover:bg-white/15 hover:text-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -1303,7 +1400,7 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
               </a>
               <a
                 href={`webcal://calendar.google.com/calendar/ical/event?${new URLSearchParams({ action: "TEMPLATE", text: page.title_he, dates: (() => { const s = new Date(eventMeta.event_date); const e2 = new Date(s.getTime() + eventMeta.duration_hours * 60 * 60 * 1000); const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"; return `${fmt(s)}/${fmt(e2)}`; })() }).toString()}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white/70 text-sm font-medium hover:bg-white/15 hover:text-white transition-all"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white/70 text-sm font-medium hover:bg-white/15 hover:text-white hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -1316,13 +1413,19 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
       </section>
 
       {/* ====== FAQ ====== */}
-      <section className="py-20 md:py-28 bg-white">
+      <section className="py-20 md:py-28 bg-mesh-warm">
         <div className="max-w-3xl mx-auto px-5 md:px-8">
           <div className="text-center mb-14">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4">
+            <span
+              className="inline-block px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold mb-4"
+              style={{ animation: "blur-in 0.6s var(--ease-out-expo) forwards" }}
+            >
               שאלות ותשובות
             </span>
-            <h2 className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]">
+            <h2
+              className="font-heading text-3xl md:text-4xl font-extrabold text-[#2a2628]"
+              style={{ animation: "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" }}
+            >
               שאלות נפוצות
             </h2>
           </div>
@@ -1331,26 +1434,27 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
       </section>
 
       {/* ====== FOOTER ====== */}
-      <footer className="py-12 bg-[#2a2628]" dir={dir}>
+      <footer className="relative py-12 bg-[#2a2628]" dir={dir}>
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#B8D900]/30 to-transparent" aria-hidden="true" />
         <div className="max-w-6xl mx-auto px-5">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={ONO_LOGO} alt="הקריה האקדמית אונו" className="h-10 object-contain brightness-0 invert opacity-70" loading="lazy" />
               <div>
-                <p className="text-white/90 font-heading font-bold text-sm">הקריה האקדמית אונו</p>
-                <p className="text-xs text-white/50">המכללה המומלצת בישראל</p>
+                <p className="text-white/90 font-heading font-bold text-sm tracking-wide">הקריה האקדמית אונו</p>
+                <p className="text-xs text-white/40 tracking-wide">המכללה המומלצת בישראל</p>
               </div>
             </div>
             <div className="flex items-center gap-6 text-white/50 text-sm">
-              <a href="tel:*2899" className="hover:text-[#B8D900] transition-colors">*2899</a>
-              <a href="https://www.ono.ac.il" target="_blank" rel="noopener noreferrer" className="hover:text-[#B8D900] transition-colors">ono.ac.il</a>
+              <a href="tel:*2899" className="hover:text-[#B8D900] transition-colors duration-300">*2899</a>
+              <a href="https://www.ono.ac.il" target="_blank" rel="noopener noreferrer" className="hover:text-[#B8D900] transition-colors duration-300">ono.ac.il</a>
             </div>
-            <div className="flex items-center gap-4 text-white/40 text-xs">
-              <a href="/privacy" className="hover:text-[#B8D900] transition-colors">מדיניות פרטיות</a>
-              <span className="w-px h-3 bg-white/20" />
-              <a href="/terms" className="hover:text-[#B8D900] transition-colors">תנאי שימוש</a>
-              <span className="w-px h-3 bg-white/20" />
+            <div className="flex items-center gap-4 text-white/30 text-xs tracking-wide">
+              <a href="/privacy" className="hover:text-[#B8D900] transition-colors duration-300">מדיניות פרטיות</a>
+              <span className="w-px h-3 bg-white/15" />
+              <a href="/terms" className="hover:text-[#B8D900] transition-colors duration-300">תנאי שימוש</a>
+              <span className="w-px h-3 bg-white/15" />
               <p>&copy; {new Date().getFullYear()} הקריה האקדמית אונו</p>
             </div>
           </div>

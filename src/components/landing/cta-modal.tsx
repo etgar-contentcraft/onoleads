@@ -562,23 +562,23 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
       aria-modal="true"
       aria-label={t.formAriaLabel}
     >
-      {/* Backdrop */}
+      {/* Backdrop — Premium Glass */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 glass-backdrop animate-fade-in"
         onClick={handleClose}
         aria-hidden="true"
       />
 
-      {/* Modal */}
-      <div className="relative z-10 w-full max-w-md mx-4 mb-0 md:mb-0 animate-fade-in-up">
-        <div className="bg-[#2a2628] rounded-t-3xl md:rounded-3xl border border-white/10 shadow-[0_-8px_60px_rgba(0,0,0,0.5)] overflow-hidden pb-[env(safe-area-inset-bottom)]">
-          {/* Close button */}
+      {/* Modal — Premium Glass card with slide-up-spring entrance */}
+      <div className="relative z-10 w-full max-w-md mx-4 mb-0 md:mb-0 animate-slide-up-spring">
+        <div className="bg-white/95 backdrop-blur-sm rounded-t-2xl md:rounded-2xl shadow-[var(--shadow-modal)] overflow-hidden pb-[env(safe-area-inset-bottom)]">
+          {/* Close button — refined with subtle hover */}
           <button
             onClick={handleClose}
-            className="absolute top-4 left-4 z-20 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+            className="absolute top-4 end-4 z-20 w-9 h-9 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center transition-all duration-200 hover:rotate-90"
             aria-label={t.close}
           >
-            <svg className="w-5 h-5 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-5 h-5 text-gray-400 hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -591,11 +591,11 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
               /* Form state */
               <>
                 <div className="text-center mb-6">
-                  <h3 className="font-heading text-2xl font-extrabold text-white mb-1">
+                  <h3 className="font-heading text-2xl font-extrabold text-[#2a2628] mb-1">
                     {t.title}
                   </h3>
                   {programName && (
-                    <p className="text-[#B8D900] font-medium text-sm">
+                    <p className="text-[#7a9a00] font-medium text-sm">
                       {programName}
                     </p>
                   )}
@@ -603,7 +603,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
 
                 {/* Server-side error message */}
                 {submitError && (
-                  <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-sm text-center">
+                  <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm text-center">
                     {submitError}
                   </div>
                 )}
@@ -634,13 +634,13 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                       onKeyDown={() => { hasKeystrokeRef.current = true; }}
                       placeholder={t.namePlaceholder}
                       autoComplete="name"
-                      className={`w-full h-13 rounded-xl bg-white/8 border px-4 text-white text-base placeholder:text-white/35 focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors.full_name ? "border-red-400/60" : "border-white/15"}`}
+                      className={`w-full h-13 rounded-xl bg-gray-50 border px-4 text-[#2a2628] text-base placeholder:text-gray-500 focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 focus:shadow-[0_0_0_3px_rgba(184,217,0,0.12)] transition-all duration-200 ${errors.full_name ? "border-red-300" : "border-gray-200"}`}
                       aria-required="true"
                       aria-invalid={!!errors.full_name}
                       aria-describedby={errors.full_name ? "full_name_error" : undefined}
                     />
                     {errors.full_name && (
-                      <p id="full_name_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{errors.full_name}</p>
+                      <p id="full_name_error" role="alert" className="text-red-500 text-xs mt-1.5 font-medium flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{errors.full_name}</p>
                     )}
                   </div>
 
@@ -656,13 +656,13 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                       placeholder={t.phonePlaceholder}
                       dir="ltr"
                       autoComplete="tel"
-                      className={`w-full h-13 rounded-xl bg-white/8 border px-4 text-white text-base placeholder:text-white/35 text-left focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors.phone ? "border-red-400/60" : "border-white/15"}`}
+                      className={`w-full h-13 rounded-xl bg-gray-50 border px-4 text-[#2a2628] text-base placeholder:text-gray-500 text-left focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 focus:shadow-[0_0_0_3px_rgba(184,217,0,0.12)] transition-all duration-200 ${errors.phone ? "border-red-300" : "border-gray-200"}`}
                       aria-required="true"
                       aria-invalid={!!errors.phone}
                       aria-describedby={errors.phone ? "phone_error" : undefined}
                     />
                     {errors.phone && (
-                      <p id="phone_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{errors.phone}</p>
+                      <p id="phone_error" role="alert" className="text-red-500 text-xs mt-1.5 font-medium flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{errors.phone}</p>
                     )}
                   </div>
 
@@ -678,12 +678,12 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                       placeholder={t.emailPlaceholder}
                       dir="ltr"
                       autoComplete="email"
-                      className={`w-full h-13 rounded-xl bg-white/8 border px-4 text-white text-base placeholder:text-white/35 text-left focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors.email ? "border-red-400/60" : "border-white/15"}`}
+                      className={`w-full h-13 rounded-xl bg-gray-50 border px-4 text-[#2a2628] text-base placeholder:text-gray-500 text-left focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 focus:shadow-[0_0_0_3px_rgba(184,217,0,0.12)] transition-all duration-200 ${errors.email ? "border-red-300" : "border-gray-200"}`}
                       aria-invalid={!!errors.email}
                       aria-describedby={errors.email ? "email_error" : undefined}
                     />
                     {errors.email && (
-                      <p id="email_error" role="alert" className="text-red-400 text-xs mt-1.5 font-medium flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{errors.email}</p>
+                      <p id="email_error" role="alert" className="text-red-500 text-xs mt-1.5 font-medium flex items-center gap-1"><svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{errors.email}</p>
                     )}
                   </div>
 
@@ -695,26 +695,25 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                         id="interest_area"
                         value={selectedInterestArea}
                         onChange={(e) => setSelectedInterestArea(e.target.value)}
-                        className={`w-full h-13 rounded-xl bg-white/8 border px-4 text-white text-base focus:border-[#B8D900] focus:bg-white/12 focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none ${errors.interest_area ? "border-red-400/60" : "border-white/15"}`}
-                        style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+                        className={`w-full h-13 rounded-xl bg-gray-50 border px-4 text-[#2a2628] text-base focus:border-[#B8D900] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#B8D900]/20 focus:shadow-[0_0_0_3px_rgba(184,217,0,0.12)] transition-all duration-200 appearance-none ${errors.interest_area ? "border-red-300" : "border-gray-200"}`}
                         aria-required="true"
                         aria-invalid={!!errors.interest_area}
                       >
-                        <option value="" className="bg-[#2a2628]">{t.selectInterest} *</option>
+                        <option value="">{t.selectInterest} *</option>
                         {/* "I don't know" option — always first when enabled */}
                         {unknownOption && (
-                          <option value="__unknown__" className="bg-[#2a2628]">
+                          <option value="__unknown__">
                             {unknownOption.text}
                           </option>
                         )}
                         {pageInterestAreas!.map((area) => (
-                          <option key={area.id} value={area.name_he} className="bg-[#2a2628]">
+                          <option key={area.id} value={area.name_he}>
                             {area.name_he}
                           </option>
                         ))}
                       </select>
                       {errors.interest_area && (
-                        <p role="alert" className="text-red-400 text-xs mt-1.5 font-medium flex items-center gap-1">
+                        <p role="alert" className="text-red-500 text-xs mt-1.5 font-medium flex items-center gap-1">
                           <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                           {errors.interest_area}
                         </p>
@@ -723,10 +722,10 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                   )}
 
                   {/* Disclaimer with expandable "Read more" */}
-                  <div className="text-white/30 text-xs leading-relaxed space-y-1">
+                  <div className="text-gray-500 text-xs leading-relaxed space-y-1">
                     <p>
                       {t.disclaimerLine1}{" "}
-                      <a href={privacyUrls.privacy} target="_blank" rel="noopener noreferrer" className="text-[#B8D900]/70 hover:text-[#B8D900] underline">
+                      <a href={privacyUrls.privacy} target="_blank" rel="noopener noreferrer" className="text-[#7a9a00] hover:text-[#B8D900] underline">
                         {t.disclaimerPrivacyLink}
                       </a>
                     </p>
@@ -734,13 +733,13 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                     <button
                       type="button"
                       onClick={() => setDisclaimerOpen(!disclaimerOpen)}
-                      className="flex items-center gap-1 text-[#B8D900]/60 hover:text-[#B8D900] transition-colors text-xs"
+                      className="flex items-center gap-1 text-[#7a9a00]/80 hover:text-[#7a9a00] transition-colors text-xs"
                     >
                       <span className="text-[10px]">{disclaimerOpen ? "▲" : "▼"}</span>
                       {t.disclaimerReadMore}
                     </button>
                     {disclaimerOpen && (
-                      <p className="text-white/25 text-[11px] leading-relaxed pt-0.5">
+                      <p className="text-gray-500/80 text-[11px] leading-relaxed pt-0.5">
                         {t.disclaimerExpanded}
                       </p>
                     )}
@@ -750,7 +749,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                   <button
                     type="submit"
                     disabled={submitting || cooldownRemaining > 0}
-                    className="w-full h-14 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_0_30px_rgba(184,217,0,0.4)] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full h-14 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-lg transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {submitting ? (
                       <span className="flex items-center justify-center gap-2">
@@ -769,16 +768,16 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                 </form>
 
                 {/* Trust indicators */}
-                <div className="flex items-center justify-center gap-4 mt-5 text-white/30 text-xs">
+                <div className="flex items-center justify-center gap-4 mt-5 text-gray-500 text-xs">
                   <span className="flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                    <svg className="w-3.5 h-3.5 text-[#B8D900]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                     {t.noCommitment}
                   </span>
-                  <span className="w-px h-3 bg-white/15" aria-hidden="true" />
+                  <span className="w-px h-3 bg-gray-200" aria-hidden="true" />
                   <span className="flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                    <svg className="w-3.5 h-3.5 text-[#B8D900]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                     {t.privacyGuaranteed}
@@ -820,7 +819,7 @@ export function FloatingCtaButton({ ctaText }: { ctaText?: string }) {
   return (
     <button
       onClick={() => open("floating_cta")}
-      className={`fixed bottom-4 right-4 md:bottom-6 md:right-6 pb-[env(safe-area-inset-bottom)] z-40 flex items-center gap-2 px-5 py-3.5 md:px-6 md:py-3.5 rounded-full bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm shadow-[0_4px_25px_rgba(184,217,0,0.4)] hover:shadow-[0_4px_35px_rgba(184,217,0,0.6)] hover:scale-105 transition-all duration-500 ${
+      className={`fixed bottom-4 right-4 md:bottom-6 md:right-6 pb-[env(safe-area-inset-bottom)] z-40 flex items-center gap-2.5 px-6 py-3.5 md:px-7 md:py-4 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm shadow-[var(--shadow-green)] hover:bg-[#c8e920] hover:shadow-[var(--shadow-green-lg)] hover:scale-[1.04] active:scale-[0.97] transition-all duration-300 ${
         visible
           ? "translate-y-0 opacity-100"
           : "translate-y-20 opacity-0 pointer-events-none"

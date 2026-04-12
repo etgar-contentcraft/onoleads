@@ -129,15 +129,25 @@ export function ProgramsListSection({ content, language, programsMap = {} }: Pro
   return (
     <section
       ref={sectionRef}
-      className="py-20 md:py-28 bg-white"
+      className="py-20 md:py-28 bg-mesh-warm"
       dir={isRtl ? "rtl" : "ltr"}
     >
       <div className="max-w-3xl mx-auto px-5">
         {/* Heading */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-16">
+          <div
+            className="inline-flex items-center gap-3 mb-5 opacity-0"
+            style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
+          >
+            <div className="w-10 h-0.5 bg-[#B8D900] rounded-full" />
+            <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo tracking-wide">
+              {isRtl ? "תוכניות לימוד" : "Programs"}
+            </span>
+            <div className="w-10 h-0.5 bg-[#B8D900] rounded-full" />
+          </div>
           <h2
             className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
           >
             {heading}
           </h2>
@@ -159,22 +169,24 @@ export function ProgramsListSection({ content, language, programsMap = {} }: Pro
             return (
               <div
                 key={index}
-                className={`rounded-2xl border transition-all duration-300 overflow-hidden opacity-0 ${
+                className={`rounded-2xl border overflow-hidden opacity-0 transition-all duration-[400ms] ${
                   opened
-                    ? "border-[#B8D900]/40 bg-white shadow-[0_6px_28px_rgba(184,217,0,0.12)]"
-                    : "border-gray-200 bg-[#fafaf8] hover:border-[#B8D900]/25 hover:bg-white hover:shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+                    ? "border-[#B8D900]/30 bg-white shadow-[var(--shadow-card-hover)]"
+                    : "border-gray-200/80 bg-white/70 hover:bg-white hover:border-[#B8D900]/20 hover:shadow-[var(--shadow-card)]"
                 }`}
                 style={{
                   animation: inView
-                    ? `fade-in-up 0.5s ease-out ${0.15 + index * 0.06}s forwards`
+                    ? `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + index * 0.07}s forwards`
                     : "none",
                 }}
               >
                 {/* Title bar */}
                 <button
+                  id={`programs-btn-${index}`}
                   onClick={() => toggle(index)}
                   className="w-full flex items-center justify-between p-5 md:p-6 text-start group"
                   aria-expanded={opened}
+                  aria-controls={`programs-panel-${index}`}
                 >
                   <span className="font-heading text-base md:text-lg font-bold text-[#2a2628] leading-snug pr-3">
                     {title}
@@ -202,6 +214,9 @@ export function ProgramsListSection({ content, language, programsMap = {} }: Pro
 
                 {/* Expandable content */}
                 <div
+                  id={`programs-panel-${index}`}
+                  role="region"
+                  aria-labelledby={`programs-btn-${index}`}
                   className={`grid transition-all duration-300 ease-in-out ${
                     opened ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
                   }`}
@@ -248,13 +263,13 @@ export function ProgramsListSection({ content, language, programsMap = {} }: Pro
             className="text-center mt-14 opacity-0"
             style={{
               animation: inView
-                ? `fade-in-up 0.6s ease-out ${0.2 + items.length * 0.06}s forwards`
+                ? `slide-up-spring 0.7s var(--ease-out-expo) ${0.2 + items.length * 0.07}s forwards`
                 : "none",
             }}
           >
             <button
               onClick={() => open("section_programs_list")}
-              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_8px_30px_rgba(184,217,0,0.25)] hover:scale-[1.02] active:scale-[0.98]"
+              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
             >
               {ctaText}
               <svg

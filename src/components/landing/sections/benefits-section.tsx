@@ -129,13 +129,13 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-20 md:py-28 bg-[#fafafa]" dir={isRtl ? "rtl" : "ltr"}>
+    <section ref={sectionRef} className="py-20 md:py-28 bg-mesh-warm" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-6xl mx-auto px-5">
         {/* Section header */}
         <div className="text-center mb-16">
           <div
             className="inline-flex items-center gap-3 mb-5 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+            style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
           >
             <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
             <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
@@ -145,7 +145,7 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
           </div>
           <h2
             className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
           >
             {heading}
           </h2>
@@ -161,13 +161,13 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
             return (
               <div
                 key={index}
-                className="group relative bg-white rounded-2xl p-7 md:p-8 border border-gray-200/80 shadow-[0_2px_16px_rgba(0,0,0,0.05)] hover:border-[#B8D900]/40 hover:shadow-[0_12px_40px_rgba(184,217,0,0.12)] transition-all duration-400 opacity-0 hover:-translate-y-1 w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-19px)]"
-                style={{ animation: inView ? `fade-in-up 0.5s ease-out ${0.1 + index * 0.08}s forwards` : "none" }}
+                className="group relative bg-white/80 rounded-2xl p-7 md:p-8 border border-gray-100/80 card-premium gradient-border-green opacity-0 w-full sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-19px)]"
+                style={{ animation: inView ? `slide-up-spring 0.6s var(--ease-out-expo) ${0.1 + index * 0.08}s forwards` : "none" }}
               >
                 {/* Green top accent line on hover */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-[#B8D900] rounded-t-2xl scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center" />
 
-                <div className="w-14 h-14 rounded-2xl bg-[#B8D900]/12 flex items-center justify-center text-[#7a9400] mb-5 group-hover:bg-[#B8D900] group-hover:text-[#2a2628] transition-all duration-300 shadow-[0_2px_8px_rgba(184,217,0,0.08)]">
+                <div className="w-14 h-14 rounded-2xl bg-[#B8D900]/10 flex items-center justify-center text-[#6d8a00] mb-5 group-hover:bg-[#B8D900] group-hover:text-[#2a2628] transition-all duration-300 shadow-[0_2px_8px_rgba(184,217,0,0.08)] shadow-[inset_0_1px_4px_rgba(184,217,0,0.1)]">
                   {BENEFIT_ICONS[iconKey] || BENEFIT_ICONS.star}
                 </div>
                 <h3 className="font-heading font-bold text-lg text-[#2a2628] mb-2 leading-snug">{title}</h3>
@@ -190,7 +190,7 @@ export function BenefitsSection({ content, language }: BenefitsSectionProps) {
           >
             <button
               onClick={() => open("section_benefits")}
-              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_8px_30px_rgba(184,217,0,0.25)] hover:scale-[1.02] active:scale-[0.98]"
+              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
             >
               {ctaText}
               <svg className={`w-4 h-4 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

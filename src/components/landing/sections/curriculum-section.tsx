@@ -97,13 +97,13 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
   if (years.length === 0) return null;
 
   return (
-    <section ref={sectionRef} className="py-20 md:py-28 bg-[#fafafa]" dir={isRtl ? "rtl" : "ltr"}>
+    <section ref={sectionRef} className="py-20 md:py-28 bg-mesh-warm" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-5xl mx-auto px-5">
         {/* Header */}
         <div className="text-center mb-14">
           <div
             className="inline-flex items-center gap-3 mb-5 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+            style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
           >
             <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
             <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
@@ -113,7 +113,7 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
           </div>
           <h2
             className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
           >
             {heading}
           </h2>
@@ -137,7 +137,7 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
                 <div
                   key={index}
                   className="relative opacity-0"
-                  style={{ animation: inView ? `fade-in-up 0.5s ease-out ${0.15 + index * 0.1}s forwards` : "none" }}
+                  style={{ animation: inView ? `slide-up-spring 0.6s var(--ease-out-expo) ${0.15 + index * 0.1}s forwards` : "none" }}
                 >
                   {/* Timeline dot */}
                   <div
@@ -145,10 +145,10 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
                       isRtl ? "right-0 md:right-1.5" : "left-0 md:left-1.5"
                     } ${
                       isOpen
-                        ? "bg-[#B8D900] text-[#2a2628] shadow-[0_0_20px_rgba(184,217,0,0.4)]"
+                        ? "bg-[#B8D900] text-[#2a2628] shadow-[var(--shadow-green)]"
                         : isCompleted
                           ? "bg-[#B8D900]/80 text-[#2a2628]"
-                          : "bg-white text-[#5A5658] border-gray-300 shadow-[0_1px_4px_rgba(0,0,0,0.06)]"
+                          : "bg-white text-[#5A5658] border-gray-300 shadow-[var(--shadow-card)]"
                     }`}
                   >
                     <span className="font-heading font-bold text-sm md:text-base">{index + 1}</span>
@@ -159,14 +159,16 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
                     <div
                       className={`rounded-2xl border overflow-hidden transition-all duration-300 ${
                         isOpen
-                          ? "border-[#B8D900]/30 bg-white shadow-[0_6px_28px_rgba(184,217,0,0.12)]"
-                          : "border-gray-200 bg-white hover:border-[#B8D900]/25 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                          ? "border-[#B8D900]/30 bg-white shadow-[var(--shadow-card-hover)]"
+                          : "border-gray-200 bg-white hover:border-[#B8D900]/25 hover:shadow-[var(--shadow-card)]"
                       }`}
                     >
                       <button
+                        id={`curriculum-btn-${index}`}
                         onClick={() => setOpenIndex(isOpen ? -1 : index)}
                         className="w-full flex items-center justify-between p-5 md:p-6 text-start group"
                         aria-expanded={isOpen}
+                        aria-controls={`curriculum-panel-${index}`}
                       >
                         <div className="flex items-center gap-3">
                           <span className="font-heading font-bold text-[#2a2628] text-base md:text-lg">
@@ -186,13 +188,17 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
                       </button>
 
                       {/* Expandable course pills */}
-                      <div className={`overflow-hidden transition-all duration-400 ${isOpen ? "max-h-[2000px]" : "max-h-0"}`}>
+                      <div
+                        id={`curriculum-panel-${index}`}
+                        role="region"
+                        aria-labelledby={`curriculum-btn-${index}`}
+                        className={`overflow-hidden transition-all duration-400 ${isOpen ? "max-h-[2000px]" : "max-h-0"}`}>
                         <div className="px-5 md:px-6 pb-6">
                           <div className="flex flex-wrap gap-2.5">
                             {year.courses.map((course, cIndex) => (
                               <span
                                 key={cIndex}
-                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#B8D900]/12 text-[#2a2628] text-sm font-medium font-heebo border border-[#B8D900]/20 hover:bg-[#B8D900]/20 hover:border-[#B8D900]/30 transition-colors"
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-medium font-heebo border border-[#B8D900]/20 hover:bg-[#B8D900]/18 hover:border-[#B8D900]/35 hover:shadow-[var(--shadow-green-sm)] transition-all duration-200"
                               >
                                 <div className="w-1.5 h-1.5 rounded-full bg-[#B8D900]" />
                                 {course}
@@ -213,11 +219,11 @@ export function CurriculumSection({ content, language }: CurriculumSectionProps)
         {ctaEnabled && (
           <div
             className="text-center mt-14 opacity-0"
-            style={{ animation: inView ? `fade-in-up 0.6s ease-out ${0.2 + years.length * 0.1}s forwards` : "none" }}
+            style={{ animation: inView ? `slide-up-spring 0.7s var(--ease-out-expo) ${0.2 + years.length * 0.1}s forwards` : "none" }}
           >
             <button
               onClick={() => open("section_curriculum")}
-              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_8px_30px_rgba(184,217,0,0.25)] hover:scale-[1.02] active:scale-[0.98]"
+              className="group inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[var(--shadow-green)] hover:scale-[1.02] active:scale-[0.98]"
             >
               {ctaText}
               <svg className={`w-4 h-4 transition-transform ${isRtl ? "group-hover:translate-x-1" : "group-hover:-translate-x-1"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

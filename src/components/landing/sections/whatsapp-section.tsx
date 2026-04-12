@@ -37,13 +37,14 @@ export function WhatsappSection({ content, language }: WhatsappSectionProps) {
         <div
           className={`absolute bottom-full mb-3 ${
             isRtl ? "left-0" : "right-0"
-          } whitespace-nowrap px-4 py-2.5 rounded-xl bg-[#2a2628] text-white text-sm font-medium shadow-xl animate-fade-in-up`}
+          } whitespace-nowrap px-4 py-2.5 rounded-xl bg-white/90 backdrop-blur-sm text-[#2a2628] text-sm font-medium shadow-[var(--shadow-card)] border border-gray-100/80`}
+          style={{ animation: "slide-up-spring 0.5s var(--ease-out-expo) forwards" }}
         >
           {tooltip}
           <div
             className={`absolute top-full ${
               isRtl ? "left-7" : "right-7"
-            } w-3 h-3 bg-[#2a2628] transform rotate-45 -mt-1.5`}
+            } w-3 h-3 bg-white/90 border-b border-r border-gray-100/80 transform rotate-45 -mt-1.5`}
           />
         </div>
       )}
@@ -58,7 +59,8 @@ export function WhatsappSection({ content, language }: WhatsappSectionProps) {
         rel="noopener noreferrer"
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
-        className="relative flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-[0_4px_20px_rgba(37,211,102,0.4)] hover:shadow-[0_4px_30px_rgba(37,211,102,0.6)] hover:scale-110 transition-all duration-300 active:scale-95"
+        className="relative flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-[0_4px_20px_rgba(37,211,102,0.4)] hover:shadow-[0_4px_30px_rgba(37,211,102,0.6)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+        style={{ animation: "slide-up-spring 0.7s var(--ease-spring) forwards" }}
         aria-label="WhatsApp"
       >
         <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24">

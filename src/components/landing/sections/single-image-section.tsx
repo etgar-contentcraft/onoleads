@@ -72,14 +72,14 @@ export function SingleImageSection({ content, language }: SingleImageSectionProp
   return (
     <section
       ref={sectionRef}
-      className="bg-white"
+      className="bg-mesh-warm"
       style={{ paddingTop: `${paddingY}px`, paddingBottom: `${paddingY}px` }}
       dir={isRtl ? "rtl" : "ltr"}
     >
       <div className="mx-auto px-5" style={{ maxWidth: `${maxWidth}px` }}>
         <figure
           className="opacity-0"
-          style={{ animation: inView ? "fade-in-up 0.6s ease-out forwards" : "none" }}
+          style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) forwards" : "none" }}
         >
           {/* Renders a YouTube 16:9 iframe when video_url is set,
               otherwise a static next/image. MediaBlock handles both cases. */}
@@ -87,7 +87,7 @@ export function SingleImageSection({ content, language }: SingleImageSectionProp
             video_url={videoUrl}
             image_url={imageUrl}
             alt={altText}
-            className={`${shadow ? "shadow-[0_8px_30px_rgba(0,0,0,0.08)]" : ""}`}
+            className={`${shadow ? "shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-shadow duration-300" : ""} border border-gray-100/80`}
             rounded={rounded ? "2xl" : "none"}
           />
 

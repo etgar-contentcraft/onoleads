@@ -55,13 +55,13 @@ function UnitCell({ value, label }: { value: number; label: string }) {
   return (
     <div className="flex flex-col items-center">
       <div className="relative">
-        <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-[#2a2628] flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.15)]">
-          <span className="font-heading text-2xl md:text-3xl font-extrabold text-[#B8D900] tabular-nums leading-none">
+        <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-white/80 border border-gray-100/80 card-premium flex items-center justify-center">
+          <span className="font-heading text-2xl md:text-3xl font-extrabold text-[#2a2628] tabular-nums leading-none">
             {String(value).padStart(2, "0")}
           </span>
         </div>
       </div>
-      <span className="mt-2 font-heebo text-xs text-[#9A969A] uppercase tracking-wider">{label}</span>
+      <span className="mt-2 font-heebo text-xs text-[#5A5658] uppercase tracking-wider">{label}</span>
     </div>
   );
 }
@@ -121,7 +121,7 @@ export function CountdownSection({ content, language }: CountdownSectionProps) {
   return (
     <section
       ref={sectionRef}
-      className="py-14 md:py-20 bg-gradient-to-br from-[#2a2628] to-[#1a1618] overflow-hidden"
+      className="py-14 md:py-20 bg-mesh-warm overflow-hidden"
       dir={isRtl ? "rtl" : "ltr"}
     >
       <div className="max-w-4xl mx-auto px-5 text-center">
@@ -129,26 +129,26 @@ export function CountdownSection({ content, language }: CountdownSectionProps) {
         {badge && (
           <div
             className="inline-flex items-center gap-2 mb-5 px-4 py-1.5 rounded-full bg-[#B8D900]/10 border border-[#B8D900]/20 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+            style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
           >
             <div className="w-2 h-2 rounded-full bg-[#B8D900] animate-pulse" />
-            <span className="font-heebo text-[#B8D900] text-sm font-semibold">{badge}</span>
+            <span className="font-heebo text-[#5a7200] text-sm font-semibold">{badge}</span>
           </div>
         )}
 
         {/* Heading */}
         {heading && (
           <h2
-            className="font-heading text-2xl md:text-3xl lg:text-4xl font-extrabold text-white mb-3 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+            className="font-heading text-2xl md:text-3xl lg:text-4xl font-extrabold text-[#2a2628] mb-3 opacity-0"
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
           >
             {heading}
           </h2>
         )}
         {subheading && (
           <p
-            className="font-heebo text-white/60 text-base md:text-lg mb-10 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.2s forwards" : "none" }}
+            className="font-heebo text-[#5A5658] text-base md:text-lg mb-10 opacity-0"
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.2s forwards" : "none" }}
           >
             {subheading}
           </p>
@@ -162,7 +162,7 @@ export function CountdownSection({ content, language }: CountdownSectionProps) {
         ) : timeLeft ? (
           <div
             className="flex items-end justify-center gap-3 md:gap-5 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.7s ease-out 0.25s forwards" : "none" }}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.25s forwards" : "none" }}
           >
             <UnitCell value={timeLeft.days} label={labels.d} />
             <span className="font-heading text-3xl font-bold text-[#B8D900] mb-8 select-none">:</span>

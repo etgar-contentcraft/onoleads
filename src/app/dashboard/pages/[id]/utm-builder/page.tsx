@@ -357,11 +357,12 @@ export default function UtmBuilderPage() {
           .eq("utm_medium", link.utm_medium)
           .eq("utm_campaign", link.utm_campaign);
 
-        // Count leads from leads table with matching UTMs
+        // Count form submissions from analytics_events (PII not stored — leads go to webhook only)
         const { count: leadCount } = await supabase
-          .from("leads")
+          .from("analytics_events")
           .select("*", { count: "exact", head: true })
           .eq("page_id", pageId)
+          .eq("event_type", "form_submit")
           .eq("utm_source", link.utm_source)
           .eq("utm_medium", link.utm_medium)
           .eq("utm_campaign", link.utm_campaign);

@@ -2221,8 +2221,24 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
           <div className="space-y-4">
             <Field label={isEn ? "Heading" : "כותרת"} fieldKey={lk("heading")} placeholder={isEn ? "Watch Video" : "צפו בסרטון"} draft={draft} set={set} />
             <TextareaField label={isEn ? "Description (optional)" : "תיאור (אופציונלי)"} fieldKey={lk("description")} rows={2} placeholder={isEn ? "Short description..." : "תיאור קצר..."} draft={draft} set={set} />
+            {/* Video format: landscape (16:9) vs stories (9:16) */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-[#716C70]">פריסה</Label>
+              <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Video Format" : "פורמט סרטון"}</Label>
+              <div className="flex gap-2">
+                {(["landscape", "stories"] as const).map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => set("video_format", v)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${(draft.video_format || "landscape") === v ? "bg-[#B8D900]/10 border-[#B8D900] text-[#2A2628]" : "border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900]/50"}`}
+                  >
+                    {v === "landscape" ? (isEn ? "Landscape 16:9" : "רגיל 16:9") : (isEn ? "Stories 9:16" : "סטוריז 9:16")}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-[#716C70]">{isEn ? "Layout" : "פריסה"}</Label>
               <div className="flex gap-2">
                 {(["featured", "grid"] as const).map((v) => (
                   <button
@@ -2231,7 +2247,7 @@ function SectionEditModal({ section, onClose, onSave, saving, pageLanguage = "he
                     onClick={() => set("layout", v)}
                     className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-all ${(draft.layout || "featured") === v ? "bg-[#B8D900]/10 border-[#B8D900] text-[#2A2628]" : "border-[#E5E5E5] text-[#9A969A] hover:border-[#B8D900]/50"}`}
                   >
-                    {v === "featured" ? "נגן ראשי + רשימה" : "גריד שווה"}
+                    {v === "featured" ? (isEn ? "Featured + List" : "נגן ראשי + רשימה") : (isEn ? "Equal Grid" : "גריד שווה")}
                   </button>
                 ))}
               </div>

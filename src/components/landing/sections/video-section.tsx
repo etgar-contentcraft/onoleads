@@ -21,6 +21,9 @@ interface VideoItem {
   thumbnail_url?: string;
 }
 
+/** "landscape" = standard 16:9, "stories" = vertical 9:16 (Shorts/Reels) */
+type VideoFormat = "landscape" | "stories";
+
 interface VideoSectionProps {
   content: Record<string, unknown>;
   language: Language;
@@ -132,28 +135,37 @@ function PlayOverlay({ size = "lg" }: { size?: "sm" | "lg" }) {
 /**
  * A standalone video card for the "grid" layout.
  * Clicking the thumbnail replaces it with the iframe embed.
+ * Supports both landscape (16:9) and stories (9:16) formats.
  */
 function VideoCard({
   video,
   index,
   inView,
+  format = "landscape",
 }: {
   video: VideoItem;
   index: number;
   inView: boolean;
+  format?: VideoFormat;
 }) {
   const [playing, setPlaying] = useState(false);
   const thumbnailUrl = getThumbnailUrl(video.youtube_id, video.thumbnail_url);
+  const isStories = format === "stories";
 
   return (
     <div
       className="flex flex-col opacity-0"
       style={{
-        animation: inView ? `fade-in-up 0.6s ease-out ${index * 0.1}s forwards` : "none",
+        animation: inView ? `slide-up-spring 0.6s var(--ease-out-expo) ${index * 0.1}s forwards` : "none",
       }}
     >
       {/* Video player area */}
-      <div className="relative rounded-xl overflow-hidden bg-[#2a2628] aspect-video shadow-[0_4px_30px_rgba(0,0,0,0.15)]">
+      <div
+        className={`relative rounded-2xl overflow-hidden bg-[#2a2628] shadow-[var(--shadow-card)] border border-gray-100/80 hover:shadow-[var(--shadow-card-hover)] transition-shadow duration-300 ${
+          isStories ? "" : "aspect-video"
+        }`}
+        style={isStories ? { aspectRatio: "9 / 16" } : undefined}
+      >
         {!playing ? (
           <button
             onClick={() => setPlaying(true)}
@@ -165,14 +177,19 @@ function VideoCard({
                 src={thumbnailUrl}
                 alt=""
                 fill
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                className={`transition-transform duration-500 group-hover:scale-105 ${
+                  isStories ? "object-cover" : "object-cover"
+                }`}
+                sizes={isStories
+                  ? "(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                  : "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                }
                 quality={80}
                 onError={(e) => handleThumbnailError(e, video.youtube_id)}
               />
             )}
             <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-              <PlayOverlay size="sm" />
+              <PlayOverlay size={isStories ? "sm" : "sm"} />
             </div>
           </button>
         ) : (
@@ -181,7 +198,9 @@ function VideoCard({
       </div>
       {/* Card metadata */}
       <div className="mt-3 flex items-start justify-between gap-2">
-        <h3 className="font-heading font-bold text-[#2a2628] text-sm md:text-base leading-snug line-clamp-2">
+        <h3 className={`font-heading font-bold text-[#2a2628] leading-snug line-clamp-2 ${
+          isStories ? "text-xs md:text-sm" : "text-sm md:text-base"
+        }`}>
           {video.title_he}
         </h3>
         {video.duration_he && (
@@ -215,6 +234,8 @@ export function VideoSection({ content, language }: VideoSectionProps) {
         ? [{ youtube_id: singleId, title_he: (content.heading_he as string) || "" }]
         : [];
   const layout = (content.layout as "featured" | "grid") || "featured";
+  const videoFormat = (content.video_format as VideoFormat) || "landscape";
+  const isStories = videoFormat === "stories";
 
   /* Index of the currently active video in featured mode */
   const [activeIndex, setActiveIndex] = useState(0);
@@ -251,25 +272,27 @@ export function VideoSection({ content, language }: VideoSectionProps) {
   const activeVideo = videos[activeIndex];
 
   return (
-    <section ref={sectionRef} className="py-20 md:py-28 bg-white" dir={isRtl ? "rtl" : "ltr"}>
+    <section ref={sectionRef} className="py-20 md:py-28 bg-mesh-light" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-6xl mx-auto px-5">
         {/* Section header */}
         {(heading || description) && (
           <div className="text-center mb-12 max-w-3xl mx-auto">
             <div
               className="inline-flex items-center gap-3 mb-5 opacity-0"
-              style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+              style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
             >
               <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
-              <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo">
-                {isRtl ? "סרטונים" : "Videos"}
+              <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo border border-[#B8D900]/20">
+                {isStories
+                  ? (isRtl ? "סטוריז" : "Stories")
+                  : (isRtl ? "סרטונים" : "Videos")}
               </span>
               <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
             </div>
             {heading && (
               <h2
                 className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold text-[#2a2628] opacity-0"
-                style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.1s forwards" : "none" }}
+                style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
               >
                 {heading}
               </h2>
@@ -277,7 +300,7 @@ export function VideoSection({ content, language }: VideoSectionProps) {
             {description && (
               <p
                 className="mt-4 font-heebo text-[#5A5658] text-base md:text-lg leading-relaxed opacity-0"
-                style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.2s forwards" : "none" }}
+                style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.2s forwards" : "none" }}
               >
                 {description}
               </p>
@@ -288,12 +311,19 @@ export function VideoSection({ content, language }: VideoSectionProps) {
         {layout === "featured" && videos.length > 0 ? (
           /* ---- Featured layout: big player + sidebar playlist ---- */
           <div
-            className="flex flex-col lg:flex-row gap-6 opacity-0"
-            style={{ animation: inView ? "fade-in-up 0.7s ease-out 0.25s forwards" : "none" }}
+            className={`flex flex-col gap-6 opacity-0 ${
+              isStories ? "lg:flex-row lg:items-start" : "lg:flex-row"
+            }`}
+            style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.25s forwards" : "none" }}
           >
-            {/* Primary player — occupies ~65% on desktop */}
-            <div className="flex-1 min-w-0">
-              <div className="relative rounded-2xl overflow-hidden bg-[#2a2628] aspect-video shadow-[0_8px_60px_rgba(0,0,0,0.18)]">
+            {/* Primary player — stories: narrower (max 360px), landscape: ~65% */}
+            <div className={isStories ? "w-full lg:w-[340px] xl:w-[380px] shrink-0 mx-auto lg:mx-0" : "flex-1 min-w-0"}>
+              <div
+                className={`relative rounded-2xl overflow-hidden bg-[#2a2628] shadow-[var(--shadow-card)] border border-gray-100/80 hover:shadow-[var(--shadow-card-hover)] transition-shadow duration-300 ${
+                  isStories ? "" : "aspect-video"
+                }`}
+                style={isStories ? { aspectRatio: "9 / 16" } : undefined}
+              >
                 {!playing ? (
                   <button
                     onClick={() => setPlaying(true)}
@@ -306,13 +336,13 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                         alt=""
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        sizes="(max-width: 1024px) 100vw, 70vw"
+                        sizes={isStories ? "(max-width: 1024px) 100vw, 380px" : "(max-width: 1024px) 100vw, 70vw"}
                         quality={80}
                         onError={(e) => handleThumbnailError(e, activeVideo.youtube_id)}
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-center justify-center">
-                      <PlayOverlay size="lg" />
+                      <PlayOverlay size={isStories ? "sm" : "lg"} />
                     </div>
                   </button>
                 ) : (
@@ -320,9 +350,11 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                 )}
               </div>
 
-              {/* Active video title + duration + YouTube link below player */}
+              {/* Active video title + duration below player */}
               <div className="mt-4 flex items-start justify-between gap-3">
-                <h3 className="font-heading font-bold text-[#2a2628] text-lg md:text-xl leading-snug">
+                <h3 className={`font-heading font-bold text-[#2a2628] leading-snug ${
+                  isStories ? "text-base md:text-lg" : "text-lg md:text-xl"
+                }`}>
                   {activeVideo.title_he}
                 </h3>
                 {activeVideo.duration_he && (
@@ -335,12 +367,18 @@ export function VideoSection({ content, language }: VideoSectionProps) {
 
             {/* Playlist sidebar — visible only when there are multiple videos */}
             {videos.length > 1 && (
-              <div className="lg:w-72 xl:w-80 shrink-0 flex flex-col gap-3 max-h-[480px] overflow-y-auto pr-1">
+              <div className={`shrink-0 flex gap-3 overflow-y-auto ${
+                isStories
+                  ? "flex-1 min-w-0 flex-row flex-wrap lg:flex-col lg:max-h-[640px]"
+                  : "flex-col lg:w-72 xl:w-80 max-h-[480px]"
+              }`} style={isStories ? undefined : { paddingInlineEnd: "4px" }}>
                 {videos.map((video, i) => (
                   <button
                     key={i}
                     onClick={() => selectVideo(i)}
                     className={`group flex items-start gap-3 p-3 rounded-xl text-start transition-all duration-200 ${
+                      isStories ? "flex-col w-[calc(50%-6px)] sm:w-[calc(33.333%-8px)]" : ""
+                    } ${
                       i === activeIndex
                         ? "bg-[#B8D900]/10 border border-[#B8D900]/30"
                         : "hover:bg-gray-50 border border-transparent"
@@ -349,14 +387,19 @@ export function VideoSection({ content, language }: VideoSectionProps) {
                     aria-pressed={i === activeIndex}
                   >
                     {/* Thumbnail */}
-                    <div className="relative shrink-0 w-24 h-14 rounded-lg overflow-hidden bg-[#2a2628]">
+                    <div
+                      className={`relative shrink-0 rounded-lg overflow-hidden bg-[#2a2628] ${
+                        isStories ? "w-full" : "w-24 h-14"
+                      }`}
+                      style={isStories ? { aspectRatio: "9 / 16" } : undefined}
+                    >
                       {getThumbnailUrl(video.youtube_id, video.thumbnail_url) && (
                         <Image
                           src={getThumbnailUrl(video.youtube_id, video.thumbnail_url)!}
                           alt=""
                           fill
                           className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          sizes="96px"
+                          sizes={isStories ? "120px" : "96px"}
                           quality={60}
                           onError={(e) => handleThumbnailError(e, video.youtube_id)}
                         />
@@ -399,7 +442,15 @@ export function VideoSection({ content, language }: VideoSectionProps) {
           /* ---- Grid layout: equal-size cards ---- */
           <div
             className={`grid gap-6 ${
-              videos.length === 1
+              isStories
+                ? videos.length === 1
+                  ? "max-w-xs mx-auto"
+                  : videos.length === 2
+                  ? "grid-cols-2 max-w-lg mx-auto"
+                  : videos.length === 3
+                  ? "grid-cols-2 sm:grid-cols-3 max-w-3xl mx-auto"
+                  : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
+                : videos.length === 1
                 ? "max-w-2xl mx-auto"
                 : videos.length === 2
                 ? "md:grid-cols-2"
@@ -407,7 +458,7 @@ export function VideoSection({ content, language }: VideoSectionProps) {
             }`}
           >
             {videos.map((video, i) => (
-              <VideoCard key={i} video={video} index={i} inView={inView} />
+              <VideoCard key={i} video={video} index={i} inView={inView} format={videoFormat} />
             ))}
           </div>
         )}

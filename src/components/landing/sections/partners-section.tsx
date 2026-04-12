@@ -68,23 +68,33 @@ export function PartnersSection({ content, language }: PartnersSectionProps) {
   return (
     <section
       ref={sectionRef}
-      className={`py-12 md:py-16 ${bgClass} ${showSeparator ? "border-t border-[#E5E5E5]" : ""}`}
+      className={`py-12 md:py-16 bg-mesh-warm ${showSeparator ? "border-t border-[#E5E5E5]" : ""}`}
       dir={isRtl ? "rtl" : "ltr"}
     >
       <div className="max-w-6xl mx-auto px-5">
         {/* Optional heading */}
         {heading && (
           <div className="text-center mb-8">
+            <div
+              className="inline-flex items-center gap-3 mb-5 opacity-0"
+              style={{ animation: inView ? "blur-in 0.6s var(--ease-out-expo) forwards" : "none" }}
+            >
+              <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+              <span className="px-4 py-1.5 rounded-full bg-[#B8D900]/10 text-[#2a2628] text-sm font-semibold font-heebo border border-[#B8D900]/20">
+                {isRtl ? "שותפים" : "Partners"}
+              </span>
+              <div className="w-8 h-0.5 bg-[#B8D900] rounded-full" />
+            </div>
             <h2
               className="font-heading text-2xl md:text-3xl font-bold text-[#2a2628] opacity-0"
-              style={{ animation: inView ? "fade-in-up 0.5s ease-out forwards" : "none" }}
+              style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.1s forwards" : "none" }}
             >
               {heading}
             </h2>
             {subheading && (
               <p
                 className="text-sm text-[#5A5658] mt-2 opacity-0"
-                style={{ animation: inView ? "fade-in-up 0.5s ease-out 0.1s forwards" : "none" }}
+                style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.2s forwards" : "none" }}
               >
                 {subheading}
               </p>
@@ -95,7 +105,7 @@ export function PartnersSection({ content, language }: PartnersSectionProps) {
         {/* Logo strip */}
         <div
           className={`flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8 lg:gap-12 ${justifyClass} opacity-0`}
-          style={{ animation: inView ? "fade-in-up 0.6s ease-out 0.15s forwards" : "none" }}
+          style={{ animation: inView ? "slide-up-spring 0.7s var(--ease-out-expo) 0.15s forwards" : "none" }}
         >
           {items.map((item, index) => {
             const caption =
@@ -104,7 +114,7 @@ export function PartnersSection({ content, language }: PartnersSectionProps) {
               "";
 
             const logoEl = (
-              <div className="flex flex-col items-center gap-2 shrink-0">
+              <div className="flex flex-col items-center gap-2 shrink-0 px-4 py-3 rounded-2xl bg-white/80 border border-gray-100/80 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1 transition-all duration-300">
                 <div
                   className="flex items-center justify-center"
                   style={{ height: `clamp(48px, 8vw, ${logoHeight}px)` }}
@@ -131,7 +141,7 @@ export function PartnersSection({ content, language }: PartnersSectionProps) {
                   href={item.link_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:opacity-80 transition-opacity"
+                  className="transition-all duration-300"
                 >
                   {logoEl}
                 </a>
