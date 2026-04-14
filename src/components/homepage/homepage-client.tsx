@@ -2,7 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ProgramWithFaculty } from "@/lib/types/database";
-import type { HomepageEventPage } from "@/app/page";
+/** Shape of an event page row used on the homepage events section. */
+export interface HomepageEventPage {
+  id: string;
+  slug: string;
+  title_he: string | null;
+  custom_styles: Record<string, unknown> | null;
+}
 
 // ============================================================================
 // Types
