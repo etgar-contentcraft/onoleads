@@ -4,8 +4,8 @@
  */
 
 export const CAPI_ENDPOINTS = {
-  meta:     "https://graph.facebook.com/v19.0",
-  google:   "https://googleads.googleapis.com/v16",
+  meta:     "https://graph.facebook.com/v21.0",
+  google:   "https://googleads.googleapis.com/v18",
   tiktok:   "https://business-api.tiktok.com/open_api/v1.3",
   linkedin: "https://api.linkedin.com/rest",
   ga4:      "https://www.google-analytics.com/mp/collect",

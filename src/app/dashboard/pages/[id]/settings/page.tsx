@@ -237,6 +237,7 @@ const PIXEL_PLATFORMS = [
   { key: "outbrain", label: "Outbrain", placeholder: "00xxxxxxxxxxxxxx", icon: "📰" },
   { key: "taboola", label: "Taboola", placeholder: "1234567", icon: "📑" },
   { key: "twitter", label: "Twitter / X", placeholder: "xxxxx", icon: "🐦" },
+  { key: "clarity", label: "Microsoft Clarity", placeholder: "abc123def4", icon: "🔍" },
 ] as const;
 
 interface PixelOverrideRow {

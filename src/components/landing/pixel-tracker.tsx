@@ -16,6 +16,7 @@ import { useEffect, useRef } from "react";
 import {
   initializePixels,
   initializeGA4Early,
+  initializeClarityEarly,
   initConsentModeDefaults,
   isMarketingConsentGranted,
   firePixelEvent,
@@ -108,6 +109,10 @@ export function PixelTracker({ config }: PixelTrackerProps) {
     // GA4 loads immediately — analytics_storage defaults to 'granted'
     // so pageviews and sessions register in GA4 Realtime immediately.
     initializeGA4Early(config);
+
+    // Microsoft Clarity loads immediately — it's behavioral analytics
+    // (session recordings + heatmaps), not advertising. No consent needed.
+    initializeClarityEarly(config);
 
     // Initialize remaining marketing pixels if consent already granted
     if (isMarketingConsentGranted()) {

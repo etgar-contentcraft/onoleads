@@ -145,6 +145,19 @@ const PLATFORMS = [
     helpUrl: "https://developer.twitter.com/en/docs/twitter-ads-api/measurement/api-reference/conversions",
     category: "social",
   },
+  {
+    key: "clarity",
+    name: "Microsoft Clarity",
+    icon: "🔍",
+    color: "#7B83EB",
+    pixelLabel: "Project ID",
+    pixelPlaceholder: "abc123def4",
+    pixelHelp: "מזהה הפרויקט. נמצא ב: Clarity Dashboard → Settings → Overview → Project ID",
+    hasToken: false,
+    hasCapi: false,
+    helpUrl: "https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-setup",
+    category: "analytics",
+  },
 ] as const;
 
 type PlatformKey = typeof PLATFORMS[number]["key"];

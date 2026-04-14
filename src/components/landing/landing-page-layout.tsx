@@ -96,6 +96,7 @@ export interface PageSettings {
   outbrain_account_id?: string;
   taboola_account_id?: string;
   twitter_pixel_id?: string;
+  clarity_project_id?: string;
 }
 
 /** Minimal interest area shape needed on the client */
@@ -832,6 +833,7 @@ function InnerLayout({
             outbrainAccountId: settings?.outbrain_account_id,
             taboolaAccountId: settings?.taboola_account_id,
             twitterPixelId: settings?.twitter_pixel_id,
+            clarityProjectId: settings?.clarity_project_id,
             pageId: pageId,
             pageSlug: pageSlug,
           } satisfies PixelConfig} />

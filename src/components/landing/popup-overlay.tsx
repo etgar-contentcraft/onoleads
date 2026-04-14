@@ -570,8 +570,10 @@ export function PopupOverlay({
         onCtaClick();
         if (content.confetti_on_submit) setShowConfetti(true);
 
-        const firstName = formData.full_name.trim().split(" ")[0] || "";
-        if (firstName) sessionStorage.setItem("ty_name", firstName);
+        const fullName = formData.full_name.trim();
+        if (fullName) sessionStorage.setItem("ty_name", fullName);
+        if (formData.email) sessionStorage.setItem("ty_email", formData.email);
+        if (formData.phone) sessionStorage.setItem("ty_phone", formData.phone);
         sessionStorage.setItem("ty_event_id", generateEventId("lead_submit", pageId || "unknown", document.cookie.split("; ").find((c) => c.startsWith("onoleads_id="))?.split("=")[1] || ""));
 
         if (pageSlug) {

@@ -165,6 +165,7 @@ const getPageData = cache(async function getPageData(slug: string) {
     outbrain_account_id: pixelMap["outbrain"]?.pixel_id || undefined,
     taboola_account_id: pixelMap["taboola"]?.pixel_id || undefined,
     twitter_pixel_id: pixelMap["twitter"]?.pixel_id || undefined,
+    clarity_project_id: pixelMap["clarity"]?.pixel_id || undefined,
   };
 
   // For global sections: use shared content when shared_section_id is set

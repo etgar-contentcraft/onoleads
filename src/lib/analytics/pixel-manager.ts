@@ -28,6 +28,7 @@ export interface PixelConfig {
   outbrainAccountId?: string | null;
   taboolaAccountId?: string | null;
   twitterPixelId?: string | null;
+  clarityProjectId?: string | null;     // Microsoft Clarity project ID
   pageId?: string | null;
   pageSlug?: string | null;
 }
@@ -55,6 +56,7 @@ declare global {
     obApi: (...args: unknown[]) => void;
     _tfa: unknown[];
     twq: (...args: unknown[]) => void;
+    clarity: (...args: unknown[]) => void;
   }
 }
 
@@ -158,6 +160,25 @@ export function initializeGA4Early(config: PixelConfig): void {
 }
 
 /**
+ * Initializes Microsoft Clarity immediately (regardless of marketing consent).
+ * Clarity is a behavioral analytics tool (session recordings + heatmaps) —
+ * NOT an advertising platform. It has no CAPI, no conversion tracking.
+ * Like GA4, it loads under legitimate interest for analytics purposes.
+ * Safe to call multiple times — only initializes once.
+ */
+let clarityInitialized = false;
+export function initializeClarityEarly(config: PixelConfig): void {
+  if (typeof window === "undefined") return;
+  if (clarityInitialized) return;
+  if (!config.clarityProjectId) {
+    console.debug("[pixel] initializeClarityEarly: no clarityProjectId in config, skipping");
+    return;
+  }
+  clarityInitialized = true;
+  initClarity(config.clarityProjectId);
+}
+
+/**
  * Initializes all configured marketing pixels.
  * Safe to call multiple times — only initializes once.
  * Must only be called when consent is granted.
@@ -175,9 +196,12 @@ export function initializePixels(config: PixelConfig): void {
 
   updateConsentGranted();
 
-  /* Priority: GA4 + Meta load immediately (essential for measurement).
-   * Remaining pixels are staggered to avoid blocking First Input Delay (FID). */
+  /* Priority: GA4 + Meta + Google Ads load immediately (essential for measurement).
+   * Google Ads needs gtag('config') to initialize the conversion linker cookie (_gcl_aw). */
   if (config.ga4Id) initGA4(config.ga4Id);
+  if (config.googleAdsId) {
+    window.gtag("config", config.googleAdsId, { allow_enhanced_conversions: true });
+  }
   if (config.metaPixelId) initMetaPixel(config.metaPixelId);
 
   /* Stagger lower-priority pixels via requestIdleCallback (or setTimeout fallback).
@@ -284,7 +308,7 @@ function initOutbrain(accountId: string): void {
       _window.obApi.marketerId = toArray(_window.obApi.marketerId).concat(toArray(OB_ADV_ID)); return; }
       var api = _window.obApi = function() { api.dispatch ? api.dispatch.apply(api, arguments) : api.queue.push(arguments); };
       api.version = '1.1'; api.loaded = true; api.marketerId = OB_ADV_ID; api.queue = [];
-      var tag = _document.createElement('script'); tag.async = true; tag.src = '//amplify.outbrain.com/cp/obtp.js';
+      var tag = _document.createElement('script'); tag.async = true; tag.src = 'https://amplify.outbrain.com/cp/obtp.js';
       var script = _document.getElementsByTagName('script')[0]; script.parentNode.insertBefore(tag, script);
     }(window, document);
   `.trim(), "outbrain-pixel-base");
@@ -294,14 +318,14 @@ function initOutbrain(accountId: string): void {
 function initTaboola(accountId: string): void {
   injectInlineScript(`
     window._tfa = window._tfa || [];
-    window._tfa.push({notify: 'event', name: 'page_view', id: ${accountId}});
+    window._tfa.push({notify: 'event', name: 'page_view', id: '${accountId}'});
     !function (t, f, a, x) {
       if (!document.getElementById(x)) {
         t.async = 1; t.src = a; t.id = x;
         f.parentNode.insertBefore(t, f);
       }
     }(document.createElement('script'), document.getElementsByTagName('script')[0],
-    '//cdn.taboola.com/libtrc/unip/${accountId}/tfa.js', 'tb_tfa_script');
+    'https://cdn.taboola.com/libtrc/unip/${accountId}/tfa.js', 'tb_tfa_script');
   `.trim(), "taboola-pixel-base");
 }
 
@@ -311,8 +335,25 @@ function initTwitterPixel(pixelId: string): void {
     s.queue.push(arguments)},s.version='1.1',s.queue=[],u=t.createElement(n),
     u.async=!0,u.src='https://static.ads-twitter.com/uwt.js',
     a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}
-    (window,document,'script');twq('config','${pixelId}');
+    (window,document,'script');twq('config','${pixelId}');twq('track','PageView');
   `.trim(), "twitter-pixel-base");
+}
+
+/**
+ * Microsoft Clarity — behavioral analytics (session recordings + heatmaps).
+ * Standard Clarity tag snippet. The script self-initializes when loaded.
+ * No CAPI or conversion events — purely observational analytics.
+ */
+function initClarity(projectId: string): void {
+  if (document.getElementById("ms-clarity-base")) return;
+  console.debug("[pixel] Initializing Microsoft Clarity with project ID:", projectId);
+  injectInlineScript(`
+    (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window,document,"clarity","script","${projectId}");
+  `.trim(), "ms-clarity-base");
 }
 
 // ============================================================================
@@ -321,15 +362,31 @@ function initTwitterPixel(pixelId: string): void {
 
 /**
  * Fires an event on all active platforms, or queues it if consent not yet given.
+ *
+ * GA4 engagement events (scroll, time-on-page, form_interact) are sent immediately
+ * regardless of marketing consent because GA4 runs under legitimate interest
+ * (analytics_storage defaults to "granted"). Only marketing platform events are queued.
  */
 export function firePixelEvent(
   eventName: string,
   params: Record<string, unknown>,
   config: PixelConfig
 ): void {
+  /* GA4 engagement events fire immediately under legitimate interest — no consent needed.
+   * GA4 was initialized early via initializeGA4Early() before any consent check. */
+  const isEngagement = ["scroll_depth_reached", "engaged_visitor", "form_interact", "video_play"].includes(eventName);
+  if (isEngagement && ga4Initialized && config.ga4Id && typeof window !== "undefined" && typeof window.gtag === "function") {
+    const cookieId = getOrCreateCookieId();
+    const pageId = config.pageId || "unknown";
+    const eventId = (params.event_id as string) || generateEventId(eventName, pageId, cookieId);
+    fireEngagementEvent(eventName, eventId, params, config);
+  }
+
   if (!consentGranted || !initialized) {
-    // Queue the event — will be replayed once consent is granted
-    pendingEvents.push({ name: eventName, params: { ...params, _config: config } });
+    // Queue the event — will be replayed once consent is granted (marketing pixels only)
+    if (!isEngagement) {
+      pendingEvents.push({ name: eventName, params: { ...params, _config: config } });
+    }
     return;
   }
 
@@ -397,12 +454,13 @@ function fireLeadSubmit(
     window.obApi("track", "CONVERSION");
   }
 
-  // Taboola conversion
+  // Taboola conversion (orderid enables S2S deduplication)
   if (config.taboolaAccountId && window._tfa) {
     window._tfa.push({
       notify: "event",
       name: "complete_registration",
       id: config.taboolaAccountId,
+      orderid: eventId,
     });
   }
 

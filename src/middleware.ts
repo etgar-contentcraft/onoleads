@@ -14,14 +14,14 @@ const SESSION_TIMEOUT_SECONDS = 30 * 60;
  */
 const CSP_DIRECTIVES = [
   "default-src 'self'",
-  // Tracking pixel scripts: GA4, Meta, TikTok, LinkedIn, Outbrain, Taboola, Twitter
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://analytics.tiktok.com https://snap.licdn.com https://amplify.outbrain.com https://cdn.taboola.com https://static.ads-twitter.com",
+  // Tracking pixel scripts: GA4, Meta, TikTok, LinkedIn, Outbrain, Taboola, Twitter, Clarity
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net https://analytics.tiktok.com https://snap.licdn.com https://amplify.outbrain.com https://cdn.taboola.com https://static.ads-twitter.com https://www.clarity.ms",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  // YouTube thumbnails + Supabase storage + tracking pixels
-  "img-src 'self' data: blob: https://www.ono.ac.il https://*.supabase.co https://i.ytimg.com https://img.youtube.com https://www.facebook.com https://www.google-analytics.com https:",
+  // YouTube thumbnails + Supabase storage + tracking pixels + Clarity
+  "img-src 'self' data: blob: https://www.ono.ac.il https://*.supabase.co https://i.ytimg.com https://img.youtube.com https://www.facebook.com https://www.google-analytics.com https://www.clarity.ms https://*.clarity.ms https:",
   "font-src 'self' https://fonts.gstatic.com",
   // Data collection endpoints for all tracking platforms
-  "connect-src 'self' https://*.supabase.co https://fonts.googleapis.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net https://graph.facebook.com https://analytics.tiktok.com https://px.ads.linkedin.com https://tr.outbrain.com https://trc.taboola.com https://ads-api.twitter.com",
+  "connect-src 'self' https://*.supabase.co https://fonts.googleapis.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.facebook.com https://connect.facebook.net https://graph.facebook.com https://analytics.tiktok.com https://px.ads.linkedin.com https://tr.outbrain.com https://trc.taboola.com https://ads-api.twitter.com https://www.clarity.ms https://*.clarity.ms",
   // Allow same-origin iframes (heatmap preview) + YouTube embeds + Facebook
   "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com https://www.facebook.com",
   "frame-ancestors 'none'",

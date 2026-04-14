@@ -207,7 +207,14 @@ export async function sendGoogleCAPI(payload: CAPILeadPayload, configs: PixelCon
   });
   const parts = israelFormatter.formatToParts(now);
   const p = (type: string) => parts.find((x) => x.type === type)?.value || "00";
-  const conversionTime = `${p("year")}-${p("month")}-${p("day")} ${p("hour")}:${p("minute")}:${p("second")}+03:00`;
+  /* Compute actual Israel offset dynamically (IST +02:00 in winter, IDT +03:00 in summer) */
+  const utcMs = now.getTime();
+  const israelLocal = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
+  const offsetMin = Math.round((israelLocal.getTime() - utcMs) / 60000 + now.getTimezoneOffset());
+  const offH = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, "0");
+  const offM = String(Math.abs(offsetMin) % 60).padStart(2, "0");
+  const offSign = offsetMin >= 0 ? "+" : "-";
+  const conversionTime = `${p("year")}-${p("month")}-${p("day")} ${p("hour")}:${p("minute")}:${p("second")}${offSign}${offH}:${offM}`;
 
   const customerId = config.pixel_id.replace(/^AW-/, "");
 
@@ -220,17 +227,23 @@ export async function sendGoogleCAPI(payload: CAPILeadPayload, configs: PixelCon
       currency_code: "ILS",
       order_id: payload.eventId,
       user_identifiers: (() => {
+        /* Google Ads Enhanced Conversions: each identifier type is a separate object.
+         * Name fields must be nested under address_info per Google's API spec. */
         const { first, last } = splitName(payload.fullName);
-        const ids: Record<string, string | undefined> = {};
+        const ids: Array<Record<string, unknown>> = [];
         const em = hashPii(payload.email);
         const ph = hashPhone(payload.phone);
         const fn = hashPii(first);
         const ln = hashPii(last);
-        if (em) ids.hashed_email = em;
-        if (ph) ids.hashed_phone_number = ph;
-        if (fn) ids.hashed_first_name = fn;
-        if (ln) ids.hashed_last_name = ln;
-        return [ids];
+        if (em) ids.push({ hashed_email: em });
+        if (ph) ids.push({ hashed_phone_number: ph });
+        if (fn || ln) {
+          const addr: Record<string, string> = {};
+          if (fn) addr.hashed_first_name = fn;
+          if (ln) addr.hashed_last_name = ln;
+          ids.push({ address_info: addr });
+        }
+        return ids;
       })(),
     }],
     partial_failure: true,
@@ -441,9 +454,10 @@ export async function sendOutbrainCAPI(payload: CAPILeadPayload, configs: PixelC
   const config = configs["outbrain"];
   if (!config?.is_enabled || !config.pixel_id) return;
 
-  // Outbrain S2S: GET request with click ID and conversion data
+  // Outbrain S2S: GET request with click ID, marketer ID, and conversion data
   const params = new URLSearchParams({
     ob_click_id: payload.obclid,
+    marketer_id: config.pixel_id,
     name: "Lead",
     orderid: payload.eventId,
     amount: "0",
@@ -525,12 +539,15 @@ export async function sendTwitterCAPI(payload: CAPILeadPayload, configs: PixelCo
   const { first: twFirst, last: twLast } = splitName(payload.fullName);
   const twFirstHash = hashPii(twFirst);
   const twLastHash = hashPii(twLast);
-  const identifiers: Array<Record<string, string>> = [];
-  if (twitterEmailHash) identifiers.push({ hashed_email: twitterEmailHash });
-  if (twitterPhoneHash) identifiers.push({ hashed_phone_number: twitterPhoneHash });
-  if (twFirstHash) identifiers.push({ hashed_first_name: twFirstHash });
-  if (twLastHash) identifiers.push({ hashed_last_name: twLastHash });
-  if (identifiers.length === 0) return;
+  /* Twitter CAPI requires all identifiers for one user in a single object.
+   * Each element in the array represents one user; fields must be combined. */
+  const identifierObj: Record<string, string> = {};
+  if (twitterEmailHash) identifierObj.hashed_email = twitterEmailHash;
+  if (twitterPhoneHash) identifierObj.hashed_phone_number = twitterPhoneHash;
+  if (twFirstHash) identifierObj.hashed_first_name = twFirstHash;
+  if (twLastHash) identifierObj.hashed_last_name = twLastHash;
+  if (Object.keys(identifierObj).length === 0) return;
+  const identifiers = [identifierObj];
 
   // Use configurable conversion_type, defaulting to "LEAD" (more accurate for forms)
   const conversionType = config.additional_config?.conversion_type || "LEAD";

@@ -25,6 +25,9 @@ const LINKEDIN_PARTNER_RE = /^\d{6,10}$/;
 /** Google Analytics 4 measurement IDs: "G-" + alphanumeric */
 const GA4_RE = /^G-[A-Z0-9]{4,12}$/i;
 
+/** Microsoft Clarity project IDs: alphanumeric, 6–15 chars */
+const CLARITY_PROJECT_RE = /^[a-z0-9]{6,15}$/i;
+
 export function validateMetaPixelId(pixelId: string): PixelValidationResult {
   const v = pixelId.trim();
   if (!v) return { valid: true }; // Empty = not configured (allowed)
@@ -65,11 +68,19 @@ export function validateGa4Id(id: string): PixelValidationResult {
     : { valid: false, reason: "GA4 measurement ID must be in G-XXXXXXXX format" };
 }
 
+export function validateClarityProjectId(id: string): PixelValidationResult {
+  const v = id.trim();
+  if (!v) return { valid: true };
+  return CLARITY_PROJECT_RE.test(v)
+    ? { valid: true }
+    : { valid: false, reason: "Clarity project ID must be 6–15 alphanumeric characters" };
+}
+
 /**
  * Returns the validator for a given platform.
  */
 export function validatePixelId(
-  platform: "meta" | "google" | "tiktok" | "linkedin",
+  platform: "meta" | "google" | "tiktok" | "linkedin" | "clarity",
   value: string
 ): PixelValidationResult {
   switch (platform) {
@@ -77,5 +88,6 @@ export function validatePixelId(
     case "google":   return validateGoogleConversionId(value);
     case "tiktok":   return validateTikTokPixelId(value);
     case "linkedin": return validateLinkedInPartnerId(value);
+    case "clarity":  return validateClarityProjectId(value);
   }
 }

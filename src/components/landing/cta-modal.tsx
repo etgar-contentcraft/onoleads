@@ -509,9 +509,14 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
       });
 
       if (res.ok) {
-        // Store first name in sessionStorage — never in the URL (PII)
-        const firstName = formData.full_name.trim().split(" ")[0] || "";
-        if (firstName) sessionStorage.setItem("ty_name", firstName);
+        // Store user data in sessionStorage for TY page:
+        // - ty_name: greeting display + Enhanced Conversions (name splitting)
+        // - ty_email / ty_phone: Enhanced Conversions (Google Ads / GA4)
+        // PII never goes in the URL — sessionStorage is consumed once on TY page.
+        const fullName = formData.full_name.trim();
+        if (fullName) sessionStorage.setItem("ty_name", fullName);
+        if (formData.email) sessionStorage.setItem("ty_email", formData.email);
+        if (formData.phone) sessionStorage.setItem("ty_phone", formData.phone);
 
         /* Store event_id for TyPixelFire on the thank-you page.
          * The TY page fires the Lead pixel with this ID so CAPI + browser pixel

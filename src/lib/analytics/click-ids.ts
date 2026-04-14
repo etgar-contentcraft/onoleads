@@ -108,6 +108,12 @@ export function captureClickIdsFromUrl(): void {
     if (value) storeClickId(param, value);
   }
 
+  // Outbrain may use "ob_click_id" (with underscores) instead of "obclid"
+  if (!params.get("obclid")) {
+    const obClickId = params.get("ob_click_id");
+    if (obClickId) storeClickId("obclid", obClickId);
+  }
+
   // Construct fbc from fbclid: "fb.1.{timestamp}.{fbclid}"
   // This is the format Meta requires for CAPI user_data.fbc
   const fbclid = params.get("fbclid");

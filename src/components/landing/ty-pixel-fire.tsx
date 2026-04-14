@@ -36,13 +36,28 @@ export function TyPixelFire({ config }: TyPixelFireProps) {
       config.googleAdsId ||
       config.linkedInPartnerId ||
       config.taboolaAccountId ||
-      config.twitterPixelId;
+      config.twitterPixelId ||
+      config.outbrainAccountId ||
+      config.clarityProjectId;
     if (!hasAnyPixel) return;
 
     // Read the shared event_id written by cta-modal.tsx before the redirect.
     // Used for CAPI ↔ browser pixel deduplication — Meta/Google discard duplicates.
     const eventId = sessionStorage.getItem("ty_event_id") || "";
     if (eventId) sessionStorage.removeItem("ty_event_id"); // consume once
+
+    // Read user data from sessionStorage for Enhanced Conversions (Google Ads / GA4).
+    // Written by cta-modal.tsx before redirect. Consumed once for privacy.
+    const tyName = sessionStorage.getItem("ty_name") || "";
+    const tyEmail = sessionStorage.getItem("ty_email") || "";
+    const tyPhone = sessionStorage.getItem("ty_phone") || "";
+    if (tyEmail) sessionStorage.removeItem("ty_email");
+    if (tyPhone) sessionStorage.removeItem("ty_phone");
+
+    // Split full name for Enhanced Conversions (gtag auto-hashes)
+    const nameParts = tyName.trim().split(/\s+/);
+    const firstName = nameParts[0] || undefined;
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : undefined;
 
     // Safety net: ensure consent defaults are set before GA4 loads.
     // The primary consent defaults come from the inline script in <head>,
@@ -54,10 +69,17 @@ export function TyPixelFire({ config }: TyPixelFireProps) {
     updateConsentGranted();
     initializePixels(config); // idempotent — no-op if already initialized
 
-    // Fire Lead event on all configured platforms
+    // Fire Lead event on all configured platforms (with user_data for Enhanced Conversions)
     firePixelEvent(
       "lead_submit",
-      { event_id: eventId || undefined },
+      {
+        event_id: eventId || undefined,
+        user_data: (tyEmail || tyPhone) ? {
+          email_address: tyEmail || undefined,
+          phone_number: tyPhone || undefined,
+          address: { first_name: firstName, last_name: lastName },
+        } : undefined,
+      },
       config
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps

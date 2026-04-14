@@ -159,7 +159,7 @@ const HELP_SECTIONS: HelpSection[] = [
       },
       {
         name: "טופס לידים (CTA Modal)",
-        description: "טופס 3 שדות (שם מלא, טלפון, אימייל) שנפתח בלחיצה על כל כפתור CTA בדף. כולל: (1) ולידציה בזמן אמת (טלפון ישראלי, פורמט אימייל). (2) שליחה ל-webhook בלבד (פרטים אישיים לא נשמרים במערכת). (3) הפעלת פיקסלים על כל 8 הפלטפורמות. (4) ניתוב לעמוד תודה מותאם.",
+        description: "טופס 3 שדות (שם מלא, טלפון, אימייל) שנפתח בלחיצה על כל כפתור CTA בדף. כולל: (1) ולידציה בזמן אמת (טלפון ישראלי, פורמט אימייל). (2) שליחה ל-webhook בלבד (פרטים אישיים לא נשמרים במערכת). (3) הפעלת פיקסלים על כל 9 הפלטפורמות. (4) ניתוב לעמוד תודה מותאם.",
         tip: "הטופס כולל טקסט הסכמה לפרטיות + לינק למדיניות פרטיות. טלפון חייב להתחיל ב-05 (10 ספרות).",
       },
       {
@@ -390,10 +390,10 @@ const HELP_SECTIONS: HelpSection[] = [
     id: "pixels",
     icon: Monitor,
     title: "ניהול פיקסלים",
-    description: "הגדרה ובקרה של מזהי מעקב ל-8 מערכות פרסום ומדידה.",
+    description: "הגדרה ובקרה של מזהי מעקב ל-9 מערכות פרסום, אנליטיקס ומדידה.",
     color: "bg-cyan-50 text-cyan-700 border-cyan-200",
     features: [
-      { name: "8 פלטפורמות נתמכות", description: "GA4, Meta, Google Ads, TikTok, LinkedIn, Outbrain, Taboola, Twitter/X. כל פלטפורמה: מזהה פיקסל + הפעלה/כיבוי + access token לCAPI." },
+      { name: "9 פלטפורמות נתמכות", description: "GA4, Meta, Google Ads, TikTok, LinkedIn, Outbrain, Taboola, Twitter/X, Microsoft Clarity. כל פלטפורמה: מזהה פיקסל + הפעלה/כיבוי. Clarity: הקלטות סשן + מפות חום." },
       { name: "הגדרת פיקסל", description: "בעמוד 'ניהול פיקסלים': לכל פלטפורמה הזינו Pixel ID. הפעילו/כבו. הגדירו CAPI token.", tip: "GA4: G-XXXXXXXXXX. Meta: 15-16 ספרות. Google Ads: AW-XXXXXXXXX." },
       { name: "CAPI Access Tokens", description: "טוקנים לשליחת אירועים בצד שרת. מוצפנים ב-AES-256-GCM לפני שמירה. נדרשים עבור: Meta, TikTok, LinkedIn, Outbrain, Taboola.", tip: "טוקנים רגישים — המערכת מצפינה אותם אוטומטית." },
       { name: "דריסת פיקסלים ברמת עמוד", description: "בהגדרות כל עמוד ← 'מעקב ואנליטיקס': pixel ID חלופי, כיבוי פלטפורמה, או שימוש בגלובלי." },
@@ -455,7 +455,7 @@ const IT_ADMIN_SECTIONS: HelpSection[] = [
       { name: "שרתים וסביבות", description: "Production: Vercel (auto-deploy מ-main). Database: Supabase managed PostgreSQL. Storage: Supabase Storage + CDN. אין שרתים פיזיים — הכל serverless.", tip: "Vercel מספק SSL אוטומטי, CDN גלובלי, ו-auto-scaling." },
       { name: "זרימת בקשות", description: "1) מבקר נכנס > Vercel CDN מגיש HTML. 2) React hydration. 3) שליחת טופס > POST /api/leads > Supabase + Webhook + CAPI. 4) אנליטיקס > POST /api/analytics > Supabase. הכל HTTPS." },
       { name: "Database Schema", description: "טבלאות: pages, page_sections, leads, analytics_events, pixel_configurations, page_pixel_overrides, global_settings, shared_sections, page_versions, audit_log. כולן עם Row Level Security (RLS)." },
-      { name: "אינטגרציות", description: "Webhook (Make.com/Zapier): POST + JSON. פיקסלים (8 פלטפורמות): client-side + CAPI. Google Maps embed. YouTube embed. Supabase Auth." },
+      { name: "אינטגרציות", description: "Webhook (Make.com/Zapier): POST + JSON. פיקסלים (9 פלטפורמות): client-side + CAPI + Clarity. Google Maps embed. YouTube embed. Supabase Auth." },
     ],
   },
   {
@@ -606,7 +606,7 @@ const PRIVACY_ADMIN_SECTIONS: HelpSection[] = [
       { name: "Cookie Consent Banner", description: "כל מבקר חדש רואה באנר. 3 אפשרויות: אשר הכל, דחה (רק חיוניות), הגדרות. ברירת מחדל: denied. נשמר ל-365 יום." },
       { name: "Consent Mode v2 — טכני", description: "ad_storage: denied/granted. analytics_storage: denied/granted. ב-denied: GA4 cookieless pings (conversion modeling), שאר הפיקסלים לא נטענים." },
       { name: "הסכמה דרך טופס", description: "שליחת טופס = הסכמה שיווקית. כל הפיקסלים מופעלים אוטומטית. הטופס כולל טקסט הסכמה + לינק למדיניות.", tip: "טקסט ההסכמה: 'בשליחת הטופס אני מסכים/ה למדיניות הפרטיות ולקבלת חומרי שיווק.'" },
-      { name: "שקיפות", description: "עם הסכמה: 8 פיקסלים פעילים + cookies + אנליטיקס מלא. ללא הסכמה: רק GA4 cookieless + first-party analytics (cookie_id ללא PII)." },
+      { name: "שקיפות", description: "עם הסכמה: 9 פיקסלים פעילים + cookies + אנליטיקס מלא. ללא הסכמה: רק GA4 + Clarity cookieless + first-party analytics (cookie_id ללא PII)." },
     ],
   },
   {

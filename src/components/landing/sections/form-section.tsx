@@ -286,8 +286,10 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
       if (res.ok) {
         /* Store event_id for TY page pixel deduplication */
         sessionStorage.setItem("ty_event_id", eventId);
-        const firstName = (formData.full_name || "").trim().split(" ")[0] || "";
-        if (firstName) sessionStorage.setItem("ty_name", firstName);
+        const fullName = (formData.full_name || "").trim();
+        if (fullName) sessionStorage.setItem("ty_name", fullName);
+        if (formData.email) sessionStorage.setItem("ty_email", formData.email);
+        if (formData.phone) sessionStorage.setItem("ty_phone", formData.phone);
         /* Record submit time for 15-second session cooldown */
         sessionStorage.setItem("last_lead_submit", Date.now().toString());
         // Clear saved draft on successful submission
