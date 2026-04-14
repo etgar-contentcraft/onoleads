@@ -163,7 +163,7 @@ export function HomepageHero() {
               rel="noopener noreferrer"
               className="group inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-[#B8D900] text-[#1a1820] font-heading font-bold text-base transition-all duration-300 hover:bg-[#c8e920] hover:shadow-[0_12px_40px_rgba(184,217,0,0.35)] hover:scale-[1.03] active:scale-[0.98]"
             >
-              <span>לאתר הקריה האקדמית</span>
+              <span>לאתר הקריה האקדמית אונו</span>
               <svg
                 className="w-4 h-4 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1"
                 fill="none"
