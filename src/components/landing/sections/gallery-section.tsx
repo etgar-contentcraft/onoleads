@@ -127,7 +127,7 @@ function Lightbox({
             return (
               <div className="relative w-full max-w-5xl" style={{ height: "80vh" }}>
                 <iframe
-                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                  src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`}
                   title={current.alt_he || "YouTube video"}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen

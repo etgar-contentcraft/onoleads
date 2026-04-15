@@ -162,6 +162,7 @@ const getPageData = cache(async function getPageData(slug: string) {
     google_ads_conversion_label: pixelMap["google"]?.additional_config?.conversion_label || undefined,
     tiktok_pixel_id: pixelMap["tiktok"]?.pixel_id || undefined,
     linkedin_partner_id: pixelMap["linkedin"]?.pixel_id || undefined,
+    linkedin_conversion_id: pixelMap["linkedin"]?.additional_config?.conversion_id || undefined,
     outbrain_account_id: pixelMap["outbrain"]?.pixel_id || undefined,
     taboola_account_id: pixelMap["taboola"]?.pixel_id || undefined,
     twitter_pixel_id: pixelMap["twitter"]?.pixel_id || undefined,

@@ -46,12 +46,37 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
   // The thank-you page is public so we use the admin client for settings reads.
   const adminClient = createAdminClient();
 
-  // ── Fetch global TY settings + pixel config in parallel ──────────────────
-  const [{ data: globalTyRow }, { data: globalWaRow }, { data: pixelRows }] = await Promise.all([
+  // ── Phase 1: Fetch ALL independent data in a single parallel batch ──────
+  // This is the critical optimization: instead of 5-7 sequential DB queries
+  // (~100-200ms each = 0.5-1.4s total), we run everything in parallel (~200ms).
+  const [
+    { data: globalTyRow },
+    { data: globalWaRow },
+    { data: pixelRows },
+    { data: page },
+    { data: defaultLogoRow },
+    { data: defaultTemplate },
+    // If a template override ID is provided (dashboard preview), fetch it in parallel too
+    ...overrideResults
+  ] = await Promise.all([
     adminClient.from("settings").select("value").eq("key", "thank_you_page_settings").single(),
     adminClient.from("settings").select("value").eq("key", "whatsapp_number").single(),
     adminClient.from("pixel_configurations").select("platform, is_enabled, pixel_id, additional_config"),
+    // Page query runs in parallel — no need to wait for settings first
+    slug
+      ? supabase.from("pages").select("custom_styles, title_he, language").eq("slug", slug).single()
+      : Promise.resolve({ data: null }),
+    // Default logo — always needed as fallback, so fetch eagerly
+    supabase.from("logos").select("url").eq("is_default", true).maybeSingle(),
+    // Default template — always needed as fallback, so fetch eagerly
+    adminClient.from("thank_you_templates").select("*").eq("is_default", true).eq("is_active", true).maybeSingle(),
+    // Override template (dashboard preview mode) — fetch in parallel if ID is provided
+    ...(templateIdOverride
+      ? [adminClient.from("thank_you_templates").select("*").eq("id", templateIdOverride).eq("is_active", true).maybeSingle()]
+      : []),
   ]);
+
+  const overrideTemplate = overrideResults[0]?.data || null;
 
   // Build pixel config from enabled platform rows
   const pixelMap: Record<string, { pixel_id: string | null; additional_config: Record<string, string | null> }> = {};
@@ -71,9 +96,11 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
     googleAdsConversionLabel: pixelMap["google"]?.additional_config?.conversion_label || null,
     tikTokPixelId: pixelMap["tiktok"]?.pixel_id || null,
     linkedInPartnerId: pixelMap["linkedin"]?.pixel_id || null,
+    linkedInConversionId: pixelMap["linkedin"]?.additional_config?.conversion_id || null,
     outbrainAccountId: pixelMap["outbrain"]?.pixel_id || null,
     taboolaAccountId: pixelMap["taboola"]?.pixel_id || null,
     twitterPixelId: pixelMap["twitter"]?.pixel_id || null,
+    clarityProjectId: pixelMap["clarity"]?.pixel_id || null,
     pageSlug: slug || null,
   };
 
@@ -84,7 +111,7 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
     } catch { /* ignore malformed JSON */ }
   }
 
-  // ── Fetch page-specific settings ──────────────────────────────────────────
+  // ── Extract page-specific settings (from the parallel page query) ─────────
   let pageTySettings: Partial<ThankYouPageSettings> = {};
   let pageWhatsapp = "";
   let pageLogoUrl = "";
@@ -92,38 +119,19 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
   let language = "he";
   let pageTemplateId: string | null = null;
 
-  if (slug) {
-    const { data: page } = await supabase
-      .from("pages")
-      .select("custom_styles, title_he, language")
-      .eq("slug", slug)
-      .single();
-
-    if (page) {
-      const cs = (page.custom_styles || {}) as Record<string, unknown>;
-      // The settings page writes to `ty_settings`; older code read `thank_you_settings`.
-      // Read both, preferring the newer key, to keep every historical write live.
-      pageTySettings = (cs.ty_settings || cs.thank_you_settings || {}) as Partial<ThankYouPageSettings>;
-      // Extract per-page template selection (set via builder PageSettings dialog)
-      pageTemplateId = (pageTySettings as { template_id?: string }).template_id || null;
-      const pageSettingsObj = (cs.page_settings as Record<string, string>) || {};
-      pageWhatsapp = pageSettingsObj.whatsapp_number || "";
-      pageLogoUrl = pageSettingsObj.logo_url || "";
-      programName = page.title_he || "";
-      language = page.language || "he";
-    }
+  if (page) {
+    const cs = (page.custom_styles || {}) as Record<string, unknown>;
+    pageTySettings = (cs.ty_settings || cs.thank_you_settings || {}) as Partial<ThankYouPageSettings>;
+    pageTemplateId = (pageTySettings as { template_id?: string }).template_id || null;
+    const pageSettingsObj = (cs.page_settings as Record<string, string>) || {};
+    pageWhatsapp = pageSettingsObj.whatsapp_number || "";
+    pageLogoUrl = pageSettingsObj.logo_url || "";
+    programName = page.title_he || "";
+    language = page.language || "he";
   }
 
   // ── Resolve logo: page override > default logo from logos table ───────────
-  let resolvedLogoUrl: string | undefined = pageLogoUrl || undefined;
-  if (!resolvedLogoUrl) {
-    const { data: defaultLogoRow } = await supabase
-      .from("logos")
-      .select("url")
-      .eq("is_default", true)
-      .maybeSingle();
-    resolvedLogoUrl = defaultLogoRow?.url;
-  }
+  const resolvedLogoUrl: string | undefined = pageLogoUrl || defaultLogoRow?.url || undefined;
 
   // ── Merge settings: page overrides global ─────────────────────────────────
   const cleanPage = Object.fromEntries(
@@ -133,7 +141,6 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
   const settings: ThankYouPageSettings = {
     ...globalTySettings,
     ...cleanPage,
-    // Resolve whatsapp_number fallback chain
     whatsapp_number:
       cleanPage.whatsapp_number ||
       pageWhatsapp ||
@@ -142,47 +149,36 @@ export default async function ThankYouRoute({ searchParams }: PageProps) {
       "",
   };
 
-  // ── Resolve template: ?template= override > page selection > global default ──
+  // ── Resolve template: override > page-specific > default ──────────────────
+  // Override and default templates were fetched in Phase 1. Only the page-specific
+  // template might need a Phase 2 fetch (if it differs from override/default).
   let template: ThankYouTemplate | null = null;
-  if (templateIdOverride) {
-    // Explicit template id from the dashboard preview button — used to view
-    // a specific template layout standalone, regardless of the page selection.
-    const { data } = await adminClient
-      .from("thank_you_templates")
-      .select("*")
-      .eq("id", templateIdOverride)
-      .eq("is_active", true)
-      .maybeSingle();
-    template = (data as ThankYouTemplate) || null;
+
+  if (templateIdOverride && overrideTemplate) {
+    template = overrideTemplate as ThankYouTemplate;
   }
+
   if (!template && pageTemplateId) {
-    const { data } = await adminClient
-      .from("thank_you_templates")
-      .select("*")
-      .eq("id", pageTemplateId)
-      .eq("is_active", true)
-      .maybeSingle();
-    template = (data as ThankYouTemplate) || null;
+    // Check if the page template is the same as the default (avoid redundant query)
+    if (defaultTemplate && (defaultTemplate as ThankYouTemplate).id === pageTemplateId) {
+      template = defaultTemplate as ThankYouTemplate;
+    } else {
+      // Phase 2: Only query needed when page has a non-default template selection
+      const { data } = await adminClient
+        .from("thank_you_templates")
+        .select("*")
+        .eq("id", pageTemplateId)
+        .eq("is_active", true)
+        .maybeSingle();
+      template = (data as ThankYouTemplate) || null;
+    }
   }
-  if (!template) {
-    const { data } = await adminClient
-      .from("thank_you_templates")
-      .select("*")
-      .eq("is_default", true)
-      .eq("is_active", true)
-      .maybeSingle();
-    template = (data as ThankYouTemplate) || null;
+
+  if (!template && defaultTemplate) {
+    template = defaultTemplate as ThankYouTemplate;
   }
 
   // ── Optional: resolve linked event + overlay onto template ──────────────
-  // If the page is linked to an event (via /dashboard/events), fetch the
-  // event row and overlay its fields on top of the template content before
-  // rendering. This lets editors maintain event details in one place and
-  // have them appear on every page that references the event.
-  //
-  // We also forward the raw `meta` blob to the renderer so the open-day
-  // layout can render rich structured content (speakers, schedule, FAQ,
-  // gallery, highlights) that doesn't fit the string-based template content.
   let linkedEventMeta: EventRow["meta"] | undefined;
   if (settings.event_id && template && template.layout_id === "open_day") {
     const { data: eventRow } = await adminClient

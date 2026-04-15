@@ -31,7 +31,7 @@ const KEY_DERIVATION_CONTEXT = "onoleads:capi-token-master-key:v1";
  * encrypted tokens remain decryptable as long as the service-role-key is unchanged.
  */
 function getMasterKey(): Buffer {
-  // Strategy 1: explicit master key
+  // Strategy 1: explicit master key (REQUIRED in production)
   const master = process.env.CAPI_TOKEN_MASTER_KEY;
   if (master && master.trim().length >= 10) {
     const normalized = master.trim().replace(/-/g, "+").replace(/_/g, "/");
@@ -41,7 +41,19 @@ function getMasterKey(): Buffer {
     }
   }
 
-  // Strategy 2: derive from Supabase service role key
+  /* In production we require the explicit master key.
+   * Falling back to a key derived from SUPABASE_SERVICE_ROLE_KEY ties two
+   * different security domains together: leaking the service role would also
+   * leak every encrypted CAPI token, and rotating the service role would brick
+   * decryption of existing tokens. */
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "CAPI_TOKEN_MASTER_KEY is required in production. " +
+      "Generate one with: openssl rand -base64 32"
+    );
+  }
+
+  // Strategy 2 (dev/test only): derive from Supabase service role key
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (serviceRole && serviceRole.trim().length >= 20) {
     return createHash("sha256")
@@ -50,7 +62,7 @@ function getMasterKey(): Buffer {
   }
 
   throw new Error(
-    "No encryption key available. Set CAPI_TOKEN_MASTER_KEY or SUPABASE_SERVICE_ROLE_KEY."
+    "No encryption key available. Set CAPI_TOKEN_MASTER_KEY (recommended) or, for dev only, SUPABASE_SERVICE_ROLE_KEY."
   );
 }
 

@@ -93,6 +93,7 @@ export interface PageSettings {
   google_ads_conversion_label?: string;
   tiktok_pixel_id?: string;
   linkedin_partner_id?: string;
+  linkedin_conversion_id?: string;
   outbrain_account_id?: string;
   taboola_account_id?: string;
   twitter_pixel_id?: string;
@@ -655,6 +656,15 @@ function InnerLayout({
           #lp-root { --font-heebo: var(${fontCssVar}); --font-heading: var(${fontCssVar}); }
         ` }} />
       )}
+      {/* Skip-to-content link — visible on focus, lets keyboard/screen-reader
+       * users jump past the sticky header straight into page content (WCAG 2.4.1). */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:start-3 focus:z-[200] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-[#B8D900] focus:text-[#2a2628] focus:font-bold focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2a2628]"
+      >
+        {language === "en" ? "Skip to main content" : language === "ar" ? "تخطّ إلى المحتوى الرئيسي" : "דלג לתוכן הראשי"}
+      </a>
+
       {/* Sticky Header */}
       <StickyHeader
         programName={pageTitle || (language === "en" ? (program?.name_en || program?.name_he) : program?.name_he)}
@@ -665,7 +675,7 @@ function InnerLayout({
       />
 
       {/* Main Content */}
-      <main>
+      <main id="main-content" tabIndex={-1}>
         {/* Render explicit sections with auto-sections injected after hero */}
         {mainSections.map((section, index) => (
           <div key={section.id}>
@@ -830,6 +840,7 @@ function InnerLayout({
             googleAdsConversionLabel: settings?.google_ads_conversion_label,
             tikTokPixelId: settings?.tiktok_pixel_id,
             linkedInPartnerId: settings?.linkedin_partner_id,
+            linkedInConversionId: settings?.linkedin_conversion_id,
             outbrainAccountId: settings?.outbrain_account_id,
             taboolaAccountId: settings?.taboola_account_id,
             twitterPixelId: settings?.twitter_pixel_id,

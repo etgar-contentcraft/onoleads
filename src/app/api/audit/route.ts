@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { writeAuditLog, type AuditAction } from "@/lib/security/audit-log";
+import { getClientIp } from "@/lib/security/rate-limit";
 
 const VALID_ACTIONS: AuditAction[] = [
   "admin_page_created",
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
       resource_type: resource_type || null,
       resource_id: resource_id || null,
       metadata: metadata || null,
-      ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || null,
+      ip_address: getClientIp(req.headers),
       user_agent: req.headers.get("user-agent") || null,
     });
 

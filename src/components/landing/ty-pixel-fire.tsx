@@ -51,6 +51,9 @@ export function TyPixelFire({ config }: TyPixelFireProps) {
     const tyName = sessionStorage.getItem("ty_name") || "";
     const tyEmail = sessionStorage.getItem("ty_email") || "";
     const tyPhone = sessionStorage.getItem("ty_phone") || "";
+    /* Note: ty_name is consumed (and removed) by thank-you-renderer.tsx /
+     * thank-you-page.tsx for the greeting display. We don't remove here to
+     * avoid a render-order race; email/phone aren't displayed so we clear them. */
     if (tyEmail) sessionStorage.removeItem("ty_email");
     if (tyPhone) sessionStorage.removeItem("ty_phone");
 

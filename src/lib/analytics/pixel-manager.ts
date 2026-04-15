@@ -13,6 +13,7 @@
 
 import { generateEventId } from "./event-id";
 import { getOrCreateCookieId } from "@/hooks/use-page-tracking";
+import { sanitizePixelIdForInlineScript } from "@/lib/capi/validate-pixel";
 
 // ============================================================================
 // Types
@@ -25,6 +26,7 @@ export interface PixelConfig {
   googleAdsConversionLabel?: string | null;
   tikTokPixelId?: string | null;
   linkedInPartnerId?: string | null;
+  linkedInConversionId?: string | null;  // LinkedIn conversion rule ID for lintrk("track")
   outbrainAccountId?: string | null;
   taboolaAccountId?: string | null;
   twitterPixelId?: string | null;
@@ -242,13 +244,15 @@ function injectInlineScript(code: string, id: string): void {
   document.head.appendChild(script);
 }
 
-function initGA4(measurementId: string): void {
+function initGA4(measurementIdRaw: string): void {
+  const measurementId = sanitizePixelIdForInlineScript(measurementIdRaw);
+  if (!measurementId) return;
   if (document.getElementById("gtag-js")) {
     console.debug("[pixel] GA4 already loaded, skipping init");
     return;
   }
   console.debug("[pixel] Initializing GA4 with measurement ID:", measurementId);
-  injectScript(`https://www.googletagmanager.com/gtag/js?id=${measurementId}`, "gtag-js");
+  injectScript(`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`, "gtag-js");
 
   window.dataLayer = window.dataLayer || [];
   // eslint-disable-next-line prefer-rest-params
@@ -260,7 +264,9 @@ function initGA4(measurementId: string): void {
   });
 }
 
-function initMetaPixel(pixelId: string): void {
+function initMetaPixel(pixelIdRaw: string): void {
+  const pixelId = sanitizePixelIdForInlineScript(pixelIdRaw);
+  if (!pixelId) return;
   /* Standard Meta Pixel base code (minified) */
   injectInlineScript(`
     !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -274,7 +280,9 @@ function initMetaPixel(pixelId: string): void {
   window.fbq("track", "PageView");
 }
 
-function initTikTokPixel(pixelId: string): void {
+function initTikTokPixel(pixelIdRaw: string): void {
+  const pixelId = sanitizePixelIdForInlineScript(pixelIdRaw);
+  if (!pixelId) return;
   injectInlineScript(`
     !function (w, d, t) {
       w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify",
@@ -291,7 +299,9 @@ function initTikTokPixel(pixelId: string): void {
   `.trim(), "tiktok-pixel-base");
 }
 
-function initLinkedInInsight(partnerId: string): void {
+function initLinkedInInsight(partnerIdRaw: string): void {
+  const partnerId = sanitizePixelIdForInlineScript(partnerIdRaw);
+  if (!partnerId) return;
   injectInlineScript(`
     _linkedin_partner_id = "${partnerId}";
     window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
@@ -300,7 +310,9 @@ function initLinkedInInsight(partnerId: string): void {
   injectScript("https://snap.licdn.com/li.lms-analytics/insight.min.js", "linkedin-insight-js");
 }
 
-function initOutbrain(accountId: string): void {
+function initOutbrain(accountIdRaw: string): void {
+  const accountId = sanitizePixelIdForInlineScript(accountIdRaw);
+  if (!accountId) return;
   injectInlineScript(`
     !function(_window, _document) {
       var OB_ADV_ID='${accountId}';
@@ -315,7 +327,9 @@ function initOutbrain(accountId: string): void {
   window.obApi?.("track", "PAGE_VIEW");
 }
 
-function initTaboola(accountId: string): void {
+function initTaboola(accountIdRaw: string): void {
+  const accountId = sanitizePixelIdForInlineScript(accountIdRaw);
+  if (!accountId) return;
   injectInlineScript(`
     window._tfa = window._tfa || [];
     window._tfa.push({notify: 'event', name: 'page_view', id: '${accountId}'});
@@ -329,7 +343,9 @@ function initTaboola(accountId: string): void {
   `.trim(), "taboola-pixel-base");
 }
 
-function initTwitterPixel(pixelId: string): void {
+function initTwitterPixel(pixelIdRaw: string): void {
+  const pixelId = sanitizePixelIdForInlineScript(pixelIdRaw);
+  if (!pixelId) return;
   injectInlineScript(`
     !function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):
     s.queue.push(arguments)},s.version='1.1',s.queue=[],u=t.createElement(n),
@@ -344,7 +360,9 @@ function initTwitterPixel(pixelId: string): void {
  * Standard Clarity tag snippet. The script self-initializes when loaded.
  * No CAPI or conversion events — purely observational analytics.
  */
-function initClarity(projectId: string): void {
+function initClarity(projectIdRaw: string): void {
+  const projectId = sanitizePixelIdForInlineScript(projectIdRaw);
+  if (!projectId) return;
   if (document.getElementById("ms-clarity-base")) return;
   console.debug("[pixel] Initializing Microsoft Clarity with project ID:", projectId);
   injectInlineScript(`
@@ -402,7 +420,7 @@ export function firePixelEvent(
     case "engaged_visitor":
     case "form_interact":
     case "video_play":
-      fireEngagementEvent(eventName, eventId, params, config);
+      /* Already fired above under the legitimate-interest path — no double-fire here. */
       break;
     default:
       fireGA4Event(eventName, params, config);
@@ -449,9 +467,14 @@ function fireLeadSubmit(
     window.ttq.track("CompleteRegistration", {}, { event_id: eventId });
   }
 
-  // Outbrain conversion
+  // LinkedIn Lead conversion (conversion_id from Campaign Manager, eventId for CAPI dedup)
+  if (config.linkedInPartnerId && config.linkedInConversionId && window.lintrk) {
+    window.lintrk("track", { conversion_id: config.linkedInConversionId });
+  }
+
+  // Outbrain conversion (orderId enables S2S deduplication — must match CAPI's orderid)
   if (config.outbrainAccountId && window.obApi) {
-    window.obApi("track", "CONVERSION");
+    window.obApi("track", "CONVERSION", { orderId: eventId });
   }
 
   // Taboola conversion (orderid enables S2S deduplication)

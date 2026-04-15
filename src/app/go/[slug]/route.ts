@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getClientIp } from "@/lib/security/rate-limit";
 
 /* ─── Constants ─── */
 
@@ -160,10 +161,7 @@ export async function GET(
   /* ── Fire-and-forget click logging ── */
   const ua = request.headers.get("user-agent") || "";
   const referrer = request.headers.get("referer") || "";
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown";
+  const ip = getClientIp(request.headers);
 
   /* Do not await — let the redirect happen immediately */
   logClick(supabase, link.id, ip, ua, referrer).catch((err) => {

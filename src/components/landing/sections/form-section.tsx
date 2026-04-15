@@ -407,19 +407,28 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
             </div>
 
             <div className="space-y-5">
-              {fields.map((field) => (
+              {fields.map((field) => {
+                /* Stable per-field id so the <label> can be associated with its
+                 * input via htmlFor. WCAG 1.3.1 + 4.1.2 — clicking the label
+                 * focuses the input and screen readers announce the label. */
+                const fieldId = `form-field-${field.name}`;
+                const errorId = `${fieldId}-error`;
+                return (
                 <div key={field.name}>
-                  <label className="block text-[#2a2628] text-sm font-medium mb-2">
+                  <label htmlFor={fieldId} className="block text-[#2a2628] text-sm font-medium mb-2">
                     {getLabel(field)}
                     {field.required && <span className={`text-[#B8D900] ${isRtl ? "mr-1" : "ml-1"}`}>*</span>}
                   </label>
 
                   {field.type === "select" ? (
                     <select
+                      id={fieldId}
                       value={formData[field.name] || ""}
                       onChange={(e) => handleChange(field.name, e.target.value)}
                       onBlur={() => handleBlur(field)}
                       aria-required={field.required || undefined}
+                      aria-invalid={errors[field.name] ? true : undefined}
+                      aria-describedby={errors[field.name] ? errorId : undefined}
                       required={field.required}
                       className={`w-full h-14 rounded-xl bg-white border px-5 text-[#2a2628] text-base focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all appearance-none ${errors[field.name] ? "border-red-400/60" : fieldValid[field.name] ? "border-[#B8D900]/50" : "border-gray-200"}`}
                     >
@@ -431,12 +440,15 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
                   ) : (
                     <div className="relative">
                       <input
+                        id={fieldId}
                         type={field.type}
                         value={formData[field.name] || ""}
                         onChange={(e) => handleChange(field.name, e.target.value)}
                         onBlur={() => handleBlur(field)}
                         dir={field.type === "tel" || field.type === "email" ? "ltr" : undefined}
                         aria-required={field.required || undefined}
+                        aria-invalid={errors[field.name] ? true : undefined}
+                        aria-describedby={errors[field.name] ? errorId : undefined}
                         required={field.required}
                         className={`w-full h-14 rounded-xl bg-white border px-5 ${(field.type === "tel" || field.type === "email") ? "pr-10" : ""} text-[#2a2628] text-base placeholder:text-[#767276] focus:border-[#B8D900] focus:outline-none focus:ring-2 focus:ring-[#B8D900]/30 transition-all ${errors[field.name] ? "border-red-400/60" : fieldValid[field.name] ? "border-[#B8D900]/50" : "border-gray-200"}`}
                         placeholder={getLabel(field)}
@@ -453,7 +465,7 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
                   )}
 
                   {errors[field.name] && (
-                    <p className="text-red-500 text-xs mt-2 font-medium flex items-center gap-1">
+                    <p id={errorId} role="alert" className="text-red-500 text-xs mt-2 font-medium flex items-center gap-1">
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -461,7 +473,8 @@ export function FormSection({ content, language, pageId, programId, pageSlug }: 
                     </p>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Honeypot field — hidden from humans, bots will auto-fill */}

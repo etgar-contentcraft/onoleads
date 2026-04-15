@@ -713,7 +713,7 @@ export function CtaModal({ pageId, programId, programName, pageSlug, ctaText, pa
                         )}
                         {pageInterestAreas!.map((area) => (
                           <option key={area.id} value={area.name_he}>
-                            {area.name_he}
+                            {(language === "en" && area.name_en) ? area.name_en : area.name_he}
                           </option>
                         ))}
                       </select>
@@ -810,21 +810,36 @@ export function FloatingCtaButton({ ctaText }: { ctaText?: string }) {
   const { open, language } = useCtaModal();
   const t = FORM_STRINGS[language] || FORM_STRINGS.he;
   const [visible, setVisible] = useState(false);
+  const [consentDismissed, setConsentDismissed] = useState(true);
 
   useEffect(() => {
+    // Check if cookie consent has been dismissed (if not, push CTA up to avoid overlap)
+    const consent = localStorage.getItem("ono_cookie_consent");
+    setConsentDismissed(!!consent);
+
+    // Listen for consent banner dismissed (both "all" and "essential") so CTA
+    // drops back to its normal bottom position and no longer avoids overlap.
+    const onConsent = () => setConsentDismissed(true);
+    window.addEventListener("ono_consent_dismissed", onConsent);
+
     const handleScroll = () => {
       /** Show earlier on mobile (after hero) since there's no sticky header CTA visible yet */
       const threshold = window.innerWidth < 768 ? 350 : 600;
       setVisible(window.scrollY > threshold);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("ono_consent_dismissed", onConsent);
+    };
   }, []);
 
   return (
     <button
       onClick={() => open("floating_cta")}
-      className={`fixed bottom-4 right-4 md:bottom-6 md:right-6 pb-[env(safe-area-inset-bottom)] z-40 flex items-center gap-2.5 px-6 py-3.5 md:px-7 md:py-4 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm shadow-[var(--shadow-green)] hover:bg-[#c8e920] hover:shadow-[var(--shadow-green-lg)] hover:scale-[1.04] active:scale-[0.97] transition-all duration-300 ${
+      className={`fixed right-4 md:right-6 pb-[env(safe-area-inset-bottom)] z-40 flex items-center gap-2.5 px-6 py-3.5 md:px-7 md:py-4 rounded-2xl bg-[#B8D900] text-[#2a2628] font-heading font-bold text-sm shadow-[var(--shadow-green)] hover:bg-[#c8e920] hover:shadow-[var(--shadow-green-lg)] hover:scale-[1.04] active:scale-[0.97] transition-all duration-300 ${
+        consentDismissed ? "bottom-4 md:bottom-6" : "bottom-[5.5rem] md:bottom-[4.5rem]"
+      } ${
         visible
           ? "translate-y-0 opacity-100"
           : "translate-y-20 opacity-0 pointer-events-none"
