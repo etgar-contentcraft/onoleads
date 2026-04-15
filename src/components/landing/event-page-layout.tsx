@@ -996,8 +996,8 @@ function PhysicalOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
         </div>
       </footer>
 
-      <CookieConsent language="he" />
-      <AccessibilityWidget language="he" />
+      <CookieConsent language={(page.language === "en" || page.language === "ar") ? page.language : "he"} />
+      <AccessibilityWidget language={(page.language === "en" || page.language === "ar") ? page.language : "he"} />
     </div>
   );
 }
@@ -1461,8 +1461,8 @@ function ZoomOpenDayPage({ page, eventMeta }: EventPageLayoutProps) {
         </div>
       </footer>
 
-      <CookieConsent language="he" />
-      <AccessibilityWidget language="he" />
+      <CookieConsent language={(page.language === "en" || page.language === "ar") ? page.language : "he"} />
+      <AccessibilityWidget language={(page.language === "en" || page.language === "ar") ? page.language : "he"} />
     </div>
   );
 }

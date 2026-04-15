@@ -99,6 +99,9 @@ export function CookieConsent({ language = "he" }: { language?: Lang }) {
     if (choice === "all") {
       window.dispatchEvent(new CustomEvent("ono_consent_granted"));
     }
+    /* Always notify that the banner was dismissed (used by floating CTA to
+     * drop back to its normal position — avoids overlap with this banner). */
+    window.dispatchEvent(new CustomEvent("ono_consent_dismissed"));
   }
 
   const l = CONSENT_LABELS[language] || CONSENT_LABELS.he;

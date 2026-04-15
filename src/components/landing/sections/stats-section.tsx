@@ -256,12 +256,11 @@ export function StatsSection({ content, language }: StatsSectionProps) {
           )}
         </div>
 
-        {/* Stats grid */}
+        {/* Stats grid — responsive: 2 cols on mobile, up to 4 on desktop */}
         <div
-          className="grid gap-4 md:gap-6"
-          style={{
-            gridTemplateColumns: `repeat(${Math.min(items.length, 4)}, minmax(0, 1fr))`,
-          }}
+          className={`grid gap-4 md:gap-6 grid-cols-2 ${
+            Math.min(items.length, 4) === 3 ? "md:grid-cols-3" : "md:grid-cols-4"
+          }`}
         >
           {items.map((item, index) => (
             <AnimatedStat

@@ -89,19 +89,32 @@ export function checkRateLimit(
 
 /**
  * Extracts the client IP from a Next.js request.
- * Checks common proxy headers before falling back to a default.
+ *
+ * Spoofing-resistant order:
+ *   1. cf-connecting-ip (Cloudflare — set by edge, not appendable)
+ *   2. x-real-ip (Vercel — set by edge to the actual client IP)
+ *   3. x-forwarded-for, RIGHTMOST entry — the trusted edge proxy appends the
+ *      real client IP to whatever the client supplied; the leftmost is
+ *      attacker-controlled, the rightmost (last appended by our trusted edge)
+ *      is authoritative.
+ *
  * @param headers - Request headers
  * @returns Best-guess client IP address
  */
 export function getClientIp(headers: Headers): string {
+  const cfIp = headers.get("cf-connecting-ip");
+  if (cfIp) return cfIp.trim();
+
+  const realIp = headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
+
   const forwarded = headers.get("x-forwarded-for");
   if (forwarded) {
-    return forwarded.split(",")[0].trim();
+    const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean);
+    /* Rightmost = the IP the trusted edge proxy appended.
+     * Leftmost = attacker-supplied (any client can set X-Forwarded-For). */
+    if (parts.length) return parts[parts.length - 1];
   }
 
-  return (
-    headers.get("x-real-ip") ||
-    headers.get("cf-connecting-ip") ||
-    "unknown"
-  );
+  return "unknown";
 }

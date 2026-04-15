@@ -21,7 +21,6 @@ import {
   LogOut,
   User,
   Settings,
-  Bell,
   Search,
   Home,
 } from "lucide-react";
@@ -178,17 +177,9 @@ export function Header({ user, onMenuClick }: HeaderProps) {
             <Search className="w-[18px] h-[18px]" />
           </Button>
 
-          {/* Notifications */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative text-[#716C70] hover:text-[#2a2628] hover:bg-[#f3f4f6] rounded-xl"
-          >
-            <Bell className="w-[18px] h-[18px]" />
-            <span className="absolute top-1.5 right-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 bg-red-500 rounded-full text-[9px] font-bold text-white shadow-sm">
-              3
-            </span>
-          </Button>
+          {/* Notifications bell removed: previously rendered a hard-coded "3"
+           * badge with no real notifications backing it. Misleading to admins.
+           * Re-enable once the notifications feature is built. */}
 
           {/* Separator */}
           <div className="w-px h-7 bg-[#e5e7eb] mx-1 hidden md:block" />

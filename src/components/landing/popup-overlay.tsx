@@ -180,7 +180,7 @@ function Confetti({ onDone }: { onDone: () => void }) {
  * Live countdown clock showing days (if > 0), hours, minutes, seconds.
  * Ticks every second via setInterval.
  */
-function CountdownTimer({ targetISO, accentColor }: { targetISO: string; accentColor: string }) {
+function CountdownTimer({ targetISO, accentColor, language = "he" }: { targetISO: string; accentColor: string; language?: string }) {
   const [time, setTime] = useState(() => getTimeRemaining(targetISO));
 
   useEffect(() => {
@@ -190,11 +190,17 @@ function CountdownTimer({ targetISO, accentColor }: { targetISO: string; accentC
 
   if (time.expired) return null;
 
+  const unitLabels = language === "en"
+    ? { days: "Days", hours: "Hours", min: "Min", sec: "Sec" }
+    : language === "ar"
+      ? { days: "أيام", hours: "ساعات", min: "دقائق", sec: "ثوانٍ" }
+      : { days: "ימים", hours: "שעות", min: "דקות", sec: "שניות" };
+
   const units = [
-    ...(time.d > 0 ? [{ label: "ימים", value: time.d }] : []),
-    { label: "שעות", value: time.h },
-    { label: "דקות", value: time.m },
-    { label: "שניות", value: time.s },
+    ...(time.d > 0 ? [{ label: unitLabels.days, value: time.d }] : []),
+    { label: unitLabels.hours, value: time.h },
+    { label: unitLabels.min, value: time.m },
+    { label: unitLabels.sec, value: time.s },
   ];
 
   return (
@@ -226,7 +232,7 @@ function CountdownTimer({ targetISO, accentColor }: { targetISO: string; accentC
 /**
  * Visual star rating row: filled/partial/empty stars + review count.
  */
-function StarRating({ score, count }: { score: number; count: number }) {
+function StarRating({ score, count, language = "he" }: { score: number; count: number; language?: string }) {
   return (
     <div className="flex justify-center items-center gap-1.5 mb-3">
       <div className="flex items-center gap-0.5">
@@ -249,7 +255,10 @@ function StarRating({ score, count }: { score: number; count: number }) {
         })}
       </div>
       <span className="text-xs text-[#767276]">{score.toFixed(1)}</span>
-      <span className="text-xs text-[#767276]">({count.toLocaleString("he-IL")} ביקורות)</span>
+      <span className="text-xs text-[#767276]">
+        ({count.toLocaleString(language === "en" ? "en-US" : language === "ar" ? "ar-SA" : "he-IL")}{" "}
+        {language === "en" ? "reviews" : language === "ar" ? "مراجعات" : "ביקורות"})
+      </span>
     </div>
   );
 }
@@ -578,7 +587,7 @@ export function PopupOverlay({
 
         if (pageSlug) {
           onDismiss();
-          router.push(`/lp/${encodeURIComponent(pageSlug)}/ty`);
+          router.push(`/ty?slug=${encodeURIComponent(pageSlug)}`);
         } else {
           setSubmitSuccess(true);
         }
@@ -641,12 +650,12 @@ export function PopupOverlay({
 
       {/* Countdown timer */}
       {content.countdown_end && (
-        <CountdownTimer targetISO={content.countdown_end} accentColor={content.accent_color} />
+        <CountdownTimer targetISO={content.countdown_end} accentColor={content.accent_color} language={language} />
       )}
 
       {/* Star rating */}
       {content.rating && (
-        <StarRating score={content.rating.score} count={content.rating.count} />
+        <StarRating score={content.rating.score} count={content.rating.count} language={language} />
       )}
 
       {/* Title */}
@@ -742,7 +751,7 @@ export function PopupOverlay({
                     <option value="__unknown__">{unknownOption.text}</option>
                   )}
                   {pageInterestAreas!.map((area) => (
-                    <option key={area.id} value={area.name_he}>{area.name_he}</option>
+                    <option key={area.id} value={area.name_he}>{(language === "en" && area.name_en) ? area.name_en : area.name_he}</option>
                   ))}
                 </select>
                 {errors.interest_area && (
