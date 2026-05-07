@@ -14,7 +14,14 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Loader2, Save, ExternalLink, Tag, Search, X, ChevronUp, ChevronDown, Link2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { ArrowRight, Loader2, Save, ExternalLink, Tag, Search, X, ChevronUp, ChevronDown, Link2, Plus } from "lucide-react";
 import { LogoPicker } from "@/components/admin/logo-picker";
 import { revalidateNow } from "@/lib/admin/revalidate";
 import type { ThankYouPageSettings } from "@/lib/types/thank-you";
@@ -385,6 +392,10 @@ export default function PageSettingsPage() {
   const [areaSearch, setAreaSearch] = useState("");
   const [mapsToSearch, setMapsToSearch] = useState("");
   const [mapsToOpen, setMapsToOpen] = useState(false);
+  const [isCreateAreaOpen, setIsCreateAreaOpen] = useState(false);
+  const [newAreaForm, setNewAreaForm] = useState({ name_he: "", name_en: "", name_ar: "", slug: "" });
+  const [newAreaSlugTouched, setNewAreaSlugTouched] = useState(false);
+  const [creatingArea, setCreatingArea] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -396,6 +407,42 @@ export default function PageSettingsPage() {
 
   const set = (k: keyof PageOverrides, v: string) =>
     setOverrides((prev) => ({ ...prev, [k]: v }));
+
+  const toSlug = (text: string): string =>
+    text.trim().toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-");
+
+  const handleCreateArea = async () => {
+    const name = newAreaForm.name_he.trim();
+    const slug = newAreaForm.slug.trim();
+    if (!name) { showToast("שם בעברית הוא שדה חובה", false); return; }
+    if (!slug) { showToast("Slug הוא שדה חובה", false); return; }
+    setCreatingArea(true);
+    const { data, error } = await supabase
+      .from("interest_areas")
+      .insert({
+        name_he: name,
+        name_en: newAreaForm.name_en.trim() || null,
+        name_ar: newAreaForm.name_ar.trim() || null,
+        slug,
+        sort_order: interestAreas.length,
+        is_active: true,
+      })
+      .select()
+      .single();
+    setCreatingArea(false);
+    if (error) {
+      showToast(error.message.includes("unique") ? "Slug כבר קיים" : "שגיאה ביצירה", false);
+      return;
+    }
+    if (data) {
+      setInterestAreas((prev) => [...prev, data as InterestArea]);
+      setSelectedAreaIds((prev) => [...prev, (data as InterestArea).id]);
+    }
+    setIsCreateAreaOpen(false);
+    setNewAreaForm({ name_he: "", name_en: "", name_ar: "", slug: "" });
+    setNewAreaSlugTouched(false);
+    showToast("תחום עניין נוצר ושויך");
+  };
 
   // Load global settings + page overrides
   const load = useCallback(async () => {
@@ -769,13 +816,29 @@ export default function PageSettingsPage() {
                       type="button"
                       onClick={() => {
                         setSelectedAreaIds((prev) => [...prev, area.id]);
-                        setAreaSearch("");
                       }}
                       className="px-3 py-1.5 rounded-full text-sm font-medium border bg-white border-gray-200 text-gray-600 hover:border-[#B8D900] hover:text-[#5a7000] hover:bg-[#B8D900]/10 transition-all"
                     >
                       + {area.name_he}
                     </button>
                   ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewAreaForm({
+                      name_he: areaSearch.trim(),
+                      name_en: "",
+                      name_ar: "",
+                      slug: areaSearch.trim() ? toSlug(areaSearch.trim()) : "",
+                    });
+                    setNewAreaSlugTouched(false);
+                    setIsCreateAreaOpen(true);
+                  }}
+                  className="px-3 py-1.5 rounded-full text-sm font-medium border border-dashed bg-white border-[#B8D900] text-[#5a7000] hover:bg-[#B8D900]/10 transition-all inline-flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  צור תחום חדש{areaSearch.trim() ? `: "${areaSearch.trim()}"` : ""}
+                </button>
               </div>
             </>
           )}
@@ -890,6 +953,83 @@ export default function PageSettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Inline create-interest-area dialog */}
+      <Dialog open={isCreateAreaOpen} onOpenChange={setIsCreateAreaOpen}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tag className="w-5 h-5 text-[#B8D900]" />
+              תחום עניין חדש
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label>שם בעברית *</Label>
+              <Input
+                value={newAreaForm.name_he}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setNewAreaForm((prev) => ({
+                    ...prev,
+                    name_he: value,
+                    slug: newAreaSlugTouched ? prev.slug : toSlug(value),
+                  }));
+                }}
+                placeholder="למשל: משפטים"
+                dir="rtl"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>שם באנגלית</Label>
+              <Input
+                value={newAreaForm.name_en}
+                onChange={(e) => setNewAreaForm((prev) => ({ ...prev, name_en: e.target.value }))}
+                placeholder="e.g. Law"
+                dir="ltr"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>שם בערבית</Label>
+              <Input
+                value={newAreaForm.name_ar}
+                onChange={(e) => setNewAreaForm((prev) => ({ ...prev, name_ar: e.target.value }))}
+                placeholder="القانون"
+                dir="rtl"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Slug *</Label>
+              <Input
+                value={newAreaForm.slug}
+                onChange={(e) => {
+                  setNewAreaSlugTouched(true);
+                  setNewAreaForm((prev) => ({ ...prev, slug: toSlug(e.target.value) }));
+                }}
+                placeholder="law"
+                dir="ltr"
+                className="mt-1 font-mono text-sm"
+              />
+              <p className="text-xs text-gray-400 mt-1">נוצר אוטומטית משם בעברית</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsCreateAreaOpen(false)} disabled={creatingArea}>
+              ביטול
+            </Button>
+            <Button
+              onClick={handleCreateArea}
+              disabled={creatingArea}
+              className="bg-[#B8D900] hover:bg-[#a5c400] text-[#2a2628]"
+            >
+              {creatingArea ? <Loader2 className="w-4 h-4 animate-spin" /> : "צור ושייך"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
